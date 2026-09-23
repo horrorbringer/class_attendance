@@ -248,6 +248,9 @@ class _TeacherLiveFeedScreenState extends ConsumerState<TeacherLiveFeedScreen>
       color: AppTheme.primary,
       backgroundColor: AppTheme.surface,
       child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(
+          parent: ClampingScrollPhysics(),
+        ),
         padding: const EdgeInsets.all(16),
         children: [
           // Stat Counters Grid
@@ -425,7 +428,20 @@ class _TeacherLiveFeedScreenState extends ConsumerState<TeacherLiveFeedScreen>
     }
 
     if (_rosterList.isEmpty) {
-      return const Center(child: Text('No students in class roster.'));
+      return RefreshIndicator(
+        onRefresh: _fetchRoster,
+        color: AppTheme.primary,
+        backgroundColor: AppTheme.surface,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(
+            parent: ClampingScrollPhysics(),
+          ),
+          children: const [
+            SizedBox(height: 120),
+            Center(child: Text('No students in class roster.\nPull down to refresh.', textAlign: TextAlign.center)),
+          ],
+        ),
+      );
     }
 
     return RefreshIndicator(
@@ -433,6 +449,9 @@ class _TeacherLiveFeedScreenState extends ConsumerState<TeacherLiveFeedScreen>
       color: AppTheme.primary,
       backgroundColor: AppTheme.surface,
       child: ListView.separated(
+        physics: const AlwaysScrollableScrollPhysics(
+          parent: ClampingScrollPhysics(),
+        ),
         padding: const EdgeInsets.all(16),
         itemCount: _rosterList.length,
         separatorBuilder: (_, _) => const SizedBox(height: 10),

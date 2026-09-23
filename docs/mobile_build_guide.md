@@ -3,9 +3,7 @@
 **Target Applications:** Smart Attendance Student & Teacher Companion Apps  
 **Supported Platforms:** Android (minSdkVersion 24 / Android 7.0+) & iOS (iOS 14.0+)  
 **Framework Version:** Flutter 3.22+ / Dart 3.4+  
-**Backend API Root:** `https://student-attendance.vanny.monster/api`  
-**Interactive API Docs (Swagger):** `https://student-attendance.vanny.monster/api/docs/`  
-**OpenAPI 3.0 Schema:** `https://student-attendance.vanny.monster/api/schema/`
+**Backend API Version:** `v1` (`/api/`)
 
 ---
 
@@ -199,34 +197,31 @@ lib/
 
 ## 5. Network Architecture & Base URL Resolution
 
-The application is configured to connect directly to the live cloud backend by default:
+Android emulators, iOS simulators, and real physical devices resolve local developer machines differently:
 
 ### `lib/core/config/api_constants.dart`
 ```dart
+import 'dart:io';
+
 class ApiConstants {
-  // Live Cloud Production Backend
-  static const String baseUrl = "https://student-attendance.vanny.monster/api";
+  static String get baseUrl {
+    // 1. Android Emulator loopback
+    if (Platform.isAndroid) {
+      return "http://10.0.2.2:8000/api";
+    }
+    // 2. iOS Simulator loopback
+    if (Platform.isIOS) {
+      return "http://127.0.0.1:8000/api";
+    }
+    // 3. Physical Device over Wi-Fi (Change to your LAN IP)
+    return "http://192.168.1.100:8000/api";
+  }
 
   // Auth
   static const String login = "/auth/login/";
   static const String logout = "/auth/logout/";
-  static const String changePassword = "/auth/change-password/";
-
-  // Student
   static const String profile = "/students/me/";
   static const String scheduleToday = "/students/schedule/today/";
-  static const String attendanceHistory = "/attendance/history/";
-  static const String checkinQr = "/attendance/checkin/qr/";
-  static const String checkinFace = "/attendance/checkin/face/";
-  static const String faceEnroll = "/face/enroll/";
-
-  // Teacher
-  static const String teacherClasses = "/teacher/classes/today/";
-  static String teacherLiveFeed(int sessionId) => "/teacher/sessions/$sessionId/live-feed/";
-  static String teacherDynamicQr(int sessionId) => "/teacher/sessions/$sessionId/qr/dynamic/";
-  static String endSession(int sessionId) => "/teacher/sessions/$sessionId/end/";
-}
-```
 
   // Attendance
   static const String checkinQr = "/attendance/checkin/qr/";

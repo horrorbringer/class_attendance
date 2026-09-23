@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_theme.dart';
 import '../controllers/auth_controller.dart';
 
@@ -16,6 +17,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _obscurePassword = true;
+  bool _isTeacherPortal = false;
 
   @override
   void dispose() {
@@ -56,6 +58,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final authState = ref.watch(authProvider);
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF7F9FD),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -66,77 +69,395 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // App Brand Logo & Title
+                  // Portal Role Selector Pill
                   Center(
                     child: Container(
-                      width: 80,
-                      height: 80,
+                      padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [AppTheme.primary, AppTheme.secondary],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(24),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppTheme.primary.withAlpha(80),
-                            blurRadius: 20,
-                            offset: const Offset(0, 8),
+                        color: const Color(0xFFE8EEF6),
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _isTeacherPortal = false;
+                                _usernameController.clear();
+                                _passwordController.clear();
+                              });
+                            },
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: !_isTeacherPortal ? Colors.white : Colors.transparent,
+                                borderRadius: BorderRadius.circular(24),
+                                boxShadow: !_isTeacherPortal
+                                    ? [
+                                        BoxShadow(
+                                          color: Colors.black.withValues(alpha: 0.08),
+                                          blurRadius: 8,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ]
+                                    : null,
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.school_outlined,
+                                    size: 16,
+                                    color: !_isTeacherPortal ? const Color(0xFF10213E) : const Color(0xFF6B7C93),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'Student',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 13,
+                                      fontWeight: !_isTeacherPortal ? FontWeight.bold : FontWeight.w500,
+                                      color: !_isTeacherPortal ? const Color(0xFF10213E) : const Color(0xFF6B7C93),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _isTeacherPortal = true;
+                                _usernameController.clear();
+                                _passwordController.clear();
+                              });
+                            },
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: _isTeacherPortal ? const Color(0xFF1B2A4A) : Colors.transparent,
+                                borderRadius: BorderRadius.circular(24),
+                                boxShadow: _isTeacherPortal
+                                    ? [
+                                        BoxShadow(
+                                          color: const Color(0xFF1B2A4A).withValues(alpha: 0.2),
+                                          blurRadius: 8,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ]
+                                    : null,
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.workspace_premium_rounded,
+                                    size: 16,
+                                    color: _isTeacherPortal ? Colors.white : const Color(0xFF6B7C93),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'Teacher Portal',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 13,
+                                      fontWeight: _isTeacherPortal ? FontWeight.bold : FontWeight.w500,
+                                      color: _isTeacherPortal ? Colors.white : const Color(0xFF6B7C93),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
                         ],
                       ),
-                      child: const Icon(
-                        Icons.qr_code_scanner_rounded,
-                        size: 42,
-                        color: Colors.black87,
-                      ),
                     ),
-                  ).animate().scale(duration: 400.ms, curve: Curves.easeOutBack),
+                  ),
 
                   const SizedBox(height: 24),
 
+                  // Emblem: Soft rounded square matching teacher-login.png OR circle for student
+                  Center(
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 250),
+                      width: 72,
+                      height: 72,
+                      decoration: BoxDecoration(
+                        color: _isTeacherPortal ? const Color(0xFFE8F0FE) : const Color(0xFFE5EEF8),
+                        borderRadius: _isTeacherPortal ? BorderRadius.circular(22) : BorderRadius.circular(36),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF1E355B).withValues(alpha: 0.1),
+                            blurRadius: 16,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Center(
+                        child: Icon(
+                          _isTeacherPortal ? Icons.school_outlined : Icons.account_balance_outlined,
+                          size: 34,
+                          color: const Color(0xFF1B2A4A),
+                        ),
+                      ),
+                    ),
+                  ).animate().scale(duration: 350.ms, curve: Curves.easeOutBack),
+
+                  const SizedBox(height: 18),
+
+                  // Title "Smart Attendance"
                   Center(
                     child: Text(
                       'Smart Attendance',
-                      style: Theme.of(context).textTheme.headlineMedium,
+                      style: GoogleFonts.outfit(
+                        fontSize: 26,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF10213E),
+                        letterSpacing: -0.5,
+                      ),
                     ),
                   ).animate().fadeIn(delay: 150.ms),
 
                   const SizedBox(height: 6),
 
+                  // Subtitle: "Teacher Portal — Academic Admin" matching teacher-login.png
                   Center(
                     child: Text(
-                      'Student & Teacher Biometric Portal',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: AppTheme.textSecondary,
-                          ),
+                      _isTeacherPortal ? 'Teacher Portal — Academic Admin' : 'Sign in with your Academic Account',
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w400,
+                        color: const Color(0xFF5C6E84),
+                      ),
                     ),
                   ).animate().fadeIn(delay: 200.ms),
 
-                  const SizedBox(height: 36),
+                  const SizedBox(height: 28),
+
+                  // White Form Card
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF0F1E38).withValues(alpha: 0.06),
+                          blurRadius: 24,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // Label 1
+                        Text(
+                          _isTeacherPortal ? 'Teacher Email or Staff ID' : 'Email or Student ID',
+                          style: GoogleFonts.inter(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF10213E),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+
+                        // Username / Email input
+                        TextFormField(
+                          controller: _usernameController,
+                          style: GoogleFonts.inter(
+                            color: const Color(0xFF10213E),
+                            fontSize: 14,
+                          ),
+                          decoration: InputDecoration(
+                            filled: true,
+                            fillColor: const Color(0xFFF8FAFC),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+                            hintText: _isTeacherPortal ? 'emily.okonkwo@school.edu' : 'student_dara or ID',
+                            hintStyle: GoogleFonts.inter(color: const Color(0xFF94A3B8), fontSize: 14),
+                            prefixIcon: const Icon(Icons.mail_outline_rounded, color: Color(0xFF8C9BAE), size: 20),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                            ),
+                          ),
+                          validator: (v) => (v == null || v.trim().isEmpty) ? 'Please enter your username or ID' : null,
+                        ),
+
+                        const SizedBox(height: 18),
+
+                        // Label 2: Password
+                        Text(
+                          'Password',
+                          style: GoogleFonts.inter(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF10213E),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+
+                        // Password field with Key prefix icon matching teacher-login.png
+                        TextFormField(
+                          controller: _passwordController,
+                          obscureText: _obscurePassword,
+                          style: GoogleFonts.inter(
+                            color: const Color(0xFF10213E),
+                            fontSize: 14,
+                          ),
+                          decoration: InputDecoration(
+                            filled: true,
+                            fillColor: const Color(0xFFF8FAFC),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+                            hintText: '•••••••••••••',
+                            hintStyle: GoogleFonts.inter(color: const Color(0xFF94A3B8), fontSize: 14),
+                            prefixIcon: Icon(
+                              _isTeacherPortal ? Icons.key_outlined : Icons.lock_outline_rounded,
+                              color: const Color(0xFF8C9BAE),
+                              size: 20,
+                            ),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                                color: const Color(0xFF8C9BAE),
+                                size: 20,
+                              ),
+                              onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                            ),
+                          ),
+                          validator: (v) => (v == null || v.trim().isEmpty) ? 'Please enter your password' : null,
+                        ),
+
+                        const SizedBox(height: 12),
+
+                        // "Forgot Password?" right aligned matching teacher-login.png
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton(
+                            style: TextButton.styleFrom(
+                              padding: EdgeInsets.zero,
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                            onPressed: () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Please contact your department administrator to reset credentials.'),
+                                  behavior: SnackBarBehavior.floating,
+                                ),
+                              );
+                            },
+                            child: Text(
+                              'Forgot Password?',
+                              style: GoogleFonts.inter(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF2563EB),
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 24),
+
+                        // Action Button matching teacher-login.png: "Login as Teacher"
+                        SizedBox(
+                          height: 52,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF1B2A4A),
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                            onPressed: authState.isLoading ? null : _submit,
+                            child: authState.isLoading
+                                ? const SizedBox(
+                                    width: 22,
+                                    height: 22,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.5,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : Text(
+                                    _isTeacherPortal ? 'Login as Teacher' : 'Login',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // "Verify Staff Biometrics" action matching teacher-login.png
+                        if (_isTeacherPortal) ...[
+                          Center(
+                            child: TextButton.icon(
+                              onPressed: () {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Staff biometric sensor ready. Tap a quick test account or enter credentials.'),
+                                    behavior: SnackBarBehavior.floating,
+                                  ),
+                                );
+                              },
+                              icon: const Icon(Icons.fingerprint_rounded, color: Color(0xFF2563EB), size: 20),
+                              label: Text(
+                                'Verify Staff Biometrics',
+                                style: GoogleFonts.inter(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: const Color(0xFF2563EB),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ).animate().fadeIn(delay: 250.ms),
+
+                  const SizedBox(height: 20),
 
                   // Quick Demo Autofill section
                   Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: AppTheme.surfaceLight.withAlpha(120),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: AppTheme.surfaceBorder),
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFE2EAF4)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
                           children: [
-                            const Icon(Icons.flash_on_rounded, size: 16, color: AppTheme.primary),
+                            const Icon(Icons.flash_on_rounded, size: 16, color: Color(0xFF3B82F6)),
                             const SizedBox(width: 6),
                             Text(
-                              'Quick Demo Accounts',
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                    color: AppTheme.primary,
-                                  ),
+                              _isTeacherPortal ? 'Quick Teacher Accounts' : 'Quick Student Accounts',
+                              style: GoogleFonts.inter(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFF1A3258),
+                              ),
                             ),
                           ],
                         ),
@@ -144,78 +465,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         Wrap(
                           spacing: 8,
                           runSpacing: 8,
-                          children: [
-                            _buildDemoChip('🎓 Student: Dara', 'student_dara', 'StudentPassword123!'),
-                            _buildDemoChip('🎓 Student: Bopha', 'student_bopha', 'StudentPassword123!'),
-                            _buildDemoChip('👨‍🏫 Teacher: Sokha', 'teacher_sokha', 'TeacherPassword123!'),
-                            _buildDemoChip('👩‍🏫 Teacher: Vanny', 'teacher_vanny', 'TeacherPassword123!'),
-                          ],
+                          children: _isTeacherPortal
+                              ? [
+                                  _buildDemoChip('👨‍🏫 Dr. Sokha (Teacher)', 'teacher_sokha', 'TeacherPassword123!'),
+                                  _buildDemoChip('👩‍🏫 Dr. Vanny (Teacher)', 'teacher_vanny', 'TeacherPassword123!'),
+                                ]
+                              : [
+                                  _buildDemoChip('🎓 Dara (Student)', 'student_dara', 'StudentPassword123!'),
+                                  _buildDemoChip('🎓 Bopha (Student)', 'student_bopha', 'StudentPassword123!'),
+                                ],
                         ),
                       ],
                     ),
-                  ).animate().fadeIn(delay: 250.ms),
+                  ).animate().fadeIn(delay: 300.ms),
 
-                  const SizedBox(height: 24),
-
-                  // Username Input
-                  TextFormField(
-                    controller: _usernameController,
-                    style: const TextStyle(color: AppTheme.textPrimary),
-                    decoration: const InputDecoration(
-                      labelText: 'Username',
-                      prefixIcon: Icon(Icons.person_outline_rounded, color: AppTheme.textSecondary),
-                      hintText: 'Enter username (e.g. student_dara)',
-                    ),
-                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Please enter your username' : null,
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // Password Input
-                  TextFormField(
-                    controller: _passwordController,
-                    obscureText: _obscurePassword,
-                    style: const TextStyle(color: AppTheme.textPrimary),
-                    decoration: InputDecoration(
-                      labelText: 'Password',
-                      prefixIcon: const Icon(Icons.lock_outline_rounded, color: AppTheme.textSecondary),
-                      hintText: 'Enter your password',
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                          color: AppTheme.textSecondary,
-                        ),
-                        onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                      ),
-                    ),
-                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Please enter your password' : null,
-                  ),
-
-                  const SizedBox(height: 28),
-
-                  // Sign In Button
-                  ElevatedButton(
-                    onPressed: authState.isLoading ? null : _submit,
-                    child: authState.isLoading
-                        ? const SizedBox(
-                            width: 22,
-                            height: 22,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2.5,
-                              color: Colors.black87,
-                            ),
-                          )
-                        : const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text('Sign In'),
-                              SizedBox(width: 8),
-                              Icon(Icons.arrow_forward_rounded, size: 18),
-                            ],
-                          ),
-                  ),
-
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 20),
 
                   // Cloud connection indicator
                   Center(
@@ -232,11 +496,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          'Connected: student-attendance.vanny.monster',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                fontSize: 11,
-                                color: AppTheme.textMuted,
-                              ),
+                          'Connected to student-attendance.vanny.monster',
+                          style: GoogleFonts.inter(
+                            fontSize: 11,
+                            color: const Color(0xFF8092A8),
+                          ),
                         ),
                       ],
                     ),
@@ -252,9 +516,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   Widget _buildDemoChip(String label, String username, String password) {
     return ActionChip(
-      backgroundColor: AppTheme.surface,
-      side: const BorderSide(color: AppTheme.surfaceBorder),
-      label: Text(label, style: const TextStyle(fontSize: 12, color: AppTheme.textPrimary)),
+      backgroundColor: const Color(0xFFF1F5FB),
+      side: const BorderSide(color: Color(0xFFDCE6F3)),
+      label: Text(
+        label,
+        style: GoogleFonts.inter(
+          fontSize: 11.5,
+          fontWeight: FontWeight.w500,
+          color: const Color(0xFF1D3557),
+        ),
+      ),
       onPressed: () => _fillCredentials(username, password),
     );
   }

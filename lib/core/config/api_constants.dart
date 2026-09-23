@@ -1,6 +1,29 @@
+import 'dart:io';
+
 class ApiConstants {
-  // Live Production Backend Root
-  static const String baseUrl = 'https://student-attendance.vanny.monster/api';
+  // Set to true to connect to the live cloud backend, or false for local development
+  static const bool useCloudBackend = true;
+
+  // 1. Live Cloud Production Backend Root
+  static const String cloudBaseUrl = 'https://student-attendance.vanny.monster/api';
+
+  // 2. Dynamic Base URL Resolution (supports Cloud, Android Emulator, iOS Simulator, LAN IP)
+  static String get baseUrl {
+    if (useCloudBackend) {
+      return cloudBaseUrl;
+    }
+
+    // Android Emulator loopback
+    if (Platform.isAndroid) {
+      return "http://10.0.2.2:8000/api";
+    }
+    // iOS Simulator loopback
+    if (Platform.isIOS) {
+      return "http://127.0.0.1:8000/api";
+    }
+    // Physical Device over Wi-Fi (Change to your LAN IP)
+    return "http://192.168.1.100:8000/api";
+  }
 
   // System
   static const String health = '/health/';

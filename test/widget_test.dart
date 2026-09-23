@@ -10,7 +10,10 @@ void main() {
       ),
     );
 
-    // Initial pump should render AuthGate
+    // Initial pump should render SmartAttendanceApp and SplashScreen
     expect(find.byType(SmartAttendanceApp), findsOneWidget);
+
+    // Fast-forward animation timers to settle the splash sequence
+    await tester.pump(const Duration(seconds: 2));
   });
 }
