@@ -8,6 +8,7 @@ import '../../../core/network/api_client.dart';
 import '../../attendance/models/attendance_models.dart';
 import '../../auth/controllers/auth_controller.dart';
 import 'teacher_create_session_sheet.dart';
+import 'teacher_home_screen.dart';
 import 'teacher_profile_screen.dart';
 import 'teacher_reports_screen.dart';
 import 'teacher_session_detail_screen.dart';
@@ -416,7 +417,14 @@ class _TeacherClassesScreenState extends ConsumerState<TeacherClassesScreen> {
           currentIndex: 1, // Classes is active
           onTap: (index) {
             if (index == 0) {
-              _fetchTodayClasses();
+              if (Navigator.canPop(context)) {
+                Navigator.pop(context);
+              } else {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (_) => const TeacherHomeScreen()),
+                );
+              }
             } else if (index == 2) {
               Navigator.push(
                 context,

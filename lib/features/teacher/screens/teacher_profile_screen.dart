@@ -6,6 +6,7 @@ import '../../../core/config/api_constants.dart';
 import '../../../core/network/api_client.dart';
 import '../../auth/controllers/auth_controller.dart';
 import 'teacher_classes_screen.dart';
+import 'teacher_home_screen.dart';
 import 'teacher_reports_screen.dart';
 
 class TeacherProfileScreen extends ConsumerStatefulWidget {
@@ -33,7 +34,12 @@ class _TeacherProfileScreenState extends ConsumerState<TeacherProfileScreen> {
   ];
 
   void _onBottomNavTapped(int index) {
-    if (index == 0 || index == 1) {
+    if (index == 0) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const TeacherHomeScreen()),
+      );
+    } else if (index == 1) {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const TeacherClassesScreen()),

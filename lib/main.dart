@@ -8,7 +8,7 @@ import 'features/auth/controllers/auth_controller.dart';
 import 'features/auth/screens/login_screen.dart';
 import 'features/splash/screens/splash_screen.dart';
 import 'features/student/screens/student_dashboard_screen.dart';
-import 'features/teacher/screens/teacher_classes_screen.dart';
+import 'features/teacher/screens/teacher_home_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -151,7 +151,7 @@ class _AuthGateState extends ConsumerState<AuthGate> {
     }
 
     if (authState.isTeacher) {
-      return const TeacherClassesScreen(key: ValueKey('TeacherScreen'));
+      return const TeacherHomeScreen(key: ValueKey('TeacherScreen'));
     }
 
     return const StudentDashboardScreen(key: ValueKey('StudentScreen'));
