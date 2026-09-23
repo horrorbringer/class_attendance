@@ -8,6 +8,7 @@ import '../../../core/network/api_client.dart';
 import '../../attendance/models/attendance_models.dart';
 import '../../auth/controllers/auth_controller.dart';
 import 'teacher_dynamic_qr_screen.dart';
+import 'teacher_profile_screen.dart';
 import 'teacher_reports_screen.dart';
 import 'teacher_session_detail_screen.dart';
 
@@ -163,6 +164,18 @@ class _TeacherClassesScreenState extends ConsumerState<TeacherClassesScreen> {
                     ),
                   );
                 }
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.person_outline_rounded, color: Color(0xFF1B2A4A)),
+              title: Text('Profile & Settings', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+              trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+              onTap: () {
+                Navigator.pop(ctx);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const TeacherProfileScreen()),
+                );
               },
             ),
             ListTile(

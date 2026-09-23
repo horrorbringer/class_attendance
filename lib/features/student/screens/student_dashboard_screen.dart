@@ -25,6 +25,15 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
   List<StudentScheduleSession> _todaySchedule = [];
   int _selectedTabIndex = 0;
 
+  // Report stats from GET /api/reports/student/<id>/
+  double _attendanceRate = 0;
+  int _reportPresent = 0;
+  int _reportLate = 0;
+  int _reportAbsent = 0;
+  int _totalSessions = 0;
+  bool _hasReportData = false;
+  bool _hasShownFacePrompt = false;
+
   @override
   void initState() {
     super.initState();
@@ -40,6 +49,27 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
       final schedResponse = await dio.get(ApiConstants.studentScheduleToday);
       final schedList = schedResponse.data as List<dynamic>;
 
+      // Fetch student attendance report for accurate stats
+      final profile = ref.read(authProvider).studentProfile;
+      if (profile != null) {
+        try {
+          final reportRes = await dio.get(ApiConstants.studentReport(profile.id));
+          final reportData = reportRes.data as Map<String, dynamic>;
+          if (mounted) {
+            setState(() {
+              _attendanceRate = (reportData['attendance_rate'] as num?)?.toDouble() ?? 0;
+              _reportPresent = reportData['present_count'] as int? ?? 0;
+              _reportLate = reportData['late_count'] as int? ?? 0;
+              _reportAbsent = reportData['absent_count'] as int? ?? 0;
+              _totalSessions = reportData['total_recorded_sessions'] as int? ?? 0;
+              _hasReportData = true;
+            });
+          }
+        } catch (_) {
+          // Report fetch can fail silently — use schedule-derived stats
+        }
+      }
+
       if (mounted) {
         setState(() {
           _todaySchedule = schedList
@@ -47,12 +77,112 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
               .toList();
           _isLoading = false;
         });
+
+        // Flow 0: Soft-prompt face enrollment if never enrolled
+        final profileNow = ref.read(authProvider).studentProfile;
+        if (!_hasShownFacePrompt &&
+            profileNow != null &&
+            profileNow.faceEmbeddingsCount == 0) {
+          _hasShownFacePrompt = true;
+          Future.delayed(const Duration(milliseconds: 600), () {
+            if (mounted) _showFaceEnrollmentPrompt();
+          });
+        }
       }
     } catch (_) {
       if (mounted) {
         setState(() => _isLoading = false);
       }
     }
+  }
+
+  /// Bottom sheet soft-prompt for first-time face enrollment
+  /// Per API Guide Flow 0: "If face_embeddings_count == 0 → Present Soft-Prompt"
+  void _showFaceEnrollmentPrompt() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40, height: 4,
+              decoration: BoxDecoration(
+                color: const Color(0xFFDCE4F0),
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Container(
+              width: 72, height: 72,
+              decoration: BoxDecoration(
+                color: const Color(0xFFEBF3FE),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.face_retouching_natural_rounded, size: 38, color: Color(0xFF3B82F6)),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Set Up Face Check-in',
+              style: GoogleFonts.outfit(
+                fontSize: 20, fontWeight: FontWeight.bold,
+                color: const Color(0xFF10213E),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Enroll your face to enable instant biometric attendance. It takes less than 30 seconds.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.inter(
+                fontSize: 14, color: const Color(0xFF5C6E84), height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity, height: 52,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1A3258),
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const FaceEnrollmentScreen()),
+                  ).then((_) => _loadDashboardData());
+                },
+                icon: const Icon(Icons.camera_alt_rounded, size: 20),
+                label: Text(
+                  'Enroll My Face Now',
+                  style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(
+                'Maybe Later',
+                style: GoogleFonts.inter(
+                  fontSize: 14, fontWeight: FontWeight.w500,
+                  color: const Color(0xFF6B7C93),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _openQrScanner() async {
@@ -262,14 +392,14 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
 
                 const SizedBox(height: 22),
 
-                // Top 3 Stat Cards matching docs/ui/04 — Home Dashboard.png
+                // Top 3 Stat Cards — uses backend report if available, else schedule-derived
                 Row(
                   children: [
                     Expanded(
                       child: _buildMetricCard(
-                        title: 'TODAY',
-                        value: '$totalClasses',
-                        subtitle: 'Classes',
+                        title: _hasReportData ? 'TOTAL' : 'TODAY',
+                        value: _hasReportData ? '$_totalSessions' : '$totalClasses',
+                        subtitle: _hasReportData ? 'Sessions' : 'Classes',
                         color: const Color(0xFF10213E),
                       ),
                     ),
@@ -277,18 +407,18 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
                     Expanded(
                       child: _buildMetricCard(
                         title: 'PRESENT',
-                        value: '$presentCount',
-                        subtitle: 'Checked-in',
+                        value: _hasReportData ? '$_reportPresent' : '$presentCount',
+                        subtitle: _hasReportData ? '${_attendanceRate.toStringAsFixed(1)}%' : 'Checked-in',
                         color: const Color(0xFF10B981),
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: _buildMetricCard(
-                        title: 'PENDING',
-                        value: '$pendingCount',
-                        subtitle: 'Remaining',
-                        color: const Color(0xFFF59E0B),
+                        title: _hasReportData ? 'ABSENT' : 'PENDING',
+                        value: _hasReportData ? '$_reportAbsent' : '$pendingCount',
+                        subtitle: _hasReportData ? '$_reportLate late' : 'Remaining',
+                        color: _hasReportData ? const Color(0xFFEF4444) : const Color(0xFFF59E0B),
                       ),
                     ),
                   ],

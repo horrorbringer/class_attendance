@@ -57,4 +57,5 @@ class ApiConstants {
   // Reports
   static String classReport(int classId) => '/reports/class/$classId/';
   static String studentReport(int studentId) => '/reports/student/$studentId/';
+  static String exportCsv(int classId) => '/reports/class/$classId/export-csv/';
 }

@@ -113,8 +113,54 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     try {
       final dio = ref.read(dioProvider);
       final List<NotificationItem> fetched = [];
+      final Set<String> seenIds = {};
 
-      // Check live attendance history for any real absent or late sessions
+      // 1. Fetch dedicated alerts from GET /api/alerts/mine/
+      //    Returns Telegram/Email alert metadata (channel, sent_at, error_message)
+      try {
+        final alertsRes = await dio.get(ApiConstants.studentAlerts);
+        if (alertsRes.data is List) {
+          final alertsList = alertsRes.data as List<dynamic>;
+          for (final raw in alertsList) {
+            final m = raw as Map<String, dynamic>;
+            final alertId = 'alert_${m['id']}';
+            final sessionName = m['session_name']?.toString() ?? 'Class Session';
+            final sessionDate = m['session_date']?.toString() ?? '';
+            final channel = m['channel']?.toString() ?? '';
+            final sentAt = m['sent_at']?.toString() ?? 'Recent';
+            final status = m['status']?.toString() ?? '';
+            final errorMsg = m['error_message']?.toString() ?? '';
+
+            seenIds.add(alertId);
+
+            String channelLabel = channel == 'telegram' ? 'Telegram' : (channel == 'email' ? 'Email' : 'System');
+            String failureInfo = status == 'sent'
+                ? 'Guardian notified via $channelLabel'
+                : (errorMsg.isNotEmpty ? 'Delivery failed: $errorMsg' : 'Alert pending delivery');
+
+            fetched.add(
+              NotificationItem(
+                id: alertId,
+                title: 'Absence Alert',
+                subtitle: 'You were marked absent in $sessionName',
+                timestamp: sentAt,
+                category: AlertCategory.absences,
+                hasLeftAccent: true,
+                isUnread: true,
+                courseName: sessionName,
+                date: sessionDate,
+                scheduleTime: 'Class Session',
+                location: 'Assigned Campus Room',
+                professor: 'Class Faculty Instructor',
+                failureReason: failureInfo,
+                guardianAlertTime: sentAt,
+              ),
+            );
+          }
+        }
+      } catch (_) {}
+
+      // 2. Also check attendance history for any absent/late records not covered by alerts
       try {
         final historyRes = await dio.get(ApiConstants.attendanceHistory);
         if (historyRes.data is List) {
@@ -124,11 +170,16 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
             final status = (m['status'] ?? '').toString().toLowerCase();
             final className = m['class_room_name'] ?? m['classroom_name'] ?? 'Classroom Session';
             final checkedInAt = m['checked_in_at']?.toString() ?? 'Recent';
+            final recordId = 'live_${status}_${m['id']}';
+
+            // Skip if we already have an alert for this
+            if (seenIds.contains(recordId)) continue;
 
             if (status == 'absent') {
+              seenIds.add(recordId);
               fetched.add(
                 NotificationItem(
-                  id: 'live_abs_${m['id']}',
+                  id: recordId,
                   title: 'Absence Alert',
                   subtitle: 'You were marked absent in $className',
                   timestamp: checkedInAt,
@@ -141,13 +192,14 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                   location: 'Assigned Campus Room',
                   professor: 'Class Faculty Instructor',
                   failureReason: 'No biometric or QR log recorded',
-                  guardianAlertTime: '9:15 AM',
+                  guardianAlertTime: '—',
                 ),
               );
             } else if (status == 'late') {
+              seenIds.add(recordId);
               fetched.add(
                 NotificationItem(
-                  id: 'live_late_${m['id']}',
+                  id: recordId,
                   title: 'Tardy Logged',
                   subtitle: 'You checked in late for $className',
                   timestamp: checkedInAt,
@@ -165,7 +217,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         }
       } catch (_) {}
 
-      // If we found live absent/late records, append the system update card
+      // 3. Append system update card if we have any real alerts
       if (fetched.isNotEmpty) {
         fetched.add(
           const NotificationItem(

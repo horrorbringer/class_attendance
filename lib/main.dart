@@ -1,6 +1,8 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'core/config/api_constants.dart';
+import 'core/network/api_client.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/controllers/auth_controller.dart';
 import 'features/auth/screens/login_screen.dart';
@@ -70,6 +72,24 @@ class AuthGate extends ConsumerStatefulWidget {
 
 class _AuthGateState extends ConsumerState<AuthGate> {
   bool _splashFinished = false;
+  bool _serverOffline = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkServerHealth();
+  }
+
+  /// Ping GET /api/health/ during splash to verify backend connectivity
+  Future<void> _checkServerHealth() async {
+    try {
+      final dio = ref.read(dioProvider);
+      await dio.get(ApiConstants.health);
+      if (mounted) setState(() => _serverOffline = false);
+    } catch (_) {
+      if (mounted) setState(() => _serverOffline = true);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -98,7 +118,31 @@ class _AuthGateState extends ConsumerState<AuthGate> {
     }
 
     if (!authState.isAuthenticated) {
-      return const LoginScreen(key: ValueKey('LoginScreen'));
+      return Stack(
+        children: [
+          const LoginScreen(key: ValueKey('LoginScreen')),
+          if (_serverOffline)
+            Positioned(
+              top: 0, left: 0, right: 0,
+              child: SafeArea(
+                child: MaterialBanner(
+                  backgroundColor: const Color(0xFFEF4444),
+                  content: const Text(
+                    'Server is unreachable. Please check your connection.',
+                    style: TextStyle(color: Colors.white, fontSize: 13),
+                  ),
+                  leading: const Icon(Icons.cloud_off_rounded, color: Colors.white),
+                  actions: [
+                    TextButton(
+                      onPressed: _checkServerHealth,
+                      child: const Text('RETRY', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      );
     }
 
     if (authState.isTeacher) {

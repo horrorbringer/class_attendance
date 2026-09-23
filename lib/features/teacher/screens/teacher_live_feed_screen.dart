@@ -23,7 +23,7 @@ class TeacherLiveFeedScreen extends ConsumerStatefulWidget {
 }
 
 class _TeacherLiveFeedScreenState extends ConsumerState<TeacherLiveFeedScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late TabController _tabController;
   Timer? _pollingTimer;
 
@@ -35,11 +35,34 @@ class _TeacherLiveFeedScreenState extends ConsumerState<TeacherLiveFeedScreen>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _tabController = TabController(length: 2, vsync: this);
     _fetchLiveFeed();
     _fetchRoster();
+    _startPolling();
+  }
 
-    // 3-second live feed polling
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _stopPolling();
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  /// Pause polling when app goes to background to prevent battery drain.
+  /// Resume polling when teacher returns to the app.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+      _stopPolling();
+    } else if (state == AppLifecycleState.resumed) {
+      _startPolling();
+    }
+  }
+
+  void _startPolling() {
+    _pollingTimer?.cancel();
     _pollingTimer = Timer.periodic(const Duration(seconds: 3), (_) {
       if (mounted) {
         _fetchLiveFeed();
@@ -47,11 +70,9 @@ class _TeacherLiveFeedScreenState extends ConsumerState<TeacherLiveFeedScreen>
     });
   }
 
-  @override
-  void dispose() {
+  void _stopPolling() {
     _pollingTimer?.cancel();
-    _tabController.dispose();
-    super.dispose();
+    _pollingTimer = null;
   }
 
   Future<void> _fetchLiveFeed() async {

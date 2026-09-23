@@ -19,11 +19,20 @@ class AttendanceHistoryScreen extends ConsumerStatefulWidget {
 
 class _AttendanceHistoryScreenState extends ConsumerState<AttendanceHistoryScreen> {
   bool _isLoading = true;
+  bool _isLoadingMore = false;
   String? _errorMessage;
   List<AttendanceRecord> _records = [];
 
   DateTime _focusedMonth = DateTime.now();
   DateTime? _selectedDate;
+
+  // Pagination state
+  static const int _pageSize = 20;
+  int _offset = 0;
+  bool _hasMore = true;
+
+  // Status filter: null = all, or 'present', 'late', 'absent'
+  String? _statusFilter;
 
   @override
   void initState() {
@@ -31,32 +40,81 @@ class _AttendanceHistoryScreenState extends ConsumerState<AttendanceHistoryScree
     _fetchHistory();
   }
 
-  Future<void> _fetchHistory() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+  Future<void> _fetchHistory({bool loadMore = false}) async {
+    if (loadMore) {
+      setState(() => _isLoadingMore = true);
+    } else {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+        _offset = 0;
+        _hasMore = true;
+        if (!loadMore) _records = [];
+      });
+    }
 
     try {
       final dio = ref.read(dioProvider);
-      final response = await dio.get(ApiConstants.attendanceHistory);
-      final list = response.data as List<dynamic>;
+
+      // Build query params with pagination + optional status filter
+      final Map<String, dynamic> queryParams = {
+        'limit': _pageSize,
+        'offset': loadMore ? _offset : 0,
+      };
+      if (_statusFilter != null) {
+        queryParams['status'] = _statusFilter;
+      }
+
+      final response = await dio.get(
+        ApiConstants.attendanceHistory,
+        queryParameters: queryParams,
+      );
+
+      // API returns paginated response: { count, next, previous, results }
+      List<dynamic> list;
+      if (response.data is Map && response.data['results'] != null) {
+        list = response.data['results'] as List<dynamic>;
+        final count = response.data['count'] as int? ?? 0;
+        _hasMore = (_offset + _pageSize) < count;
+      } else if (response.data is List) {
+        // Fallback for non-paginated response
+        list = response.data as List<dynamic>;
+        _hasMore = false;
+      } else {
+        list = [];
+        _hasMore = false;
+      }
+
+      final newRecords = list.map((e) => AttendanceRecord.fromJson(e as Map<String, dynamic>)).toList();
 
       setState(() {
-        _records = list.map((e) => AttendanceRecord.fromJson(e as Map<String, dynamic>)).toList();
+        if (loadMore) {
+          _records.addAll(newRecords);
+        } else {
+          _records = newRecords;
+        }
+        _offset = _records.length;
         _isLoading = false;
+        _isLoadingMore = false;
       });
     } on DioException catch (e) {
       setState(() {
         _errorMessage = e.message ?? 'Failed to load attendance history';
         _isLoading = false;
+        _isLoadingMore = false;
       });
     } catch (e) {
       setState(() {
         _errorMessage = e.toString();
         _isLoading = false;
+        _isLoadingMore = false;
       });
     }
+  }
+
+  void _onStatusFilterChanged(String? newFilter) {
+    setState(() => _statusFilter = newFilter);
+    _fetchHistory();
   }
 
   List<AttendanceRecord> get _filteredRecords {
@@ -272,7 +330,25 @@ class _AttendanceHistoryScreenState extends ConsumerState<AttendanceHistoryScree
                   ),
                 ),
 
-                const SizedBox(height: 26),
+                const SizedBox(height: 18),
+
+                // Status filter chips
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _buildFilterChip('All', null),
+                      const SizedBox(width: 8),
+                      _buildFilterChip('Present', 'present'),
+                      const SizedBox(width: 8),
+                      _buildFilterChip('Late', 'late'),
+                      const SizedBox(width: 8),
+                      _buildFilterChip('Absent', 'absent'),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 22),
 
                 // Recent Activity Header
                 Row(
@@ -355,6 +431,32 @@ class _AttendanceHistoryScreenState extends ConsumerState<AttendanceHistoryScree
                 else
                   ..._filteredRecords.map((record) => _buildActivityCard(record)),
 
+                // Load More button for pagination
+                if (!_isLoading && _hasMore && _filteredRecords.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: Center(
+                      child: _isLoadingMore
+                          ? const Padding(
+                              padding: EdgeInsets.all(16),
+                              child: CircularProgressIndicator(color: Color(0xFF1A3258), strokeWidth: 2.5),
+                            )
+                          : OutlinedButton(
+                              onPressed: () => _fetchHistory(loadMore: true),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: const Color(0xFF1A3258),
+                                side: const BorderSide(color: Color(0xFFD6E4F8)),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                              ),
+                              child: Text(
+                                'Load More',
+                                style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                    ),
+                  ),
+
                 const SizedBox(height: 24),
               ],
             ),
@@ -422,6 +524,53 @@ class _AttendanceHistoryScreenState extends ConsumerState<AttendanceHistoryScree
               label: 'Profile',
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFilterChip(String label, String? value) {
+    final isActive = _statusFilter == value;
+    Color chipBg;
+    Color chipText;
+
+    if (isActive) {
+      if (value == 'present') {
+        chipBg = const Color(0xFFD1FAE5);
+        chipText = const Color(0xFF059669);
+      } else if (value == 'late') {
+        chipBg = const Color(0xFFFEF3C7);
+        chipText = const Color(0xFFD97706);
+      } else if (value == 'absent') {
+        chipBg = const Color(0xFFFEE2E2);
+        chipText = const Color(0xFFDC2626);
+      } else {
+        chipBg = const Color(0xFF1A3258);
+        chipText = Colors.white;
+      }
+    } else {
+      chipBg = Colors.white;
+      chipText = const Color(0xFF5C6E84);
+    }
+
+    return GestureDetector(
+      onTap: () => _onStatusFilterChanged(value),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: chipBg,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isActive ? chipBg : const Color(0xFFE2EAF4),
+          ),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.inter(
+            fontSize: 12.5,
+            fontWeight: FontWeight.w600,
+            color: chipText,
+          ),
         ),
       ),
     );

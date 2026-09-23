@@ -1,6 +1,8 @@
+import 'dart:ui';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../config/api_constants.dart';
+import '../storage/secure_storage.dart';
 import 'auth_interceptor.dart';
 
 final dioProvider = Provider<Dio>((ref) {
@@ -18,10 +20,23 @@ final dioProvider = Provider<Dio>((ref) {
   dio.interceptors.add(
     AuthInterceptor(
       onUnauthorized: () {
-        // Can be used to trigger global logout state
+        // Clear stored session — the AuthGate in main.dart watches authProvider,
+        // so when restoreSession() runs next and finds no token, it routes to LoginScreen.
+        StorageService.clearSession();
+        // Trigger auth state re-evaluation by invalidating via the container
+        _onUnauthorizedCallback?.call();
       },
     ),
   );
 
   return dio;
 });
+
+/// Global callback set by AuthNotifier to force logout on 401.
+VoidCallback? _onUnauthorizedCallback;
+
+/// Register a callback to be called on 401 Unauthorized.
+/// AuthNotifier calls this during build() to wire itself up.
+void registerUnauthorizedCallback(VoidCallback callback) {
+  _onUnauthorizedCallback = callback;
+}

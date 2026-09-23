@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/config/api_constants.dart';
 import '../../../core/network/api_client.dart';
@@ -45,6 +46,16 @@ class AuthNotifier extends Notifier<AuthState> {
   @override
   AuthState build() {
     _dio = ref.watch(dioProvider);
+
+    // Wire up 401 Unauthorized handler so expired tokens
+    // trigger a full state reset → AuthGate routes to LoginScreen
+    registerUnauthorizedCallback(() {
+      if (state.isAuthenticated) {
+        debugPrint('[AuthNotifier] 401 detected — forcing logout');
+        state = AuthState(isLoading: false);
+      }
+    });
+
     Future.microtask(() => restoreSession());
     return AuthState(isLoading: true);
   }
