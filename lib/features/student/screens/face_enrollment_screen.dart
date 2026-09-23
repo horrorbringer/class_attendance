@@ -5,6 +5,7 @@ import 'package:camera/camera.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
@@ -126,6 +127,18 @@ class _FaceEnrollmentScreenState extends ConsumerState<FaceEnrollmentScreen>
     _initCamera();
   }
 
+  void _safeSetState(VoidCallback fn) {
+    if (!mounted) return;
+    if (SchedulerBinding.instance.schedulerPhase == SchedulerPhase.persistentCallbacks ||
+        SchedulerBinding.instance.schedulerPhase == SchedulerPhase.midFrameMicrotasks) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(fn);
+      });
+    } else {
+      setState(fn);
+    }
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     final CameraController? controller = _cameraController;
@@ -141,7 +154,7 @@ class _FaceEnrollmentScreenState extends ConsumerState<FaceEnrollmentScreen>
   }
 
   Future<void> _initCamera() async {
-    setState(() {
+    _safeSetState(() {
       _isCameraInitializing = true;
     });
 
@@ -181,7 +194,7 @@ class _FaceEnrollmentScreenState extends ConsumerState<FaceEnrollmentScreen>
         return;
       }
 
-      setState(() {
+      _safeSetState(() {
         _cameraController = controller;
         _isCameraInitialized = true;
         _isCameraInitializing = false;
@@ -192,7 +205,7 @@ class _FaceEnrollmentScreenState extends ConsumerState<FaceEnrollmentScreen>
     } catch (e) {
       debugPrint('Live camera initialization error: $e');
       if (mounted) {
-        setState(() {
+        _safeSetState(() {
           _isCameraInitialized = false;
           _isCameraInitializing = false;
         });
@@ -231,7 +244,7 @@ class _FaceEnrollmentScreenState extends ConsumerState<FaceEnrollmentScreen>
         // Front camera mirroring adjust
         final adjustedYaw = -rawYaw;
 
-        setState(() {
+        _safeSetState(() {
           _isFaceDetected = true;
           _currentYaw = adjustedYaw;
         });
@@ -241,7 +254,7 @@ class _FaceEnrollmentScreenState extends ConsumerState<FaceEnrollmentScreen>
         }
       } else {
         if (_isFaceDetected) {
-          setState(() {
+          _safeSetState(() {
             _isFaceDetected = false;
             _angleHoldProgress = 0.0;
           });
@@ -298,7 +311,7 @@ class _FaceEnrollmentScreenState extends ConsumerState<FaceEnrollmentScreen>
             return;
           }
 
-          setState(() {
+          _safeSetState(() {
             _angleHoldProgress = math.min(1.0, _angleHoldProgress + 0.12);
           });
 
@@ -311,7 +324,7 @@ class _FaceEnrollmentScreenState extends ConsumerState<FaceEnrollmentScreen>
     } else {
       _holdTimer?.cancel();
       if (_angleHoldProgress > 0) {
-        setState(() {
+        _safeSetState(() {
           _angleHoldProgress = 0.0;
         });
       }
@@ -346,7 +359,7 @@ class _FaceEnrollmentScreenState extends ConsumerState<FaceEnrollmentScreen>
         controller.value.isInitialized &&
         !controller.value.isTakingPicture) {
       try {
-        setState(() => _isCapturing = true);
+        _safeSetState(() => _isCapturing = true);
 
         // Pause stream before taking picture
         if (controller.value.isStreamingImages) {
@@ -366,7 +379,7 @@ class _FaceEnrollmentScreenState extends ConsumerState<FaceEnrollmentScreen>
         // Resume image stream if snapshot failed
         _startImageStream();
       } finally {
-        if (mounted) setState(() => _isCapturing = false);
+        if (mounted) _safeSetState(() => _isCapturing = false);
       }
     }
 
@@ -401,7 +414,7 @@ class _FaceEnrollmentScreenState extends ConsumerState<FaceEnrollmentScreen>
   }
 
   void _saveCapturedPhoto(XFile photo) {
-    setState(() {
+    _safeSetState(() {
       _capturedFaces[_activeAngle] = photo;
       _angleHoldProgress = 0.0;
 
@@ -417,7 +430,7 @@ class _FaceEnrollmentScreenState extends ConsumerState<FaceEnrollmentScreen>
   }
 
   void _retakeAngle(BiometricAngle angle) {
-    setState(() {
+    _safeSetState(() {
       _capturedFaces[angle] = null;
       _activeAngle = angle;
       _angleHoldProgress = 0.0;

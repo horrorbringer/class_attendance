@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -47,6 +48,18 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
   Map<String, dynamic>? _successRecord;
   String _successMessage = 'Checked in successfully!';
 
+  void _safeSetState(VoidCallback fn) {
+    if (!mounted) return;
+    if (SchedulerBinding.instance.schedulerPhase == SchedulerPhase.persistentCallbacks ||
+        SchedulerBinding.instance.schedulerPhase == SchedulerPhase.midFrameMicrotasks) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(fn);
+      });
+    } else {
+      setState(fn);
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -59,7 +72,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
   Future<void> _initFaceCamera() async {
     if (_isFaceCameraInitialized && _faceCameraController != null) return;
 
-    setState(() => _isFaceCameraInitializing = true);
+    _safeSetState(() => _isFaceCameraInitializing = true);
     try {
       final cameras = await availableCameras();
       if (cameras.isEmpty) throw Exception('No camera sensors available on device');
@@ -96,7 +109,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
         return;
       }
 
-      setState(() {
+      _safeSetState(() {
         _faceCameraController = controller;
         _isFaceCameraInitialized = true;
         _isFaceCameraInitializing = false;
@@ -104,7 +117,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
     } catch (e) {
       debugPrint('Face camera init error: $e');
       if (mounted) {
-        setState(() {
+        _safeSetState(() {
           _isFaceCameraInitialized = false;
           _isFaceCameraInitializing = false;
         });
@@ -115,7 +128,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
   Future<void> _switchMode(CheckinMode mode) async {
     if (_mode == mode) return;
 
-    setState(() {
+    _safeSetState(() {
       _mode = mode;
       _errorMessage = null;
       _errorType = null;
@@ -189,7 +202,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
       }
     }
 
-    setState(() {
+    _safeSetState(() {
       _isProcessing = true;
       _errorMessage = null;
       _errorType = null;
@@ -206,7 +219,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
       final record = data['record'] as Map<String, dynamic>?;
 
       if (mounted) {
-        setState(() {
+        _safeSetState(() {
           _isProcessing = false;
           _isSuccess = true;
           _successRecord = record ?? data;
@@ -227,7 +240,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
         err = errMap['error']?.toString() ?? errMap['detail']?.toString() ?? errMap['message']?.toString() ?? err;
       }
       if (mounted) {
-        setState(() {
+        _safeSetState(() {
           _isProcessing = false;
           _errorMessage = err;
           _errorType = errType;
@@ -235,7 +248,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
       }
     } catch (e) {
       if (mounted) {
-        setState(() {
+        _safeSetState(() {
           _isProcessing = false;
           _errorMessage = e.toString();
           _errorType = 'qr';
@@ -295,7 +308,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
       if (photoPath == null) return;
     }
 
-    setState(() {
+    _safeSetState(() {
       _isProcessing = true;
       _errorMessage = null;
       _errorType = null;
@@ -319,7 +332,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
       final record = data['record'] as Map<String, dynamic>?;
 
       if (mounted) {
-        setState(() {
+        _safeSetState(() {
           _isProcessing = false;
           _isSuccess = true;
           _successRecord = record ?? data;
@@ -340,7 +353,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
         err = errMap['error']?.toString() ?? errMap['detail']?.toString() ?? errMap['message']?.toString() ?? err;
       }
       if (mounted) {
-        setState(() {
+        _safeSetState(() {
           _isProcessing = false;
           _errorMessage = err;
           _errorType = errType;
@@ -348,7 +361,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
       }
     } catch (e) {
       if (mounted) {
-        setState(() {
+        _safeSetState(() {
           _isProcessing = false;
           _errorMessage = e.toString();
           _errorType = 'face';
