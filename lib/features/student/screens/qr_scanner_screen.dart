@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:io';
+import 'package:camera/camera.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -27,6 +30,10 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
     torchEnabled: false,
   );
 
+  CameraController? _faceCameraController;
+  bool _isFaceCameraInitialized = false;
+  bool _isFaceCameraInitializing = false;
+
   final ImagePicker _imagePicker = ImagePicker();
   late AnimationController _laserAnim;
 
@@ -49,8 +56,96 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
     )..repeat(reverse: true);
   }
 
+  Future<void> _initFaceCamera() async {
+    if (_isFaceCameraInitialized && _faceCameraController != null) return;
+
+    setState(() => _isFaceCameraInitializing = true);
+    try {
+      final cameras = await availableCameras();
+      if (cameras.isEmpty) throw Exception('No camera sensors available on device');
+
+      final frontCamera = cameras.firstWhere(
+        (c) => c.lensDirection == CameraLensDirection.front,
+        orElse: () => cameras.first,
+      );
+
+      // On Android/emulators, ImageFormatGroup.jpeg throws CameraException.
+      // Use nv21 on Android and bgra8888 on iOS.
+      // Try medium preset first (optimal for emulators & mobile devices), fallback to low.
+      CameraController? controller;
+      try {
+        controller = CameraController(
+          frontCamera,
+          ResolutionPreset.medium,
+          enableAudio: false,
+          imageFormatGroup: Platform.isAndroid ? ImageFormatGroup.nv21 : ImageFormatGroup.bgra8888,
+        );
+        await controller.initialize();
+      } catch (presetErr) {
+        debugPrint('Medium resolution init failed on emulator ($presetErr), falling back to low preset:');
+        controller = CameraController(
+          frontCamera,
+          ResolutionPreset.low,
+          enableAudio: false,
+        );
+        await controller.initialize();
+      }
+
+      if (!mounted) {
+        await controller.dispose();
+        return;
+      }
+
+      setState(() {
+        _faceCameraController = controller;
+        _isFaceCameraInitialized = true;
+        _isFaceCameraInitializing = false;
+      });
+    } catch (e) {
+      debugPrint('Face camera init error: $e');
+      if (mounted) {
+        setState(() {
+          _isFaceCameraInitialized = false;
+          _isFaceCameraInitializing = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _switchMode(CheckinMode mode) async {
+    if (_mode == mode) return;
+
+    setState(() {
+      _mode = mode;
+      _errorMessage = null;
+      _errorType = null;
+    });
+
+    if (mode == CheckinMode.face) {
+      try {
+        await _scannerController.stop();
+      } catch (e) {
+        debugPrint('Scanner stop error: $e');
+      }
+      await _initFaceCamera();
+    } else {
+      if (_faceCameraController != null) {
+        final cam = _faceCameraController;
+        _faceCameraController = null;
+        _isFaceCameraInitialized = false;
+        await cam?.dispose();
+      }
+      try {
+        await _scannerController.start();
+      } catch (e) {
+        debugPrint('Scanner start error: $e');
+      }
+    }
+  }
+
   @override
   void dispose() {
+    _faceCameraController?.dispose();
     _scannerController.dispose();
     _laserAnim.dispose();
     super.dispose();
@@ -67,7 +162,33 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
     _handleCheckinToken(scannedValue.trim());
   }
 
-  Future<void> _handleCheckinToken(String token) async {
+  Future<void> _handleCheckinToken(String rawToken) async {
+    if (_isProcessing) return;
+
+    String token = rawToken.trim();
+
+    // 1. Check if token is JSON encoded
+    if (token.startsWith('{') && token.endsWith('}')) {
+      try {
+        final decoded = jsonDecode(token);
+        if (decoded is Map) {
+          token = decoded['qr_token']?.toString() ??
+              decoded['token']?.toString() ??
+              token;
+        }
+      } catch (_) {}
+    }
+
+    // 2. Parse URL if encoded as a web link or contains query params
+    if (token.startsWith('http://') || token.startsWith('https://')) {
+      final uri = Uri.tryParse(token);
+      if (uri != null) {
+        token = uri.queryParameters['qr_token'] ??
+            uri.queryParameters['token'] ??
+            (uri.pathSegments.isNotEmpty ? uri.pathSegments.last : token);
+      }
+    }
+
     setState(() {
       _isProcessing = true;
       _errorMessage = null;
@@ -88,7 +209,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
         setState(() {
           _isProcessing = false;
           _isSuccess = true;
-          _successRecord = record;
+          _successRecord = record ?? data;
           _successMessage = data['message'] ?? 'Checked in successfully!';
         });
       }
@@ -103,7 +224,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
         err = 'Request was throttled due to rapid attempts. Please wait 10 seconds before trying again.';
       } else if (e.response?.data != null && e.response?.data is Map) {
         final errMap = e.response!.data as Map;
-        err = errMap['error']?.toString() ?? errMap['detail']?.toString() ?? err;
+        err = errMap['error']?.toString() ?? errMap['detail']?.toString() ?? errMap['message']?.toString() ?? err;
       }
       if (mounted) {
         setState(() {
@@ -124,26 +245,69 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
   }
 
   Future<void> _handleFaceCheckin() async {
+    if (_isProcessing) return;
+
+    String? photoPath;
+
+    // 1. Try taking snapshot directly from live front optical camera
+    if (_isFaceCameraInitialized &&
+        _faceCameraController != null &&
+        _faceCameraController!.value.isInitialized &&
+        !_faceCameraController!.value.isTakingPicture) {
+      try {
+        final xFile = await _faceCameraController!.takePicture();
+        photoPath = xFile.path;
+      } catch (e) {
+        debugPrint('Direct face capture error: $e');
+      }
+    }
+
+    // 2. Fallback to image picker if direct camera capture not available
+    if (photoPath == null) {
+      try {
+        final photo = await _imagePicker.pickImage(
+          source: ImageSource.camera,
+          imageQuality: 90,
+          maxWidth: 1080,
+          maxHeight: 1080,
+          preferredCameraDevice: CameraDevice.front,
+        );
+        if (photo != null) {
+          photoPath = photo.path;
+        }
+      } catch (e) {
+        debugPrint('Camera picker fallback to gallery: $e');
+        try {
+          final photo = await _imagePicker.pickImage(
+            source: ImageSource.gallery,
+            imageQuality: 90,
+            maxWidth: 1080,
+            maxHeight: 1080,
+          );
+          if (photo != null) {
+            photoPath = photo.path;
+          }
+        } catch (galleryErr) {
+          debugPrint('Gallery picker error: $galleryErr');
+        }
+      }
+
+      if (photoPath == null) return;
+    }
+
+    setState(() {
+      _isProcessing = true;
+      _errorMessage = null;
+      _errorType = null;
+    });
+
     try {
-      final photo = await _imagePicker.pickImage(
-        source: ImageSource.camera,
-        imageQuality: 88,
-        maxWidth: 1024,
-        maxHeight: 1024,
-        preferredCameraDevice: CameraDevice.front,
-      );
-
-      if (photo == null) return;
-
-      setState(() {
-        _isProcessing = true;
-        _errorMessage = null;
-        _errorType = null;
-      });
-
       final dio = ref.read(dioProvider);
       final formData = FormData.fromMap({
-        'image': await MultipartFile.fromFile(photo.path, filename: photo.name),
+        'image': await MultipartFile.fromFile(
+          photoPath,
+          filename: 'face_checkin_${DateTime.now().millisecondsSinceEpoch}.jpg',
+        ),
       });
 
       final response = await dio.post(
@@ -158,7 +322,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
         setState(() {
           _isProcessing = false;
           _isSuccess = true;
-          _successRecord = record;
+          _successRecord = record ?? data;
           _successMessage = data['message'] ?? 'Face verified & checked in!';
         });
       }
@@ -173,7 +337,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
         err = 'Request was throttled due to rapid attempts. Please wait 10 seconds before trying again.';
       } else if (e.response?.data != null && e.response?.data is Map) {
         final errMap = e.response!.data as Map;
-        err = errMap['error']?.toString() ?? errMap['detail']?.toString() ?? err;
+        err = errMap['error']?.toString() ?? errMap['detail']?.toString() ?? errMap['message']?.toString() ?? err;
       }
       if (mounted) {
         setState(() {
@@ -347,13 +511,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
                   children: [
                     Expanded(
                       child: GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _mode = CheckinMode.qr;
-                            _errorMessage = null;
-                            _errorType = null;
-                          });
-                        },
+                        onTap: () => _switchMode(CheckinMode.qr),
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 200),
                           padding: const EdgeInsets.symmetric(vertical: 11),
@@ -361,11 +519,11 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
                             color: _mode == CheckinMode.qr ? Colors.white : Colors.transparent,
                             borderRadius: BorderRadius.circular(12),
                             boxShadow: _mode == CheckinMode.qr
-                                ? [
+                                ? const [
                                     BoxShadow(
-                                      color: const Color(0xFF10213E).withAlpha(12),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 2),
+                                      color: Color(0x03000000),
+                                      blurRadius: 2,
+                                      offset: Offset(0, 1),
                                     ),
                                   ]
                                 : [],
@@ -385,13 +543,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
                     ),
                     Expanded(
                       child: GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _mode = CheckinMode.face;
-                            _errorMessage = null;
-                            _errorType = null;
-                          });
-                        },
+                        onTap: () => _switchMode(CheckinMode.face),
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 200),
                           padding: const EdgeInsets.symmetric(vertical: 11),
@@ -399,11 +551,11 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
                             color: _mode == CheckinMode.face ? Colors.white : Colors.transparent,
                             borderRadius: BorderRadius.circular(12),
                             boxShadow: _mode == CheckinMode.face
-                                ? [
+                                ? const [
                                     BoxShadow(
-                                      color: const Color(0xFF10213E).withAlpha(12),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 2),
+                                      color: Color(0x03000000),
+                                      blurRadius: 2,
+                                      offset: Offset(0, 1),
                                     ),
                                   ]
                                 : [],
@@ -428,47 +580,87 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
               const SizedBox(height: 24),
 
               // Scanner Viewport Box matching docs/ui/05 — Check-in (QR + Face).png
-              Container(
-                width: 260,
-                height: 260,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(28),
-                  border: Border.all(color: const Color(0xFF3B82F6), width: 3.5),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF3B82F6).withAlpha(35),
-                      blurRadius: 24,
-                      offset: const Offset(0, 6),
-                    ),
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(24),
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      if (_mode == CheckinMode.qr)
-                        MobileScanner(
-                          controller: _scannerController,
-                          onDetect: _onDetect,
-                        )
-                      else
-                        Container(
-                          color: const Color(0xFF0F172A),
-                          child: Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Icon(Icons.face_rounded, size: 72, color: Color(0xFF38BDF8)),
-                                const SizedBox(height: 10),
-                                Text(
-                                  'Ready for Biometric Face',
-                                  style: GoogleFonts.inter(fontSize: 12, color: Colors.white70),
-                                ),
-                              ],
+              GestureDetector(
+                onTap: _mode == CheckinMode.face ? _handleFaceCheckin : null,
+                child: Container(
+                  width: 260,
+                  height: 260,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(28),
+                    border: Border.all(color: const Color(0xFF2563EB), width: 3.5),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF2563EB).withValues(alpha: 0.15),
+                        blurRadius: 24,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(24),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        if (_mode == CheckinMode.qr)
+                          MobileScanner(
+                            controller: _scannerController,
+                            onDetect: _onDetect,
+                          )
+                        else if (_isFaceCameraInitialized &&
+                            _faceCameraController != null &&
+                            _faceCameraController!.value.isInitialized)
+                          FittedBox(
+                            fit: BoxFit.cover,
+                            child: SizedBox(
+                              width: _faceCameraController!.value.previewSize?.height ?? 260,
+                              height: _faceCameraController!.value.previewSize?.width ?? 260,
+                              child: CameraPreview(_faceCameraController!),
+                            ),
+                          )
+                        else if (_isFaceCameraInitializing)
+                          Container(
+                            color: const Color(0xFF0F172A),
+                            child: const Center(
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                                color: Color(0xFF38BDF8),
+                              ),
+                            ),
+                          )
+                        else
+                          Container(
+                            color: const Color(0xFF0F172A),
+                            child: Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(Icons.face_retouching_natural_rounded, size: 72, color: Color(0xFF38BDF8)),
+                                  const SizedBox(height: 10),
+                                  Text(
+                                    'Position Face in Frame',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 13,
+                                      color: Colors.white70,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
+
+                        // Biometric Head Guide Oval in Face mode
+                        if (_mode == CheckinMode.face)
+                          Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(110),
+                              border: Border.all(
+                                color: const Color(0xFF38BDF8).withValues(alpha: 0.5),
+                                width: 1.5,
+                              ),
+                            ),
+                          ),
 
                       // Animated Blue Laser Scanning Beam
                       AnimatedBuilder(
@@ -484,7 +676,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
                                 color: const Color(0xFF38BDF8),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: const Color(0xFF38BDF8).withAlpha(220),
+                                    color: const Color(0xFF38BDF8).withValues(alpha: 0.8),
                                     blurRadius: 8,
                                     spreadRadius: 1.5,
                                   ),
@@ -499,12 +691,15 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
                   ),
                 ),
               ),
+            ),
 
-              const SizedBox(height: 16),
+            const SizedBox(height: 16),
 
               // Viewport Subtext
               Text(
-                _mode == CheckinMode.qr ? 'Align QR code within frame' : 'Position your face within the frame',
+                _mode == CheckinMode.qr
+                    ? 'Align QR code within frame'
+                    : 'Position your face within frame',
                 style: GoogleFonts.inter(
                   fontSize: 14,
                   fontWeight: FontWeight.w400,
@@ -520,7 +715,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
                 height: 52,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1A3258),
+                    backgroundColor: const Color(0xFF10213E),
                     foregroundColor: Colors.white,
                     elevation: 0,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -529,7 +724,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
                       ? null
                       : (_mode == CheckinMode.qr ? _showManualTokenDialog : _handleFaceCheckin),
                   child: Text(
-                    _mode == CheckinMode.qr ? 'Scan to Check In' : 'Take Photo & Check In',
+                    _mode == CheckinMode.qr ? 'Scan to Check In' : 'Scan Face to Check In',
                     style: GoogleFonts.inter(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
@@ -790,13 +985,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
                 side: const BorderSide(color: Color(0xFFE2E8F0)),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
               ),
-              onPressed: () {
-                setState(() {
-                  _mode = CheckinMode.face;
-                  _errorMessage = null;
-                  _errorType = null;
-                });
-              },
+              onPressed: () => _switchMode(CheckinMode.face),
               child: Text(
                 'Switch to Face Scan',
                 style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600),
@@ -912,13 +1101,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
                 side: const BorderSide(color: Color(0xFFE2E8F0)),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
               ),
-              onPressed: () {
-                setState(() {
-                  _mode = CheckinMode.qr;
-                  _errorMessage = null;
-                  _errorType = null;
-                });
-              },
+              onPressed: () => _switchMode(CheckinMode.qr),
               child: Text(
                 'Switch to QR Code',
                 style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600),

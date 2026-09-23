@@ -157,14 +157,25 @@ class _FaceEnrollmentScreenState extends ConsumerState<FaceEnrollmentScreen>
         orElse: () => cameras.first,
       );
 
-      final controller = CameraController(
-        frontCamera,
-        ResolutionPreset.high,
-        enableAudio: false,
-        imageFormatGroup: Platform.isAndroid ? ImageFormatGroup.nv21 : ImageFormatGroup.bgra8888,
-      );
+      CameraController? controller;
+      try {
+        controller = CameraController(
+          frontCamera,
+          ResolutionPreset.medium,
+          enableAudio: false,
+          imageFormatGroup: Platform.isAndroid ? ImageFormatGroup.nv21 : ImageFormatGroup.bgra8888,
+        );
+        await controller.initialize();
+      } catch (presetErr) {
+        debugPrint('Medium resolution init failed on emulator ($presetErr), falling back to low preset:');
+        controller = CameraController(
+          frontCamera,
+          ResolutionPreset.low,
+          enableAudio: false,
+        );
+        await controller.initialize();
+      }
 
-      await controller.initialize();
       if (!mounted) {
         await controller.dispose();
         return;
