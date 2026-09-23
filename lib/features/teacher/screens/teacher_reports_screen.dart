@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'teacher_profile_screen.dart';
 
 class TeacherReportsScreen extends StatefulWidget {
   const TeacherReportsScreen({super.key});
@@ -21,7 +22,7 @@ class _TeacherReportsScreenState extends State<TeacherReportsScreen> {
   ];
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) {      
     return Scaffold(
       backgroundColor: const Color(0xFFF7F9FD),
       body: SafeArea(
@@ -71,11 +72,12 @@ class _TeacherReportsScreenState extends State<TeacherReportsScreen> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                  boxShadow: const [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.03),
-                      blurRadius: 10,
-                      offset: const Offset(0, 3),
+                      color: Color(0x03000000),
+                      blurRadius: 2,
+                      offset: Offset(0, 1),
                     ),
                   ],
                 ),
@@ -179,11 +181,12 @@ class _TeacherReportsScreenState extends State<TeacherReportsScreen> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                  boxShadow: const [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.03),
-                      blurRadius: 10,
-                      offset: const Offset(0, 3),
+                      color: Color(0x03000000),
+                      blurRadius: 2,
+                      offset: Offset(0, 1),
                     ),
                   ],
                 ),
@@ -292,9 +295,16 @@ class _TeacherReportsScreenState extends State<TeacherReportsScreen> {
           border: Border(top: BorderSide(color: Color(0xFFE5EEF8), width: 1)),
         ),
         child: BottomNavigationBar(
-          currentIndex: 3, // Reports is active
+          currentIndex: 2, // Reports is active
           onTap: (index) {
-            Navigator.pop(context);
+            if (index == 0 || index == 1) {
+              Navigator.pop(context);
+            } else if (index == 3) {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => const TeacherProfileScreen()),
+              );
+            }
           },
           backgroundColor: Colors.white,
           type: BottomNavigationBarType.fixed,
@@ -308,12 +318,8 @@ class _TeacherReportsScreenState extends State<TeacherReportsScreen> {
               label: 'Home',
             ),
             const BottomNavigationBarItem(
-              icon: Icon(Icons.school_outlined),
+              icon: Icon(Icons.calendar_today_outlined),
               label: 'Classes',
-            ),
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.qr_code_scanner_rounded),
-              label: 'Session',
             ),
             BottomNavigationBarItem(
               icon: Container(
@@ -322,7 +328,7 @@ class _TeacherReportsScreenState extends State<TeacherReportsScreen> {
                   color: const Color(0xFFE8F0FE),
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: const Icon(Icons.calendar_today_rounded, color: Color(0xFF10213E), size: 20),
+                child: const Icon(Icons.show_chart_rounded, color: Color(0xFF10213E), size: 20),
               ),
               label: 'Reports',
             ),
@@ -400,11 +406,12 @@ class _TeacherReportsScreenState extends State<TeacherReportsScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: const [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: Color(0x03000000),
+            blurRadius: 2,
+            offset: Offset(0, 1),
           ),
         ],
       ),

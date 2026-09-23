@@ -111,6 +111,9 @@ class _AuthGateState extends ConsumerState<AuthGate> {
     if (!_splashFinished || authState.isLoading) {
       return SplashScreen(
         key: const ValueKey('SplashScreen'),
+        isLoading: authState.isLoading,
+        isAuthenticated: authState.isAuthenticated,
+        serverOffline: _serverOffline,
         onFinished: () {
           if (mounted) {
             setState(() => _splashFinished = true);

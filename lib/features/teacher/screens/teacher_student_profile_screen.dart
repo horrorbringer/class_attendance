@@ -199,14 +199,14 @@ class TeacherStudentProfileScreen extends StatelessWidget {
         ),
       ),
 
-      // 5-Tab Teacher Bottom Bar with Profile active
+      // 4-Tab Teacher Bottom Bar with Profile active
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
           color: Colors.white,
           border: Border(top: BorderSide(color: Color(0xFFE5EEF8), width: 1)),
         ),
         child: BottomNavigationBar(
-          currentIndex: 4, // Profile is active
+          currentIndex: 3, // Profile is active
           onTap: (index) {
             Navigator.pop(context);
           },
@@ -216,32 +216,21 @@ class TeacherStudentProfileScreen extends StatelessWidget {
           unselectedItemColor: const Color(0xFF8C9BAE),
           selectedLabelStyle: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold),
           unselectedLabelStyle: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w500),
-          items: [
-            const BottomNavigationBarItem(
+          items: const [
+            BottomNavigationBarItem(
               icon: Icon(Icons.home_outlined),
               label: 'Home',
             ),
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.school_outlined),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.calendar_today_outlined),
               label: 'Classes',
             ),
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.qr_code_scanner_rounded),
-              label: 'Session',
-            ),
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.calendar_today_outlined),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.show_chart_rounded),
               label: 'Reports',
             ),
             BottomNavigationBarItem(
-              icon: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE8F0FE),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: const Icon(Icons.person_rounded, color: Color(0xFF10213E), size: 20),
-              ),
+              icon: Icon(Icons.person_outline_rounded),
               label: 'Profile',
             ),
           ],

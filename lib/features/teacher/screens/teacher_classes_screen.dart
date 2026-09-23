@@ -8,7 +8,6 @@ import '../../../core/network/api_client.dart';
 import '../../attendance/models/attendance_models.dart';
 import '../../auth/controllers/auth_controller.dart';
 import 'teacher_create_session_sheet.dart';
-import 'teacher_dynamic_qr_screen.dart';
 import 'teacher_profile_screen.dart';
 import 'teacher_reports_screen.dart';
 import 'teacher_session_detail_screen.dart';
@@ -109,123 +108,6 @@ class _TeacherClassesScreenState extends ConsumerState<TeacherClassesScreen> {
     );
   }
 
-  void _showTeacherProfileDialog() {
-    final authState = ref.read(authProvider);
-    final teacherName = authState.session?.teacher?.name ??
-        authState.session?.displayName ??
-        'Dr. Emily Okonkwo';
-    final teacherEmail = authState.session?.teacher?.email ?? 'emily.okonkwo@school.edu';
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFCBD5E1),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                const CircleAvatar(
-                  radius: 30,
-                  backgroundImage: NetworkImage('https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200'),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        teacherName,
-                        style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFF10213E)),
-                      ),
-                      Text(
-                        teacherEmail,
-                        style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF64748B)),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            ListTile(
-              leading: const Icon(Icons.add_circle_outline_rounded, color: Color(0xFF2563EB)),
-              title: Text('Create On-Demand Session', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
-              trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
-              onTap: () {
-                Navigator.pop(ctx);
-                _openCreateSessionSheet();
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.qr_code_rounded, color: Color(0xFF1B2A4A)),
-              title: Text('Projector Dynamic QR Screen', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
-              trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
-              onTap: () {
-                Navigator.pop(ctx);
-                if (_sessions.isNotEmpty) {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => TeacherDynamicQrScreen(
-                        sessionId: _sessions.first.id,
-                        classRoomName: _sessions.first.classRoomName,
-                      ),
-                    ),
-                  );
-                } else {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const TeacherDynamicQrScreen(
-                        sessionId: 1,
-                        classRoomName: 'Physics Lab II',
-                      ),
-                    ),
-                  );
-                }
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.person_outline_rounded, color: Color(0xFF1B2A4A)),
-              title: Text('Profile & Settings', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
-              trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
-              onTap: () {
-                Navigator.pop(ctx);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const TeacherProfileScreen()),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.logout_rounded, color: Color(0xFFEF4444)),
-              title: Text('Sign Out', style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: const Color(0xFFEF4444))),
-              onTap: () {
-                Navigator.pop(ctx);
-                ref.read(authProvider.notifier).logout();
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
@@ -250,37 +132,43 @@ class _TeacherClassesScreenState extends ConsumerState<TeacherClassesScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        const CircleAvatar(
-                          radius: 26,
-                          backgroundImage: NetworkImage(
-                            'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200',
+                    GestureDetector(
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const TeacherProfileScreen()),
+                      ),
+                      child: Row(
+                        children: [
+                          const CircleAvatar(
+                            radius: 26,
+                            backgroundImage: NetworkImage(
+                              'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200',
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              teacherName,
-                              style: GoogleFonts.outfit(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w800,
-                                color: const Color(0xFF10213E),
+                          const SizedBox(width: 12),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                teacherName,
+                                style: GoogleFonts.outfit(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w800,
+                                  color: const Color(0xFF10213E),
+                                ),
                               ),
-                            ),
-                            Text(
-                              'Senior Science Instructor',
-                              style: GoogleFonts.inter(
-                                fontSize: 13,
-                                color: const Color(0xFF64748B),
-                                fontWeight: FontWeight.w400,
+                              Text(
+                                'Senior Science Instructor',
+                                style: GoogleFonts.inter(
+                                  fontSize: 13,
+                                  color: const Color(0xFF64748B),
+                                  fontWeight: FontWeight.w400,
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                      ],
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
 
                     // Right Info / Security Shield Button
@@ -293,8 +181,8 @@ class _TeacherClassesScreenState extends ConsumerState<TeacherClassesScreen> {
                         border: Border.all(color: const Color(0xFFE2E8F0)),
                         boxShadow: const [
                           BoxShadow(
-                            color: Color(0x060F172A),
-                            blurRadius: 4,
+                            color: Color(0x03000000),
+                            blurRadius: 2,
                             offset: Offset(0, 1),
                           ),
                         ],
@@ -330,9 +218,9 @@ class _TeacherClassesScreenState extends ConsumerState<TeacherClassesScreen> {
                     border: Border.all(color: const Color(0xFF334155), width: 1),
                     boxShadow: const [
                       BoxShadow(
-                        color: Color(0x180F172A),
-                        blurRadius: 18,
-                        offset: Offset(0, 6),
+                        color: Color(0x0D0F172A),
+                        blurRadius: 4,
+                        offset: Offset(0, 2),
                       ),
                     ],
                   ),
@@ -518,7 +406,7 @@ class _TeacherClassesScreenState extends ConsumerState<TeacherClassesScreen> {
           ),
         ),
       ),
-      // 5-Tab Teacher Bottom Bar with Classes (Index 1) active
+      // 4-Tab Teacher Bottom Bar with Classes (Index 1) active
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
           color: Colors.white,
@@ -532,20 +420,13 @@ class _TeacherClassesScreenState extends ConsumerState<TeacherClassesScreen> {
             } else if (index == 2) {
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (_) => const TeacherSessionDetailScreen(
-                    className: 'Physics Lab II',
-                    scheduleTime: '11:00 AM - 12:30 PM',
-                  ),
-                ),
+                MaterialPageRoute(builder: (_) => const TeacherReportsScreen()),
               );
             } else if (index == 3) {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const TeacherReportsScreen()),
+                MaterialPageRoute(builder: (_) => const TeacherProfileScreen()),
               );
-            } else if (index == 4) {
-              _showTeacherProfileDialog();
             }
           },
           backgroundColor: Colors.white,
@@ -566,16 +447,12 @@ class _TeacherClassesScreenState extends ConsumerState<TeacherClassesScreen> {
                   color: const Color(0xFFE8F0FE),
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: const Icon(Icons.school_outlined, color: Color(0xFF10213E), size: 20),
+                child: const Icon(Icons.calendar_today_outlined, color: Color(0xFF10213E), size: 20),
               ),
               label: 'Classes',
             ),
             const BottomNavigationBarItem(
-              icon: Icon(Icons.qr_code_scanner_rounded),
-              label: 'Session',
-            ),
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.calendar_today_outlined),
+              icon: Icon(Icons.show_chart_rounded),
               label: 'Reports',
             ),
             const BottomNavigationBarItem(
@@ -618,14 +495,9 @@ class _TeacherClassesScreenState extends ConsumerState<TeacherClassesScreen> {
             border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
             boxShadow: const [
               BoxShadow(
-                color: Color(0x050F172A),
-                blurRadius: 4,
+                color: Color(0x03000000),
+                blurRadius: 2,
                 offset: Offset(0, 1),
-              ),
-              BoxShadow(
-                color: Color(0x080F172A),
-                blurRadius: 12,
-                offset: Offset(0, 3),
               ),
             ],
           ),

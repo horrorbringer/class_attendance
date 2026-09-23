@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/config/api_constants.dart';
 import '../../../core/network/api_client.dart';
-import 'teacher_reports_screen.dart';
 import 'teacher_student_profile_screen.dart';
 
 class RosterStudentItem {
@@ -456,61 +455,6 @@ class _TeacherSessionDetailScreenState extends ConsumerState<TeacherSessionDetai
         ),
       ),
 
-      // Bottom Navigation Bar with Session (Index 2) active
-      bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          border: Border(top: BorderSide(color: Color(0xFFE5EEF8), width: 1)),
-        ),
-        child: BottomNavigationBar(
-          currentIndex: 2, // Session is active
-          onTap: (index) {
-            if (index == 0 || index == 1) {
-              Navigator.pop(context);
-            } else if (index == 3) {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (_) => const TeacherReportsScreen()),
-              );
-            }
-          },
-          backgroundColor: Colors.white,
-          type: BottomNavigationBarType.fixed,
-          selectedItemColor: const Color(0xFF10213E),
-          unselectedItemColor: const Color(0xFF8C9BAE),
-          selectedLabelStyle: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold),
-          unselectedLabelStyle: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w500),
-          items: [
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined),
-              label: 'Home',
-            ),
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.school_outlined),
-              label: 'Classes',
-            ),
-            BottomNavigationBarItem(
-              icon: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE8F0FE),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: const Icon(Icons.qr_code_scanner_rounded, color: Color(0xFF10213E), size: 20),
-              ),
-              label: 'Session',
-            ),
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.calendar_today_outlined),
-              label: 'Reports',
-            ),
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline_rounded),
-              label: 'Profile',
-            ),
-          ],
-        ),
-      ),
     );
   }
 

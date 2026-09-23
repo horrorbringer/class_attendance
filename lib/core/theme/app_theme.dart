@@ -42,43 +42,28 @@ class AppTheme {
   static const Color textPrimary = Color(0xFFF8FAFC);
   static const Color textSecondary = Color(0xFF94A3B8);
 
-  // Modern Multi-Layer Elevation Shadows (prevents murky dark halos)
+  // Modern Tiny Clean Elevation Shadows (crisp & minimal)
   static List<BoxShadow> get shadowSm => const [
         BoxShadow(
-          color: Color(0x060F172A),
-          blurRadius: 4,
+          color: Color(0x04000000),
+          blurRadius: 2,
           offset: Offset(0, 1),
-        ),
-        BoxShadow(
-          color: Color(0x080F172A),
-          blurRadius: 8,
-          offset: Offset(0, 2),
         ),
       ];
 
   static List<BoxShadow> get shadowMd => const [
         BoxShadow(
-          color: Color(0x080F172A),
-          blurRadius: 6,
+          color: Color(0x06000000),
+          blurRadius: 4,
           offset: Offset(0, 2),
-        ),
-        BoxShadow(
-          color: Color(0x0D0F172A),
-          blurRadius: 18,
-          offset: Offset(0, 6),
         ),
       ];
 
   static List<BoxShadow> get shadowLg => const [
         BoxShadow(
-          color: Color(0x0A0F172A),
-          blurRadius: 10,
-          offset: Offset(0, 4),
-        ),
-        BoxShadow(
-          color: Color(0x120F172A),
-          blurRadius: 28,
-          offset: Offset(0, 10),
+          color: Color(0x08000000),
+          blurRadius: 6,
+          offset: Offset(0, 2),
         ),
       ];
 

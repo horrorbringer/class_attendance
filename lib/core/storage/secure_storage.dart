@@ -50,6 +50,18 @@ class StorageService {
     return prefs.getInt(_userIdKey);
   }
 
+  static const _onboardingSeenKey = 'has_seen_onboarding';
+
+  static Future<bool> hasSeenOnboarding() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_onboardingSeenKey) ?? false;
+  }
+
+  static Future<void> setOnboardingSeen(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_onboardingSeenKey, value);
+  }
+
   static Future<void> clearSession() async {
     await _storage.deleteAll();
     final prefs = await SharedPreferences.getInstance();

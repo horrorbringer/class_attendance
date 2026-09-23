@@ -199,8 +199,8 @@ class _AttendanceHistoryScreenState extends ConsumerState<AttendanceHistoryScree
                           border: Border.all(color: const Color(0xFFE2E8F0)),
                           boxShadow: const [
                             BoxShadow(
-                              color: Color(0x060F172A),
-                              blurRadius: 4,
+                              color: Color(0x03000000),
+                              blurRadius: 2,
                               offset: Offset(0, 1),
                             ),
                           ],
@@ -253,14 +253,9 @@ class _AttendanceHistoryScreenState extends ConsumerState<AttendanceHistoryScree
                     border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
                     boxShadow: const [
                       BoxShadow(
-                        color: Color(0x060F172A),
-                        blurRadius: 4,
+                        color: Color(0x03000000),
+                        blurRadius: 2,
                         offset: Offset(0, 1),
-                      ),
-                      BoxShadow(
-                        color: Color(0x0A0F172A),
-                        blurRadius: 16,
-                        offset: Offset(0, 4),
                       ),
                     ],
                   ),
@@ -418,9 +413,9 @@ class _AttendanceHistoryScreenState extends ConsumerState<AttendanceHistoryScree
                       border: Border.all(color: const Color(0xFFE2E8F0)),
                       boxShadow: const [
                         BoxShadow(
-                          color: Color(0x050F172A),
-                          blurRadius: 10,
-                          offset: Offset(0, 2),
+                          color: Color(0x03000000),
+                          blurRadius: 2,
+                          offset: Offset(0, 1),
                         ),
                       ],
                     ),
@@ -713,14 +708,9 @@ class _AttendanceHistoryScreenState extends ConsumerState<AttendanceHistoryScree
         border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x050F172A),
-            blurRadius: 4,
+            color: Color(0x03000000),
+            blurRadius: 2,
             offset: Offset(0, 1),
-          ),
-          BoxShadow(
-            color: Color(0x080F172A),
-            blurRadius: 12,
-            offset: Offset(0, 3),
           ),
         ],
       ),
