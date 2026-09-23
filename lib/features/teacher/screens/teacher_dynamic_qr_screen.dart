@@ -28,6 +28,7 @@ class _TeacherDynamicQrScreenState extends ConsumerState<TeacherDynamicQrScreen>
   bool _isLoading = true;
   String? _errorMessage;
   int _secondsLeft = 20;
+  bool _isDemoMode = false;
   Timer? _countdownTimer;
 
   @override
@@ -35,10 +36,15 @@ class _TeacherDynamicQrScreenState extends ConsumerState<TeacherDynamicQrScreen>
     super.initState();
     _fetchDynamicQr();
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted || _qrData == null || _isLoading) return;
       if (_secondsLeft > 1) {
         setState(() => _secondsLeft--);
       } else {
-        _fetchDynamicQr();
+        if (_isDemoMode) {
+          _enableDemoMode();
+        } else {
+          _fetchDynamicQr();
+        }
       }
     });
   }
@@ -49,7 +55,35 @@ class _TeacherDynamicQrScreenState extends ConsumerState<TeacherDynamicQrScreen>
     super.dispose();
   }
 
+  void _enableDemoMode() {
+    final epochStep = DateTime.now().millisecondsSinceEpoch ~/ 20000;
+    final mockToken = 'DEMO-ATTEND-${widget.sessionId}-$epochStep';
+    if (mounted) {
+      setState(() {
+        _isDemoMode = true;
+        _isLoading = false;
+        _errorMessage = null;
+        _qrData = DynamicQrData(
+          sessionId: widget.sessionId,
+          token: mockToken,
+          intervalSeconds: 20,
+          expiresInSeconds: 20,
+          classRoom: widget.classRoomName,
+          date: 'Today',
+          startTime: 'Live',
+        );
+        _secondsLeft = 20;
+      });
+    }
+  }
+
   Future<void> _fetchDynamicQr() async {
+    if (mounted) {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+    }
     try {
       final dio = ref.read(dioProvider);
       final response = await dio.get(ApiConstants.sessionDynamicQr(widget.sessionId));
@@ -61,12 +95,16 @@ class _TeacherDynamicQrScreenState extends ConsumerState<TeacherDynamicQrScreen>
           _secondsLeft = data.expiresInSeconds > 0 ? data.expiresInSeconds : data.intervalSeconds;
           _isLoading = false;
           _errorMessage = null;
+          _isDemoMode = false;
         });
       }
     } on DioException catch (e) {
       if (mounted) {
+        final detail = e.response?.data is Map && (e.response!.data as Map).containsKey('detail')
+            ? (e.response!.data['detail'].toString())
+            : (e.message ?? 'Unable to connect to dynamic QR service');
         setState(() {
-          _errorMessage = e.message ?? 'Failed to fetch dynamic QR token';
+          _errorMessage = detail;
           _isLoading = false;
         });
       }
@@ -101,7 +139,13 @@ class _TeacherDynamicQrScreenState extends ConsumerState<TeacherDynamicQrScreen>
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
             tooltip: 'Refresh Token Now',
-            onPressed: _fetchDynamicQr,
+            onPressed: () {
+              if (_isDemoMode) {
+                _enableDemoMode();
+              } else {
+                _fetchDynamicQr();
+              }
+            },
           ),
           IconButton(
             icon: const Icon(Icons.copy_rounded),
@@ -133,24 +177,114 @@ class _TeacherDynamicQrScreenState extends ConsumerState<TeacherDynamicQrScreen>
 
               if (_isLoading && _qrData == null)
                 const SizedBox(
-                  height: 280,
+                  height: 240,
                   child: Center(child: CircularProgressIndicator(color: AppTheme.primary)),
                 )
               else if (_errorMessage != null && _qrData == null)
-                SizedBox(
-                  height: 280,
+                Container(
+                  constraints: const BoxConstraints(minHeight: 200, maxWidth: 360),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppTheme.surfaceBorder),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x04000000),
+                        blurRadius: 3,
+                        offset: Offset(0, 1),
+                      ),
+                    ],
+                  ),
                   child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.error_outline_rounded, size: 48, color: AppTheme.absent),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppTheme.absent.withAlpha(20),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.wifi_off_rounded, size: 36, color: AppTheme.absent),
+                      ),
                       const SizedBox(height: 12),
-                      Text(_errorMessage!, textAlign: TextAlign.center),
-                      const SizedBox(height: 16),
-                      ElevatedButton(onPressed: _fetchDynamicQr, child: const Text('Retry')),
+                      const Text(
+                        'Unable to Load QR Token',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        _errorMessage ?? 'Network error occurred while fetching dynamic QR token.',
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                      ),
+                      const SizedBox(height: 18),
+                      Wrap(
+                        alignment: WrapAlignment.center,
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          OutlinedButton.icon(
+                            onPressed: _enableDemoMode,
+                            icon: const Icon(Icons.play_circle_outline_rounded, size: 16),
+                            label: const Text('Use Demo QR'),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                              foregroundColor: AppTheme.primary,
+                              side: const BorderSide(color: AppTheme.primary),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                          ),
+                          ElevatedButton.icon(
+                            onPressed: _fetchDynamicQr,
+                            icon: const Icon(Icons.refresh_rounded, size: 16),
+                            label: const Text('Retry'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.primary,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              elevation: 0,
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 )
               else if (_qrData != null) ...[
+                if (_isDemoMode)
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primary.withAlpha(15),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppTheme.primary.withAlpha(50)),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.info_outline_rounded, size: 14, color: AppTheme.primary),
+                        SizedBox(width: 6),
+                        Text(
+                          'Demo Offline QR Mode • Auto-rotating',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
                 // QR Display Card
                 Container(
                   padding: const EdgeInsets.all(20),
@@ -234,12 +368,16 @@ class _TeacherDynamicQrScreenState extends ConsumerState<TeacherDynamicQrScreen>
                       children: [
                         const Icon(Icons.key_rounded, size: 14, color: AppTheme.textMuted),
                         const SizedBox(width: 6),
-                        Text(
-                          _qrData!.token,
-                          style: const TextStyle(
-                            fontFamily: 'monospace',
-                            fontSize: 12,
-                            color: AppTheme.textSecondary,
+                        Flexible(
+                          child: Text(
+                            _qrData!.token,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontFamily: 'monospace',
+                              fontSize: 12,
+                              color: AppTheme.textSecondary,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 8),

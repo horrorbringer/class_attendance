@@ -310,3 +310,40 @@ class DynamicQrData {
     );
   }
 }
+
+class BulkAttendanceItem {
+  final String studentId;
+  final String status; // 'present', 'late', 'absent'
+
+  BulkAttendanceItem({
+    required this.studentId,
+    required this.status,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'student_id': studentId,
+    'status': status,
+  };
+}
+
+class BulkAttendanceResponse {
+  final String message;
+  final int updatedCount;
+  final List<String> errors;
+
+  BulkAttendanceResponse({
+    required this.message,
+    required this.updatedCount,
+    this.errors = const [],
+  });
+
+  factory BulkAttendanceResponse.fromJson(Map<String, dynamic> json) {
+    final rawErrors = json['errors'] as List<dynamic>? ?? [];
+    return BulkAttendanceResponse(
+      message: json['message'] as String? ?? 'Bulk attendance updated.',
+      updatedCount: json['updated_count'] as int? ?? 0,
+      errors: rawErrors.map((e) => e.toString()).toList(),
+    );
+  }
+}
+
