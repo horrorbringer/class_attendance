@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../config/api_constants.dart';
 import '../storage/secure_storage.dart';
 import 'auth_interceptor.dart';
+import 'retry_interceptor.dart';
 
 final dioProvider = Provider<Dio>((ref) {
   final dio = Dio(
@@ -17,7 +18,7 @@ final dioProvider = Provider<Dio>((ref) {
     ),
   );
 
-  dio.interceptors.add(
+  dio.interceptors.addAll([
     AuthInterceptor(
       onUnauthorized: () {
         // Clear stored session — the AuthGate in main.dart watches authProvider,
@@ -27,7 +28,8 @@ final dioProvider = Provider<Dio>((ref) {
         _onUnauthorizedCallback?.call();
       },
     ),
-  );
+    RetryInterceptor(dio: dio, maxRetries: 2),
+  ]);
 
   return dio;
 });

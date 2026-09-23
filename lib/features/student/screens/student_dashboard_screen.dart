@@ -371,19 +371,19 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
                         width: 48,
                         height: 48,
                         decoration: BoxDecoration(
-                          color: const Color(0xFFE5EEF8),
+                          color: const Color(0xFFEFF6FF),
                           shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 2),
-                          boxShadow: [
+                          border: Border.all(color: const Color(0xFFBFDBFE), width: 1.5),
+                          boxShadow: const [
                             BoxShadow(
-                              color: const Color(0xFF10213E).withAlpha(15),
-                              blurRadius: 10,
-                              offset: const Offset(0, 3),
+                              color: Color(0x080F172A),
+                              blurRadius: 8,
+                              offset: Offset(0, 2),
                             ),
                           ],
                         ),
                         child: const Center(
-                          child: Icon(Icons.person_rounded, size: 26, color: Color(0xFF1A3258)),
+                          child: Icon(Icons.person_rounded, size: 24, color: Color(0xFF1E40AF)),
                         ),
                       ),
                     ),
@@ -539,12 +539,13 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
                     padding: const EdgeInsets.all(28),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                      boxShadow: const [
                         BoxShadow(
-                          color: const Color(0xFF0F1E38).withAlpha(10),
-                          blurRadius: 18,
-                          offset: const Offset(0, 4),
+                          color: Color(0x050F172A),
+                          blurRadius: 10,
+                          offset: Offset(0, 2),
                         ),
                       ],
                     ),
@@ -629,12 +630,18 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
+        boxShadow: const [
           BoxShadow(
-            color: const Color(0xFF0F1E38).withAlpha(12),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
+            color: Color(0x050F172A),
+            blurRadius: 4,
+            offset: Offset(0, 1),
+          ),
+          BoxShadow(
+            color: Color(0x060F172A),
+            blurRadius: 10,
+            offset: Offset(0, 2),
           ),
         ],
       ),
@@ -706,12 +713,18 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
+        boxShadow: const [
           BoxShadow(
-            color: const Color(0xFF0F1E38).withAlpha(12),
-            blurRadius: 18,
-            offset: const Offset(0, 5),
+            color: Color(0x060F172A),
+            blurRadius: 4,
+            offset: Offset(0, 1),
+          ),
+          BoxShadow(
+            color: Color(0x080F172A),
+            blurRadius: 14,
+            offset: Offset(0, 3),
           ),
         ],
       ),

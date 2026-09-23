@@ -7,6 +7,7 @@ import '../../../core/config/api_constants.dart';
 import '../../../core/network/api_client.dart';
 import '../../attendance/models/attendance_models.dart';
 import '../../auth/controllers/auth_controller.dart';
+import 'teacher_create_session_sheet.dart';
 import 'teacher_dynamic_qr_screen.dart';
 import 'teacher_profile_screen.dart';
 import 'teacher_reports_screen.dart';
@@ -84,6 +85,30 @@ class _TeacherClassesScreenState extends ConsumerState<TeacherClassesScreen> {
     } catch (_) {}
   }
 
+  void _openCreateSessionSheet() {
+    final List<ClassRoomOption> classOptions = [];
+    final seen = <int>{};
+    for (final s in _sessions) {
+      final crId = s.classRoom?.id ?? s.id;
+      if (!seen.contains(crId)) {
+        seen.add(crId);
+        classOptions.add(
+          ClassRoomOption(
+            id: crId,
+            name: s.classRoomName.isNotEmpty ? s.classRoomName : 'Class #$crId',
+            code: 'CR-$crId',
+          ),
+        );
+      }
+    }
+
+    TeacherCreateSessionSheet.show(
+      context,
+      classes: classOptions.isNotEmpty ? classOptions : null,
+      onCreated: () => _fetchTodayClasses(),
+    );
+  }
+
   void _showTeacherProfileDialog() {
     final authState = ref.read(authProvider);
     final teacherName = authState.session?.teacher?.name ??
@@ -137,6 +162,15 @@ class _TeacherClassesScreenState extends ConsumerState<TeacherClassesScreen> {
               ],
             ),
             const SizedBox(height: 24),
+            ListTile(
+              leading: const Icon(Icons.add_circle_outline_rounded, color: Color(0xFF2563EB)),
+              title: Text('Create On-Demand Session', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+              trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+              onTap: () {
+                Navigator.pop(ctx);
+                _openCreateSessionSheet();
+              },
+            ),
             ListTile(
               leading: const Icon(Icons.qr_code_rounded, color: Color(0xFF1B2A4A)),
               title: Text('Projector Dynamic QR Screen', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
@@ -257,11 +291,11 @@ class _TeacherClassesScreenState extends ConsumerState<TeacherClassesScreen> {
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(14),
                         border: Border.all(color: const Color(0xFFE2E8F0)),
-                        boxShadow: [
+                        boxShadow: const [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.02),
-                            blurRadius: 6,
-                            offset: const Offset(0, 2),
+                            color: Color(0x060F172A),
+                            blurRadius: 4,
+                            offset: Offset(0, 1),
                           ),
                         ],
                       ),
@@ -287,13 +321,18 @@ class _TeacherClassesScreenState extends ConsumerState<TeacherClassesScreen> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(22),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1B2A4A),
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Color(0xFF0F172A), Color(0xFF1E293B)],
+                    ),
                     borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
+                    border: Border.all(color: const Color(0xFF334155), width: 1),
+                    boxShadow: const [
                       BoxShadow(
-                        color: const Color(0xFF1B2A4A).withValues(alpha: 0.2),
-                        blurRadius: 16,
-                        offset: const Offset(0, 6),
+                        color: Color(0x180F172A),
+                        blurRadius: 18,
+                        offset: Offset(0, 6),
                       ),
                     ],
                   ),
@@ -355,40 +394,130 @@ class _TeacherClassesScreenState extends ConsumerState<TeacherClassesScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'Today\'s Schedule',
-                      style: GoogleFonts.outfit(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w800,
-                        color: const Color(0xFF10213E),
-                      ),
+                    Row(
+                      children: [
+                        Text(
+                          'Today\'s Schedule',
+                          style: GoogleFonts.outfit(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w800,
+                            color: const Color(0xFF10213E),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        if (_sessions.isNotEmpty)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEFF6FF),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              '${_sessions.length}',
+                              style: GoogleFonts.inter(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF2563EB),
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
-                    Text(
-                      todayFormatted,
-                      style: GoogleFonts.inter(
-                        fontSize: 13,
-                        color: const Color(0xFF64748B),
-                        fontWeight: FontWeight.w500,
-                      ),
+                    Row(
+                      children: [
+                        Text(
+                          todayFormatted,
+                          style: GoogleFonts.inter(
+                            fontSize: 13,
+                            color: const Color(0xFF64748B),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        InkWell(
+                          onTap: _openCreateSessionSheet,
+                          borderRadius: BorderRadius.circular(8),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEFF6FF),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: const Color(0xFFBFDBFE)),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.add_rounded, size: 14, color: Color(0xFF2563EB)),
+                                const SizedBox(width: 2),
+                                Text(
+                                  'New',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: const Color(0xFF2563EB),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
 
                 const SizedBox(height: 14),
 
-                // List of Classes
-                ..._mockupClasses.map((item) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 14),
-                    child: _buildClassCard(item),
-                  );
-                }),
+                // List of Classes (Dynamic or Fallback Mockup)
+                if (_sessions.isNotEmpty)
+                  ..._sessions.map((session) {
+                    final timeStr = (session.startTime.length >= 5 && session.endTime.length >= 5)
+                        ? '${session.startTime.substring(0, 5)} - ${session.endTime.substring(0, 5)}'
+                        : '${session.startTime} - ${session.endTime}';
+                    final item = {
+                      'id': session.id,
+                      'name': session.classRoomName.isNotEmpty ? session.classRoomName : 'Class #${session.id}',
+                      'rate': session.isEnded ? 'Ended' : (session.isQrValid ? 'Live Session' : 'Scheduled'),
+                      'rateVal': session.isQrValid ? 1.0 : (session.isEnded ? 0.0 : 0.88),
+                      'isAmber': session.isEnded,
+                      'time': timeStr,
+                      'students': 'Classroom #${session.classRoom?.id ?? session.id}',
+                      'absent': session.isEnded ? 'Session ended' : 'Dynamic QR Active',
+                      'room': session.classRoomName.isNotEmpty ? session.classRoomName : 'Main Hall',
+                      'isLive': !session.isEnded && session.isQrValid,
+                    };
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 14),
+                      child: _buildClassCard(item),
+                    );
+                  })
+                else
+                  ..._mockupClasses.map((item) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 14),
+                      child: _buildClassCard(item),
+                    );
+                  }),
               ],
             ),
           ),
         ),
       ),
 
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _openCreateSessionSheet,
+        backgroundColor: const Color(0xFF1B2A4A),
+        elevation: 3,
+        icon: const Icon(Icons.add_rounded, color: Colors.white, size: 20),
+        label: Text(
+          'Create Session',
+          style: GoogleFonts.inter(
+            fontWeight: FontWeight.w700,
+            fontSize: 13,
+            color: Colors.white,
+          ),
+        ),
+      ),
       // 5-Tab Teacher Bottom Bar with Classes (Index 1) active
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
@@ -486,11 +615,17 @@ class _TeacherClassesScreenState extends ConsumerState<TeacherClassesScreen> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(18),
-            boxShadow: [
+            border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
+            boxShadow: const [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.03),
-                blurRadius: 10,
-                offset: const Offset(0, 3),
+                color: Color(0x050F172A),
+                blurRadius: 4,
+                offset: Offset(0, 1),
+              ),
+              BoxShadow(
+                color: Color(0x080F172A),
+                blurRadius: 12,
+                offset: Offset(0, 3),
               ),
             ],
           ),

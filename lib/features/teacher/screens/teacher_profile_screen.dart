@@ -65,28 +65,46 @@ class _TeacherProfileScreenState extends ConsumerState<TeacherProfileScreen> {
               // Profile Card
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.all(22),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 26),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(22),
-                  boxShadow: [
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
+                  boxShadow: const [
                     BoxShadow(
-                      color: const Color(0xFF0F1E38).withAlpha(12),
-                      blurRadius: 20,
-                      offset: const Offset(0, 6),
+                      color: Color(0x060F172A),
+                      blurRadius: 4,
+                      offset: Offset(0, 1),
+                    ),
+                    BoxShadow(
+                      color: Color(0x0A0F172A),
+                      blurRadius: 16,
+                      offset: Offset(0, 4),
                     ),
                   ],
                 ),
                 child: Column(
                   children: [
-                    CircleAvatar(
-                      radius: 40,
-                      backgroundColor: const Color(0xFFE5EEF8),
-                      child: Text(
-                        teacherName.isNotEmpty ? teacherName[0].toUpperCase() : 'T',
-                        style: GoogleFonts.outfit(
-                          fontSize: 30, fontWeight: FontWeight.bold,
-                          color: const Color(0xFF1A3258),
+                    Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: const LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Color(0xFFEFF6FF), Color(0xFFDBEAFE)],
+                        ),
+                        border: Border.all(color: const Color(0xFFBFDBFE), width: 2),
+                      ),
+                      child: Center(
+                        child: Text(
+                          teacherName.isNotEmpty ? teacherName[0].toUpperCase() : 'T',
+                          style: GoogleFonts.outfit(
+                            fontSize: 32,
+                            fontWeight: FontWeight.w800,
+                            color: const Color(0xFF1E3A8A),
+                          ),
                         ),
                       ),
                     ),
@@ -94,30 +112,49 @@ class _TeacherProfileScreenState extends ConsumerState<TeacherProfileScreen> {
                     Text(
                       teacherName,
                       style: GoogleFonts.outfit(
-                        fontSize: 20, fontWeight: FontWeight.bold,
-                        color: const Color(0xFF10213E),
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF0F172A),
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       teacherEmail.isNotEmpty ? teacherEmail : '@$username',
                       style: GoogleFonts.inter(
-                        fontSize: 13, color: const Color(0xFF5C6E84),
+                        fontSize: 13,
+                        color: const Color(0xFF64748B),
+                        fontWeight: FontWeight.w400,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 10),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFE0F2FE),
-                        borderRadius: BorderRadius.circular(12),
+                        color: const Color(0xFFEFF6FF),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: const Color(0xFFBFDBFE)),
                       ),
-                      child: Text(
-                        'Faculty Member',
-                        style: GoogleFonts.inter(
-                          fontSize: 11, fontWeight: FontWeight.w600,
-                          color: const Color(0xFF0284C7),
-                        ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 6,
+                            height: 6,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFF2563EB),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Faculty Member',
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFF1D4ED8),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -196,17 +233,26 @@ class _TeacherProfileScreenState extends ConsumerState<TeacherProfileScreen> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE2EAF4)),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x050F172A),
+              blurRadius: 6,
+              offset: Offset(0, 2),
+            ),
+          ],
         ),
         child: Row(
           children: [
             Container(
-              width: 42, height: 42,
+              width: 44,
+              height: 44,
               decoration: BoxDecoration(
-                color: const Color(0xFFEBF3FE),
+                color: const Color(0xFFEFF6FF),
                 borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFDBEAFE)),
               ),
-              child: Icon(icon, size: 22, color: const Color(0xFF1A3258)),
+              child: Icon(icon, size: 22, color: const Color(0xFF2563EB)),
             ),
             const SizedBox(width: 14),
             Expanded(

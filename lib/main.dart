@@ -56,7 +56,9 @@ class SmartAttendanceApp extends StatelessWidget {
     return MaterialApp(
       title: 'Smart Attendance',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.darkTheme,
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: ThemeMode.light,
       scrollBehavior: const AppScrollBehavior(),
       home: const AuthGate(),
     );

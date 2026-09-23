@@ -196,12 +196,12 @@ class _AttendanceHistoryScreenState extends ConsumerState<AttendanceHistoryScree
                         decoration: BoxDecoration(
                           color: Colors.white,
                           shape: BoxShape.circle,
-                          border: Border.all(color: const Color(0xFFE2EAF4)),
-                          boxShadow: [
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                          boxShadow: const [
                             BoxShadow(
-                              color: const Color(0xFF10213E).withAlpha(10),
-                              blurRadius: 10,
-                              offset: const Offset(0, 2),
+                              color: Color(0x060F172A),
+                              blurRadius: 4,
+                              offset: Offset(0, 1),
                             ),
                           ],
                         ),
@@ -249,12 +249,18 @@ class _AttendanceHistoryScreenState extends ConsumerState<AttendanceHistoryScree
                   padding: const EdgeInsets.all(18),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: [
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
+                    boxShadow: const [
                       BoxShadow(
-                        color: const Color(0xFF0F1E38).withAlpha(12),
-                        blurRadius: 20,
-                        offset: const Offset(0, 6),
+                        color: Color(0x060F172A),
+                        blurRadius: 4,
+                        offset: Offset(0, 1),
+                      ),
+                      BoxShadow(
+                        color: Color(0x0A0F172A),
+                        blurRadius: 16,
+                        offset: Offset(0, 4),
                       ),
                     ],
                   ),
@@ -409,11 +415,12 @@ class _AttendanceHistoryScreenState extends ConsumerState<AttendanceHistoryScree
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(18),
-                      boxShadow: [
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                      boxShadow: const [
                         BoxShadow(
-                          color: const Color(0xFF0F1E38).withAlpha(10),
-                          blurRadius: 16,
-                          offset: const Offset(0, 4),
+                          color: Color(0x050F172A),
+                          blurRadius: 10,
+                          offset: Offset(0, 2),
                         ),
                       ],
                     ),
@@ -702,12 +709,18 @@ class _AttendanceHistoryScreenState extends ConsumerState<AttendanceHistoryScree
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
+        boxShadow: const [
           BoxShadow(
-            color: const Color(0xFF0F1E38).withAlpha(12),
-            blurRadius: 18,
-            offset: const Offset(0, 4),
+            color: Color(0x050F172A),
+            blurRadius: 4,
+            offset: Offset(0, 1),
+          ),
+          BoxShadow(
+            color: Color(0x080F172A),
+            blurRadius: 12,
+            offset: Offset(0, 3),
           ),
         ],
       ),
