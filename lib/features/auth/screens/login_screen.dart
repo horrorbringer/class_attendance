@@ -58,7 +58,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final authState = ref.watch(authProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F9FD),
+      backgroundColor: const Color(0xFFF8FAFC),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -74,8 +74,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     child: Container(
                       padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFE8EEF6),
+                        color: const Color(0xFFEDF2F7),
                         borderRadius: BorderRadius.circular(30),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -90,16 +91,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             },
                             child: AnimatedContainer(
                               duration: const Duration(milliseconds: 200),
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
                               decoration: BoxDecoration(
                                 color: !_isTeacherPortal ? Colors.white : Colors.transparent,
                                 borderRadius: BorderRadius.circular(24),
+                                border: !_isTeacherPortal ? Border.all(color: const Color(0xFFE2E8F0), width: 1) : null,
                                 boxShadow: !_isTeacherPortal
-                                    ? [
+                                    ? const [
                                         BoxShadow(
-                                          color: Colors.black.withValues(alpha: 0.08),
-                                          blurRadius: 8,
-                                          offset: const Offset(0, 2),
+                                          color: Color(0x03000000),
+                                          blurRadius: 2,
+                                          offset: Offset(0, 1),
                                         ),
                                       ]
                                     : null,
@@ -109,7 +111,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   Icon(
                                     Icons.school_outlined,
                                     size: 16,
-                                    color: !_isTeacherPortal ? const Color(0xFF10213E) : const Color(0xFF6B7C93),
+                                    color: !_isTeacherPortal ? const Color(0xFF10213E) : const Color(0xFF64748B),
                                   ),
                                   const SizedBox(width: 6),
                                   Text(
@@ -117,7 +119,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     style: GoogleFonts.inter(
                                       fontSize: 13,
                                       fontWeight: !_isTeacherPortal ? FontWeight.bold : FontWeight.w500,
-                                      color: !_isTeacherPortal ? const Color(0xFF10213E) : const Color(0xFF6B7C93),
+                                      color: !_isTeacherPortal ? const Color(0xFF10213E) : const Color(0xFF64748B),
                                     ),
                                   ),
                                 ],
@@ -134,16 +136,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             },
                             child: AnimatedContainer(
                               duration: const Duration(milliseconds: 200),
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
                               decoration: BoxDecoration(
-                                color: _isTeacherPortal ? const Color(0xFF1B2A4A) : Colors.transparent,
+                                color: _isTeacherPortal ? const Color(0xFF10213E) : Colors.transparent,
                                 borderRadius: BorderRadius.circular(24),
                                 boxShadow: _isTeacherPortal
-                                    ? [
+                                    ? const [
                                         BoxShadow(
-                                          color: const Color(0xFF1B2A4A).withValues(alpha: 0.2),
-                                          blurRadius: 8,
-                                          offset: const Offset(0, 2),
+                                          color: Color(0x03000000),
+                                          blurRadius: 2,
+                                          offset: Offset(0, 1),
                                         ),
                                       ]
                                     : null,
@@ -153,7 +155,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   Icon(
                                     Icons.workspace_premium_rounded,
                                     size: 16,
-                                    color: _isTeacherPortal ? Colors.white : const Color(0xFF6B7C93),
+                                    color: _isTeacherPortal ? Colors.white : const Color(0xFF64748B),
                                   ),
                                   const SizedBox(width: 6),
                                   Text(
@@ -161,7 +163,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     style: GoogleFonts.inter(
                                       fontSize: 13,
                                       fontWeight: _isTeacherPortal ? FontWeight.bold : FontWeight.w500,
-                                      color: _isTeacherPortal ? Colors.white : const Color(0xFF6B7C93),
+                                      color: _isTeacherPortal ? Colors.white : const Color(0xFF64748B),
                                     ),
                                   ),
                                 ],
@@ -175,28 +177,35 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                   const SizedBox(height: 24),
 
-                  // Emblem: Soft rounded square matching teacher-login.png OR circle for student
+                  // Official App Logo Emblem
                   Center(
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 250),
+                    child: Container(
                       width: 72,
                       height: 72,
                       decoration: BoxDecoration(
                         color: _isTeacherPortal ? const Color(0xFFE8F0FE) : const Color(0xFFE5EEF8),
-                        borderRadius: _isTeacherPortal ? BorderRadius.circular(22) : BorderRadius.circular(36),
-                        boxShadow: [
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
+                        boxShadow: const [
                           BoxShadow(
-                            color: const Color(0xFF1E355B).withValues(alpha: 0.1),
-                            blurRadius: 16,
-                            offset: const Offset(0, 4),
+                            color: Color(0x03000000),
+                            blurRadius: 2,
+                            offset: Offset(0, 1),
                           ),
                         ],
                       ),
-                      child: Center(
-                        child: Icon(
-                          _isTeacherPortal ? Icons.school_outlined : Icons.account_balance_outlined,
-                          size: 34,
-                          color: const Color(0xFF1B2A4A),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(19),
+                        child: Image.asset(
+                          'assets/icons/app_icon.png',
+                          fit: BoxFit.cover,
+                          errorBuilder: (ctx, err, stack) => Center(
+                            child: Icon(
+                              _isTeacherPortal ? Icons.school_outlined : Icons.account_balance_outlined,
+                              size: 34,
+                              color: const Color(0xFF10213E),
+                            ),
+                          ),
                         ),
                       ),
                     ),
@@ -219,31 +228,32 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                   const SizedBox(height: 6),
 
-                  // Subtitle: "Teacher Portal — Academic Admin" matching teacher-login.png
+                  // Subtitle matching Mockups
                   Center(
                     child: Text(
                       _isTeacherPortal ? 'Teacher Portal — Academic Admin' : 'Sign in with your Academic Account',
                       style: GoogleFonts.inter(
                         fontSize: 14,
                         fontWeight: FontWeight.w400,
-                        color: const Color(0xFF5C6E84),
+                        color: const Color(0xFF64748B),
                       ),
                     ),
                   ).animate().fadeIn(delay: 200.ms),
 
                   const SizedBox(height: 28),
 
-                  // White Form Card
+                  // White Form Card with Tiny Clean Minimal Shadow
                   Container(
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(24),
-                      boxShadow: [
+                      borderRadius: BorderRadius.circular(22),
+                      border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
+                      boxShadow: const [
                         BoxShadow(
-                          color: const Color(0xFF0F1E38).withValues(alpha: 0.06),
-                          blurRadius: 24,
-                          offset: const Offset(0, 8),
+                          color: Color(0x03000000),
+                          blurRadius: 2,
+                          offset: Offset(0, 1),
                         ),
                       ],
                     ),
@@ -272,7 +282,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             filled: true,
                             fillColor: const Color(0xFFF8FAFC),
                             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
-                            hintText: _isTeacherPortal ? 'emily.okonkwo@school.edu' : 'student_dara or ID',
+                            hintText: _isTeacherPortal ? 'emily.okonkwo@school.edu' : 'sarah.johnson@university.edu',
                             hintStyle: GoogleFonts.inter(color: const Color(0xFF94A3B8), fontSize: 14),
                             prefixIcon: const Icon(Icons.mail_outline_rounded, color: Color(0xFF8C9BAE), size: 20),
                             border: OutlineInputBorder(
@@ -282,6 +292,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(14),
                               borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: const BorderSide(color: Color(0xFF2563EB), width: 1.5),
                             ),
                           ),
                           validator: (v) => (v == null || v.trim().isEmpty) ? 'Please enter your username or ID' : null,
@@ -300,7 +314,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ),
                         const SizedBox(height: 8),
 
-                        // Password field with Key prefix icon matching teacher-login.png
+                        // Password field
                         TextFormField(
                           controller: _passwordController,
                           obscureText: _obscurePassword,
@@ -312,7 +326,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             filled: true,
                             fillColor: const Color(0xFFF8FAFC),
                             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
-                            hintText: '•••••••••••••',
+                            hintText: '••••••••••••',
                             hintStyle: GoogleFonts.inter(color: const Color(0xFF94A3B8), fontSize: 14),
                             prefixIcon: Icon(
                               _isTeacherPortal ? Icons.key_outlined : Icons.lock_outline_rounded,
@@ -335,48 +349,53 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               borderRadius: BorderRadius.circular(14),
                               borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                             ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: const BorderSide(color: Color(0xFF2563EB), width: 1.5),
+                            ),
                           ),
                           validator: (v) => (v == null || v.trim().isEmpty) ? 'Please enter your password' : null,
                         ),
 
-                        const SizedBox(height: 12),
-
-                        // "Forgot Password?" right aligned matching teacher-login.png
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: TextButton(
-                            style: TextButton.styleFrom(
-                              padding: EdgeInsets.zero,
-                              minimumSize: Size.zero,
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            ),
-                            onPressed: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Please contact your department administrator to reset credentials.'),
-                                  behavior: SnackBarBehavior.floating,
+                        // In Teacher Portal: "Forgot Password?" right aligned above submit button (matching teacher-login.png)
+                        if (_isTeacherPortal) ...[
+                          const SizedBox(height: 12),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton(
+                              style: TextButton.styleFrom(
+                                padding: EdgeInsets.zero,
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                              onPressed: () {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Please contact your department administrator to reset credentials.'),
+                                    behavior: SnackBarBehavior.floating,
+                                  ),
+                                );
+                              },
+                              child: Text(
+                                'Forgot Password?',
+                                style: GoogleFonts.inter(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: const Color(0xFF2563EB),
                                 ),
-                              );
-                            },
-                            child: Text(
-                              'Forgot Password?',
-                              style: GoogleFonts.inter(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: const Color(0xFF2563EB),
                               ),
                             ),
                           ),
-                        ),
+                        ],
 
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 20),
 
-                        // Action Button matching teacher-login.png: "Login as Teacher"
+                        // Action Button
                         SizedBox(
                           height: 52,
                           child: ElevatedButton(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF1B2A4A),
+                              backgroundColor: const Color(0xFF10213E),
                               foregroundColor: Colors.white,
                               elevation: 0,
                               shape: RoundedRectangleBorder(
@@ -404,10 +423,39 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                         ),
 
-                        const SizedBox(height: 16),
+                        // In Student Mode: Centered "Forgot Password?" below login button (matching Mockup 02)
+                        if (!_isTeacherPortal) ...[
+                          const SizedBox(height: 14),
+                          Center(
+                            child: TextButton(
+                              style: TextButton.styleFrom(
+                                padding: EdgeInsets.zero,
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                              onPressed: () {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Please contact student affairs or IT service desk to reset credentials.'),
+                                    behavior: SnackBarBehavior.floating,
+                                  ),
+                                );
+                              },
+                              child: Text(
+                                'Forgot Password?',
+                                style: GoogleFonts.inter(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: const Color(0xFF2563EB),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
 
-                        // "Verify Staff Biometrics" action matching teacher-login.png
+                        // In Teacher Portal: "Verify Staff Biometrics"
                         if (_isTeacherPortal) ...[
+                          const SizedBox(height: 14),
                           Center(
                             child: TextButton.icon(
                               onPressed: () {
@@ -434,15 +482,90 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                   ).animate().fadeIn(delay: 250.ms),
 
+                  // In Student Mode: OR Divider and "Sign in with School SSO"
+                  if (!_isTeacherPortal) ...[
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        const Expanded(child: Divider(color: Color(0xFFE2E8F0), thickness: 1)),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Text(
+                            'OR',
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFF94A3B8),
+                            ),
+                          ),
+                        ),
+                        const Expanded(child: Divider(color: Color(0xFFE2E8F0), thickness: 1)),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    Container(
+                      height: 52,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0x03000000),
+                            blurRadius: 2,
+                            offset: Offset(0, 1),
+                          ),
+                        ],
+                      ),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(14),
+                        onTap: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('School SSO authentication initiated. Select your institution.'),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        },
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.account_balance_outlined,
+                              size: 19,
+                              color: Color(0xFF10213E),
+                            ),
+                            const SizedBox(width: 10),
+                            Text(
+                              'Sign in with School SSO',
+                              style: GoogleFonts.inter(
+                                fontSize: 14.5,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF10213E),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ).animate().fadeIn(delay: 280.ms),
+                  ],
+
                   const SizedBox(height: 20),
 
                   // Quick Demo Autofill section
                   Container(
-                    padding: const EdgeInsets.all(14),
+                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: const Color(0xFFE2EAF4)),
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x03000000),
+                          blurRadius: 2,
+                          offset: Offset(0, 1),
+                        ),
+                      ],
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -456,7 +579,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               style: GoogleFonts.inter(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w700,
-                                color: const Color(0xFF1A3258),
+                                color: const Color(0xFF10213E),
                               ),
                             ),
                           ],
@@ -499,7 +622,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           'Connected to student-attendance.vanny.monster',
                           style: GoogleFonts.inter(
                             fontSize: 11,
-                            color: const Color(0xFF8092A8),
+                            color: const Color(0xFF94A3B8),
                           ),
                         ),
                       ],
@@ -516,14 +639,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   Widget _buildDemoChip(String label, String username, String password) {
     return ActionChip(
-      backgroundColor: const Color(0xFFF1F5FB),
-      side: const BorderSide(color: Color(0xFFDCE6F3)),
+      backgroundColor: const Color(0xFFF8FAFC),
+      side: const BorderSide(color: Color(0xFFE2E8F0)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       label: Text(
         label,
         style: GoogleFonts.inter(
           fontSize: 11.5,
           fontWeight: FontWeight.w500,
-          color: const Color(0xFF1D3557),
+          color: const Color(0xFF10213E),
         ),
       ),
       onPressed: () => _fillCredentials(username, password),

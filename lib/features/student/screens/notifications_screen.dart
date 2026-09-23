@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -44,6 +45,40 @@ class NotificationItem {
     this.failureReason,
     this.guardianAlertTime,
   });
+
+  NotificationItem copyWith({
+    String? id,
+    String? title,
+    String? subtitle,
+    String? timestamp,
+    AlertCategory? category,
+    bool? hasLeftAccent,
+    bool? isUnread,
+    String? courseName,
+    String? date,
+    String? scheduleTime,
+    String? location,
+    String? professor,
+    String? failureReason,
+    String? guardianAlertTime,
+  }) {
+    return NotificationItem(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      subtitle: subtitle ?? this.subtitle,
+      timestamp: timestamp ?? this.timestamp,
+      category: category ?? this.category,
+      hasLeftAccent: hasLeftAccent ?? this.hasLeftAccent,
+      isUnread: isUnread ?? this.isUnread,
+      courseName: courseName ?? this.courseName,
+      date: date ?? this.date,
+      scheduleTime: scheduleTime ?? this.scheduleTime,
+      location: location ?? this.location,
+      professor: professor ?? this.professor,
+      failureReason: failureReason ?? this.failureReason,
+      guardianAlertTime: guardianAlertTime ?? this.guardianAlertTime,
+    );
+  }
 }
 
 class NotificationsScreen extends ConsumerStatefulWidget {
@@ -59,7 +94,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   List<NotificationItem> _items = [];
 
   // Default mockup items from UI Mockup 09
-  final List<NotificationItem> _mockupItems = const [
+  final List<NotificationItem> _defaultMockupItems = const [
     NotificationItem(
       id: 'abs_1',
       title: 'Absence Alert',
@@ -82,12 +117,15 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       subtitle: 'You checked in late for Physics Lab 202',
       timestamp: 'Yesterday',
       category: AlertCategory.late,
+      hasLeftAccent: false,
+      isUnread: false,
       courseName: 'Physics Lab 202',
       date: 'Wednesday, Sep 14, 2026',
       scheduleTime: '01:30 PM — 03:00 PM',
       location: 'Science Lab 4',
       professor: 'Dr. Marie Curie',
       failureReason: 'Checked in 14 minutes past class start',
+      guardianAlertTime: '01:44 PM',
     ),
     NotificationItem(
       id: 'sys_1',
@@ -95,6 +133,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       subtitle: 'Facial database re-enrolled successfully.',
       timestamp: '3 days ago',
       category: AlertCategory.system,
+      hasLeftAccent: false,
+      isUnread: false,
       courseName: 'Biometric Security Service',
       date: 'Monday, Sep 12, 2026',
       failureReason: '5/5 high-resolution face templates synced',
@@ -116,7 +156,6 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       final Set<String> seenIds = {};
 
       // 1. Fetch dedicated alerts from GET /api/alerts/mine/
-      //    Returns Telegram/Email alert metadata (channel, sent_at, error_message)
       try {
         final alertsRes = await dio.get(ApiConstants.studentAlerts);
         if (alertsRes.data is List) {
@@ -136,7 +175,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
             String channelLabel = channel == 'telegram' ? 'Telegram' : (channel == 'email' ? 'Email' : 'System');
             String failureInfo = status == 'sent'
                 ? 'Guardian notified via $channelLabel'
-                : (errorMsg.isNotEmpty ? 'Delivery failed: $errorMsg' : 'Alert pending delivery');
+                : (errorMsg.isNotEmpty ? 'Delivery pending: $errorMsg' : 'Alert pending delivery');
 
             fetched.add(
               NotificationItem(
@@ -148,7 +187,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                 hasLeftAccent: true,
                 isUnread: true,
                 courseName: sessionName,
-                date: sessionDate,
+                date: sessionDate.isNotEmpty ? sessionDate : 'Scheduled Class Session',
                 scheduleTime: 'Class Session',
                 location: 'Assigned Campus Room',
                 professor: 'Class Faculty Instructor',
@@ -172,7 +211,6 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
             final checkedInAt = m['checked_in_at']?.toString() ?? 'Recent';
             final recordId = 'live_${status}_${m['id']}';
 
-            // Skip if we already have an alert for this
             if (seenIds.contains(recordId)) continue;
 
             if (status == 'absent') {
@@ -204,6 +242,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                   subtitle: 'You checked in late for $className',
                   timestamp: checkedInAt,
                   category: AlertCategory.late,
+                  hasLeftAccent: false,
+                  isUnread: false,
                   courseName: className,
                   date: checkedInAt,
                   scheduleTime: 'Class Session',
@@ -217,7 +257,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         }
       } catch (_) {}
 
-      // 3. Append system update card if we have any real alerts
+      // 3. Append default system update card if we have real alerts
       if (fetched.isNotEmpty) {
         fetched.add(
           const NotificationItem(
@@ -226,6 +266,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
             subtitle: 'Facial database re-enrolled successfully.',
             timestamp: '3 days ago',
             category: AlertCategory.system,
+            hasLeftAccent: false,
+            isUnread: false,
             courseName: 'Biometric Security Service',
             date: 'Monday, Sep 12, 2026',
             failureReason: '5/5 high-resolution face templates synced',
@@ -235,14 +277,14 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
 
       if (mounted) {
         setState(() {
-          _items = fetched.isNotEmpty ? fetched : _mockupItems;
+          _items = fetched.isNotEmpty ? fetched : List.from(_defaultMockupItems);
           _isLoading = false;
         });
       }
     } catch (_) {
       if (mounted) {
         setState(() {
-          _items = _mockupItems;
+          _items = List.from(_defaultMockupItems);
           _isLoading = false;
         });
       }
@@ -254,7 +296,45 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     return _items.where((i) => i.category == _selectedFilter).toList();
   }
 
+  int get _unreadCount => _items.where((i) => i.isUnread).length;
+
+  void _markAllAsRead() {
+    HapticFeedback.lightImpact();
+    setState(() {
+      _items = _items.map((i) => i.copyWith(isUnread: false, hasLeftAccent: false)).toList();
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.done_all_rounded, color: Colors.white, size: 18),
+            const SizedBox(width: 8),
+            Text(
+              'All notifications marked as read',
+              style: GoogleFonts.inter(fontWeight: FontWeight.w500),
+            ),
+          ],
+        ),
+        backgroundColor: const Color(0xFF10213E),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
   void _onNotificationTapped(NotificationItem item) {
+    HapticFeedback.selectionClick();
+
+    // Mark as read immediately on tap
+    if (item.isUnread) {
+      setState(() {
+        final index = _items.indexWhere((element) => element.id == item.id);
+        if (index != -1) {
+          _items[index] = _items[index].copyWith(isUnread: false, hasLeftAccent: false);
+        }
+      });
+    }
+
     if (item.category == AlertCategory.absences) {
       Navigator.push(
         context,
@@ -278,12 +358,41 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     }
   }
 
+  void _dismissNotification(NotificationItem item) {
+    final index = _items.indexWhere((element) => element.id == item.id);
+    if (index == -1) return;
+
+    final removed = _items[index];
+    setState(() {
+      _items.removeAt(index);
+    });
+
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('${item.title} archived'),
+        backgroundColor: const Color(0xFF1E293B),
+        behavior: SnackBarBehavior.floating,
+        action: SnackBarAction(
+          label: 'UNDO',
+          textColor: const Color(0xFF38BDF8),
+          onPressed: () {
+            setState(() {
+              _items.insert(index, removed);
+            });
+          },
+        ),
+      ),
+    );
+  }
+
   void _showLateDetailDialog(NotificationItem item) {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
         decoration: const BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -294,7 +403,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
           children: [
             Center(
               child: Container(
-                width: 40,
+                width: 44,
                 height: 4,
                 decoration: BoxDecoration(
                   color: const Color(0xFFCBD5E1),
@@ -302,17 +411,17 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 20),
             Row(
               children: [
                 Container(
-                  width: 44,
-                  height: 44,
+                  width: 48,
+                  height: 48,
                   decoration: BoxDecoration(
                     color: const Color(0xFFFEF3C7),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(14),
                   ),
-                  child: const Icon(Icons.access_time_rounded, color: Color(0xFFF59E0B), size: 24),
+                  child: const Icon(Icons.access_time_filled_rounded, color: Color(0xFFD97706), size: 26),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -321,50 +430,101 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                     children: [
                       Text(
                         item.title,
-                        style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFF10213E)),
+                        style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.bold, color: const Color(0xFF10213E)),
                       ),
                       Text(
                         item.courseName ?? 'Physics Lab 202',
-                        style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF5C6E84)),
+                        style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500, color: const Color(0xFF64748B)),
                       ),
                     ],
                   ),
                 ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFEF3C7),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    'Tardy',
+                    style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFFD97706)),
+                  ),
+                ),
               ],
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 20),
             Container(
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: const Color(0xFFF8FAFC),
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: const Color(0xFFE2E8F0)),
               ),
               child: Column(
                 children: [
                   _buildModalRow('Date', item.date ?? 'Wednesday, Sep 14, 2026'),
-                  const Divider(height: 16, color: Color(0xFFE2E8F0)),
+                  const Divider(height: 18, color: Color(0xFFE2E8F0)),
                   _buildModalRow('Scheduled Time', item.scheduleTime ?? '01:30 PM — 03:00 PM'),
-                  const Divider(height: 16, color: Color(0xFFE2E8F0)),
-                  _buildModalRow('Check-in Timestamp', '01:44 PM (14m Late)'),
-                  const Divider(height: 16, color: Color(0xFFE2E8F0)),
-                  _buildModalRow('Teacher', item.professor ?? 'Dr. Marie Curie'),
+                  const Divider(height: 18, color: Color(0xFFE2E8F0)),
+                  _buildModalRow('Logged At', item.timestamp),
+                  const Divider(height: 18, color: Color(0xFFE2E8F0)),
+                  _buildModalRow('Class Instructor', item.professor ?? 'Dr. Marie Curie'),
+                  const Divider(height: 18, color: Color(0xFFE2E8F0)),
+                  _buildModalRow('Log Reason', item.failureReason ?? 'Checked in after start grace window'),
                 ],
               ),
             ),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(ctx),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1B2A4A),
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      side: const BorderSide(color: Color(0xFFE2E8F0)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                    child: Text(
+                      'Dismiss',
+                      style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: const Color(0xFF64748B)),
+                    ),
+                  ),
                 ),
-                child: Text('Dismiss', style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: Colors.white)),
-              ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => AbsenceAlertDetailScreen(
+                            courseName: item.courseName ?? 'Physics Lab 202',
+                            date: item.date ?? 'Wednesday, Sep 14, 2026',
+                            scheduleTime: item.scheduleTime ?? '01:30 PM — 03:00 PM',
+                            location: item.location ?? 'Science Lab 4',
+                            professor: item.professor ?? 'Dr. Marie Curie',
+                            failureReason: item.failureReason ?? 'Checked in 14 minutes past class start',
+                            alertTime: item.timestamp,
+                            guardianAlertTime: item.guardianAlertTime ?? '01:44 PM',
+                          ),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      backgroundColor: const Color(0xFF10213E),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                    child: Text(
+                      'Appeal / Excuse',
+                      style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: Colors.white),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -375,9 +535,10 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   void _showSystemInfoDialog(NotificationItem item) {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
         decoration: const BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -388,7 +549,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
           children: [
             Center(
               child: Container(
-                width: 40,
+                width: 44,
                 height: 4,
                 decoration: BoxDecoration(
                   color: const Color(0xFFCBD5E1),
@@ -396,17 +557,17 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 20),
             Row(
               children: [
                 Container(
-                  width: 44,
-                  height: 44,
+                  width: 48,
+                  height: 48,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE0F2FE),
-                    borderRadius: BorderRadius.circular(12),
+                    color: const Color(0xFFEFF6FF),
+                    borderRadius: BorderRadius.circular(14),
                   ),
-                  child: const Icon(Icons.shield_outlined, color: Color(0xFF0284C7), size: 24),
+                  child: const Icon(Icons.verified_user_rounded, color: Color(0xFF2563EB), size: 26),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -415,11 +576,11 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                     children: [
                       Text(
                         item.title,
-                        style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFF10213E)),
+                        style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.bold, color: const Color(0xFF10213E)),
                       ),
                       Text(
                         'Device Security & Face Templates',
-                        style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF5C6E84)),
+                        style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500, color: const Color(0xFF64748B)),
                       ),
                     ],
                   ),
@@ -427,15 +588,35 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
               ],
             ),
             const SizedBox(height: 18),
-            Text(
-              'Your facial embeddings have been securely updated in the database. Biometric check-in is ready for instant kiosk and mobile recognition.',
-              style: GoogleFonts.inter(fontSize: 14, color: const Color(0xFF5C6E84), height: 1.5),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Column(
+                children: [
+                  _buildModalRow('Security Status', 'Active & Protected'),
+                  const Divider(height: 18, color: Color(0xFFE2E8F0)),
+                  _buildModalRow('Biometric Hash', 'AES-256 Encrypted'),
+                  const Divider(height: 18, color: Color(0xFFE2E8F0)),
+                  _buildModalRow('Vector Models', '5 / 5 Synced'),
+                  const Divider(height: 18, color: Color(0xFFE2E8F0)),
+                  _buildModalRow('Last Verification', item.timestamp),
+                ],
+              ),
             ),
             const SizedBox(height: 20),
+            Text(
+              'Your facial embeddings are safely encrypted on-device and ready for seamless kiosk or mobile check-in verification.',
+              style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF64748B), height: 1.4),
+            ),
+            const SizedBox(height: 24),
             SizedBox(
               width: double.infinity,
-              height: 48,
-              child: ElevatedButton(
+              height: 50,
+              child: ElevatedButton.icon(
                 onPressed: () {
                   Navigator.pop(ctx);
                   Navigator.push(
@@ -444,11 +625,15 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                   );
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1B2A4A),
+                  backgroundColor: const Color(0xFF10213E),
                   elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 ),
-                child: Text('View Biometric Settings', style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: Colors.white)),
+                icon: const Icon(Icons.face_retouching_natural_rounded, size: 20, color: Colors.white),
+                label: Text(
+                  'Manage Face Embeddings',
+                  style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
+                ),
               ),
             ),
           ],
@@ -462,7 +647,16 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(label, style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF64748B))),
-        Text(value, style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: const Color(0xFF10213E))),
+        const SizedBox(width: 12),
+        Flexible(
+          child: Text(
+            value,
+            textAlign: TextAlign.end,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: const Color(0xFF10213E)),
+          ),
+        ),
       ],
     );
   }
@@ -472,11 +666,11 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     final filtered = _filteredItems;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F9FD),
+      backgroundColor: const Color(0xFFF8FAFC),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: _fetchAlerts,
-          color: const Color(0xFF1B2A4A),
+          color: const Color(0xFF10213E),
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(
               parent: ClampingScrollPhysics(),
@@ -486,23 +680,55 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 18),
 
-                    // Title "Notifications" matching Mockup 09
+                    // Header row matching Mockup 09
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: Text(
-                        'Notifications',
-                        style: GoogleFonts.outfit(
-                          fontSize: 28,
-                          fontWeight: FontWeight.w800,
-                          color: const Color(0xFF10213E),
-                          letterSpacing: -0.5,
-                        ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Text(
+                            'Notifications',
+                            style: GoogleFonts.outfit(
+                              fontSize: 26,
+                              fontWeight: FontWeight.w800,
+                              color: const Color(0xFF10213E),
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                          if (_unreadCount > 0)
+                            GestureDetector(
+                              onTap: _markAllAsRead,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFEFF6FF),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.done_all_rounded, size: 14, color: Color(0xFF2563EB)),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'Mark all read',
+                                      style: GoogleFonts.inter(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: const Color(0xFF2563EB),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                     ),
 
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 18),
 
                     // Filter Pills matching Mockup 09: All, Absences, Late, System
                     Padding(
@@ -533,7 +759,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                 const SliverFillRemaining(
                   hasScrollBody: false,
                   child: Center(
-                    child: CircularProgressIndicator(color: Color(0xFF1B2A4A)),
+                    child: CircularProgressIndicator(color: Color(0xFF10213E)),
                   ),
                 )
               else if (filtered.isEmpty)
@@ -543,16 +769,32 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.notifications_none_rounded, size: 54, color: Colors.grey.shade400),
-                        const SizedBox(height: 12),
-                        Text(
-                          'No notifications found',
-                          style: GoogleFonts.outfit(fontSize: 16, color: const Color(0xFF5C6E84)),
+                        Container(
+                          width: 72,
+                          height: 72,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF1F5F9),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.notifications_none_rounded, size: 36, color: Color(0xFF94A3B8)),
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 16),
                         Text(
-                          'Pull down to refresh',
-                          style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF94A3B8)),
+                          'No alerts in this category',
+                          style: GoogleFonts.outfit(fontSize: 17, fontWeight: FontWeight.bold, color: const Color(0xFF10213E)),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'You\'re all caught up with your notifications',
+                          style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF64748B)),
+                        ),
+                        const SizedBox(height: 18),
+                        TextButton(
+                          onPressed: () => setState(() => _selectedFilter = AlertCategory.all),
+                          style: TextButton.styleFrom(
+                            foregroundColor: const Color(0xFF2563EB),
+                          ),
+                          child: Text('Show all notifications', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
                         ),
                       ],
                     ),
@@ -560,17 +802,31 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                 )
               else
                 SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
                   sliver: SliverList(
                     delegate: SliverChildBuilderDelegate(
                       (context, index) {
                         final item = filtered[index];
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 14),
-                          child: _buildNotificationCard(item)
-                              .animate()
-                              .fadeIn(duration: 250.ms, delay: (index * 50).ms)
-                              .slideY(begin: 0.05, end: 0),
+                          child: Dismissible(
+                            key: Key(item.id),
+                            direction: DismissDirection.endToStart,
+                            background: Container(
+                              alignment: Alignment.centerRight,
+                              padding: const EdgeInsets.only(right: 20),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFEE2E2),
+                                borderRadius: BorderRadius.circular(18),
+                              ),
+                              child: const Icon(Icons.archive_outlined, color: Color(0xFFDC2626)),
+                            ),
+                            onDismissed: (_) => _dismissNotification(item),
+                            child: _buildNotificationCard(item)
+                                .animate()
+                                .fadeIn(duration: 220.ms, delay: (index * 40).ms)
+                                .slideY(begin: 0.04, end: 0),
+                          ),
                         );
                       },
                       childCount: filtered.length,
@@ -578,7 +834,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                   ),
                 ),
 
-              const SliverToBoxAdapter(child: SizedBox(height: 20)),
+              const SliverToBoxAdapter(child: SizedBox(height: 24)),
             ],
           ),
         ),
@@ -588,7 +844,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
           color: Colors.white,
-          border: Border(top: BorderSide(color: Color(0xFFE5EEF8), width: 1)),
+          border: Border(top: BorderSide(color: Color(0xFFE2E8F0), width: 1)),
         ),
         child: BottomNavigationBar(
           currentIndex: 3, // Alerts is active
@@ -652,24 +908,25 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
 
     return GestureDetector(
       onTap: () {
+        HapticFeedback.selectionClick();
         setState(() => _selectedFilter = category);
       },
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 9),
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8.5),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF1B2A4A) : Colors.white,
-          borderRadius: BorderRadius.circular(20),
+          color: isSelected ? const Color(0xFF10213E) : Colors.white,
+          borderRadius: BorderRadius.circular(22),
           border: Border.all(
-            color: isSelected ? const Color(0xFF1B2A4A) : const Color(0xFFE2E8F0),
+            color: isSelected ? const Color(0xFF10213E) : const Color(0xFFE2E8F0),
             width: 1,
           ),
           boxShadow: isSelected
-              ? [
+              ? const [
                   BoxShadow(
-                    color: const Color(0xFF1B2A4A).withValues(alpha: 0.15),
-                    blurRadius: 8,
-                    offset: const Offset(0, 3),
+                    color: Color(0x0810213E),
+                    blurRadius: 2,
+                    offset: Offset(0, 1),
                   ),
                 ]
               : null,
@@ -679,7 +936,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
           style: GoogleFonts.inter(
             fontSize: 13,
             fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-            color: isSelected ? Colors.white : const Color(0xFF5C6E84),
+            color: isSelected ? Colors.white : const Color(0xFF475569),
           ),
         ),
       ),
@@ -687,26 +944,26 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   }
 
   Widget _buildNotificationCard(NotificationItem item) {
-    // Config based on alert category
+    // Exact colors and icons from Mockup 09
     Color iconBg;
     IconData icon;
     Color iconColor;
 
     switch (item.category) {
       case AlertCategory.absences:
-        iconBg = const Color(0xFFFFEEEE);
+        iconBg = const Color(0xFFFFE4E6);
         icon = Icons.notifications_off_outlined;
-        iconColor = const Color(0xFFEF4444);
+        iconColor = const Color(0xFFE11D48);
         break;
       case AlertCategory.late:
         iconBg = const Color(0xFFFEF3C7);
         icon = Icons.access_time_rounded;
-        iconColor = const Color(0xFFF59E0B);
+        iconColor = const Color(0xFFD97706);
         break;
       case AlertCategory.system:
-        iconBg = const Color(0xFFE0F2FE);
+        iconBg = const Color(0xFFEFF6FF);
         icon = Icons.shield_outlined;
-        iconColor = const Color(0xFF0284C7);
+        iconColor = const Color(0xFF2563EB);
         break;
       case AlertCategory.all:
         iconBg = const Color(0xFFF1F5F9);
@@ -715,46 +972,46 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         break;
     }
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () => _onNotificationTapped(item),
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.03),
-                blurRadius: 10,
-                offset: const Offset(0, 3),
-              ),
-            ],
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x03000000),
+            blurRadius: 2,
+            offset: Offset(0, 1),
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () => _onNotificationTapped(item),
+            splashColor: const Color(0xFFF1F5F9),
+            highlightColor: const Color(0xFFF8FAFC),
             child: IntrinsicHeight(
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Left Navy Accent Bar (for Absence Alert / Unread as shown in Mockup 09)
+                  // Left Accent Strip (Matches Mockup 09 dark navy left border on Card 1)
                   if (item.hasLeftAccent)
                     Container(
-                      width: 4,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF1B2A4A),
-                      ),
+                      width: 4.5,
+                      color: const Color(0xFF10213E),
                     ),
 
-                  // Main Content
+                  // Main Card Content
                   Expanded(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Rounded Icon Square
+                          // Rounded Square Icon Container
                           Container(
                             width: 44,
                             height: 44,
@@ -766,26 +1023,26 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                           ),
                           const SizedBox(width: 14),
 
-                          // Text Content
+                          // Text Information
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // Title & Unread Dot
+                                // Title & Top-Right Blue Dot (Exact Mockup 09 layout)
                                 Row(
                                   children: [
                                     Expanded(
                                       child: Text(
                                         item.title,
-                                        style: GoogleFonts.inter(
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.bold,
+                                        style: GoogleFonts.outfit(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w700,
                                           color: const Color(0xFF10213E),
                                         ),
                                       ),
                                     ),
                                     if (item.isUnread) ...[
-                                      const SizedBox(width: 6),
+                                      const SizedBox(width: 8),
                                       Container(
                                         width: 7,
                                         height: 7,
@@ -804,8 +1061,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                                   item.subtitle,
                                   style: GoogleFonts.inter(
                                     fontSize: 13,
-                                    color: const Color(0xFF5C6E84),
-                                    height: 1.3,
+                                    color: const Color(0xFF475569),
+                                    height: 1.35,
                                   ),
                                 ),
                                 const SizedBox(height: 6),

@@ -1,12 +1,15 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import '../../../core/config/api_constants.dart';
 import '../../../core/network/api_client.dart';
 import '../../auth/controllers/auth_controller.dart';
 import 'attendance_history_screen.dart';
+import 'face_enrollment_screen.dart';
 import 'notifications_screen.dart';
 import 'qr_scanner_screen.dart';
 
@@ -31,7 +34,237 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
     });
   }
 
+  void _showDigitalIdModal(String fullName, String studentId, String section) {
+    HapticFeedback.lightImpact();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Center(
+              child: Container(
+                width: 44,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFCBD5E1),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Card Header
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.school_rounded, color: Color(0xFF10213E), size: 24),
+                const SizedBox(width: 8),
+                Text(
+                  'Digital Student Identity',
+                  style: GoogleFonts.outfit(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF10213E),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Official University Attendance Card',
+              style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF64748B)),
+            ),
+            const SizedBox(height: 24),
+
+            // Physical Card Mockup
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF10213E), Color(0xFF1E3A8A)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x0610213E),
+                    blurRadius: 4,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'CAMPUS PASS',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white.withValues(alpha: 0.8),
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF10B981).withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.6)),
+                        ),
+                        child: Text(
+                          'ACTIVE',
+                          style: GoogleFonts.inter(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF34D399),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Container(
+                        width: 56,
+                        height: 56,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                        ),
+                        child: ClipOval(
+                          child: Image.network(
+                            'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300',
+                            fit: BoxFit.cover,
+                            errorBuilder: (ctx, err, stack) => Container(
+                              color: const Color(0xFF1B2A4A),
+                              child: Center(
+                                child: Text(
+                                  fullName.isNotEmpty ? fullName[0] : 'S',
+                                  style: GoogleFonts.outfit(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              fullName,
+                              style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                            ),
+                            Text(
+                              studentId,
+                              style: GoogleFonts.inter(fontSize: 13, color: Colors.white70),
+                            ),
+                            Text(
+                              section,
+                              style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF93C5FD)),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Integrated Barcode / QR Code
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        QrImageView(
+                          data: studentId,
+                          version: QrVersions.auto,
+                          size: 110,
+                          backgroundColor: Colors.white,
+                          eyeStyle: const QrEyeStyle(
+                            eyeShape: QrEyeShape.square,
+                            color: Color(0xFF10213E),
+                          ),
+                          dataModuleStyle: const QrDataModuleStyle(
+                            dataModuleShape: QrDataModuleShape.square,
+                            color: Color(0xFF10213E),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'KIOSK SCAN READY',
+                              style: GoogleFonts.inter(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                                color: const Color(0xFF10213E),
+                                letterSpacing: 0.8,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Present to turnstile or\nkiosk camera for\ninstant access.',
+                              style: GoogleFonts.inter(
+                                fontSize: 11,
+                                color: const Color(0xFF64748B),
+                                height: 1.3,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(ctx),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF10213E),
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+                child: Text(
+                  'Dismiss',
+                  style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _showResetPasswordModal() {
+    HapticFeedback.lightImpact();
     final oldPasswordController = TextEditingController();
     final newPasswordController = TextEditingController();
     final confirmPasswordController = TextEditingController();
@@ -49,212 +282,220 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
         builder: (context, setModalState) => Padding(
           padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
           child: Container(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 28),
             decoration: const BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFCBD5E1),
-                      borderRadius: BorderRadius.circular(2),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 44,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFCBD5E1),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 18),
-                Text(
-                  'Reset Password',
-                  style: GoogleFonts.outfit(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: const Color(0xFF10213E),
-                  ),
-                ),
-                Text(
-                  'Enter your current password and choose a secure new one.',
-                  style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF5C6E84)),
-                ),
-                if (errorMessage != null) ...[
-                  const SizedBox(height: 14),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFEE2E2),
-                      borderRadius: BorderRadius.circular(10),
+                  const SizedBox(height: 18),
+                  Text(
+                    'Reset Password',
+                    style: GoogleFonts.outfit(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF10213E),
                     ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.error_outline, color: Color(0xFFEF4444), size: 18),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            errorMessage!,
-                            style: GoogleFonts.inter(color: const Color(0xFFB91C1C), fontSize: 13),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Enter your current password and choose a secure new one.',
+                    style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF64748B)),
+                  ),
+                  if (errorMessage != null) ...[
+                    const SizedBox(height: 14),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFEE2E2),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.error_outline, color: Color(0xFFEF4444), size: 18),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              errorMessage!,
+                              style: GoogleFonts.inter(color: const Color(0xFFB91C1C), fontSize: 13),
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 18),
+                  Text(
+                    'Current Password',
+                    style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: const Color(0xFF10213E)),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: oldPasswordController,
+                    obscureText: obscureOld,
+                    style: GoogleFonts.inter(fontSize: 14, color: const Color(0xFF10213E)),
+                    decoration: InputDecoration(
+                      hintText: 'Enter current password',
+                      hintStyle: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF94A3B8)),
+                      filled: true,
+                      fillColor: const Color(0xFFF8FAFC),
+                      suffixIcon: IconButton(
+                        icon: Icon(obscureOld ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: const Color(0xFF94A3B8)),
+                        onPressed: () => setModalState(() => obscureOld = !obscureOld),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF10213E), width: 1.5)),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Text(
+                    'New Password',
+                    style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: const Color(0xFF10213E)),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: newPasswordController,
+                    obscureText: obscureNew,
+                    style: GoogleFonts.inter(fontSize: 14, color: const Color(0xFF10213E)),
+                    decoration: InputDecoration(
+                      hintText: 'Minimum 8 characters',
+                      hintStyle: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF94A3B8)),
+                      filled: true,
+                      fillColor: const Color(0xFFF8FAFC),
+                      suffixIcon: IconButton(
+                        icon: Icon(obscureNew ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: const Color(0xFF94A3B8)),
+                        onPressed: () => setModalState(() => obscureNew = !obscureNew),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF10213E), width: 1.5)),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Text(
+                    'Confirm New Password',
+                    style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: const Color(0xFF10213E)),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: confirmPasswordController,
+                    obscureText: obscureConfirm,
+                    style: GoogleFonts.inter(fontSize: 14, color: const Color(0xFF10213E)),
+                    decoration: InputDecoration(
+                      hintText: 'Re-enter new password',
+                      hintStyle: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF94A3B8)),
+                      filled: true,
+                      fillColor: const Color(0xFFF8FAFC),
+                      suffixIcon: IconButton(
+                        icon: Icon(obscureConfirm ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: const Color(0xFF94A3B8)),
+                        onPressed: () => setModalState(() => obscureConfirm = !obscureConfirm),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF10213E), width: 1.5)),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: ElevatedButton(
+                      onPressed: isSubmitting
+                          ? null
+                          : () async {
+                              final oldP = oldPasswordController.text.trim();
+                              final newP = newPasswordController.text.trim();
+                              final confP = confirmPasswordController.text.trim();
+
+                              if (oldP.isEmpty || newP.isEmpty || confP.isEmpty) {
+                                setModalState(() => errorMessage = 'Please fill out all password fields.');
+                                return;
+                              }
+                              if (newP != confP) {
+                                setModalState(() => errorMessage = 'New passwords do not match.');
+                                return;
+                              }
+                              if (newP.length < 6) {
+                                setModalState(() => errorMessage = 'New password must be at least 6 characters.');
+                                return;
+                              }
+
+                              setModalState(() {
+                                isSubmitting = true;
+                                errorMessage = null;
+                              });
+
+                              try {
+                                final dio = ref.read(dioProvider);
+                                await dio.post(
+                                  ApiConstants.changePassword,
+                                  data: {
+                                    'old_password': oldP,
+                                    'new_password': newP,
+                                    'confirm_password': confP,
+                                  },
+                                );
+
+                                if (context.mounted) {
+                                  Navigator.pop(ctx);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Row(
+                                        children: [
+                                          Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                                          SizedBox(width: 8),
+                                          Text('Password updated successfully.'),
+                                        ],
+                                      ),
+                                      backgroundColor: Color(0xFF10B981),
+                                      behavior: SnackBarBehavior.floating,
+                                    ),
+                                  );
+                                }
+                              } catch (e) {
+                                setModalState(() {
+                                  isSubmitting = false;
+                                  errorMessage = 'Failed to change password. Please check your current password.';
+                                });
+                              }
+                            },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF10213E),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      ),
+                      child: isSubmitting
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                            )
+                          : Text(
+                              'Update Password',
+                              style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: Colors.white, fontSize: 15),
+                            ),
                     ),
                   ),
                 ],
-                const SizedBox(height: 18),
-                Text(
-                  'Current Password',
-                  style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: const Color(0xFF10213E)),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: oldPasswordController,
-                  obscureText: obscureOld,
-                  style: GoogleFonts.inter(fontSize: 14),
-                  decoration: InputDecoration(
-                    hintText: 'Enter current password',
-                    filled: true,
-                    fillColor: const Color(0xFFF8FAFC),
-                    suffixIcon: IconButton(
-                      icon: Icon(obscureOld ? Icons.visibility_off : Icons.visibility, color: const Color(0xFF94A3B8)),
-                      onPressed: () => setModalState(() => obscureOld = !obscureOld),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
-                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                Text(
-                  'New Password',
-                  style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: const Color(0xFF10213E)),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: newPasswordController,
-                  obscureText: obscureNew,
-                  style: GoogleFonts.inter(fontSize: 14),
-                  decoration: InputDecoration(
-                    hintText: 'Minimum 8 characters',
-                    filled: true,
-                    fillColor: const Color(0xFFF8FAFC),
-                    suffixIcon: IconButton(
-                      icon: Icon(obscureNew ? Icons.visibility_off : Icons.visibility, color: const Color(0xFF94A3B8)),
-                      onPressed: () => setModalState(() => obscureNew = !obscureNew),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
-                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                Text(
-                  'Confirm New Password',
-                  style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: const Color(0xFF10213E)),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: confirmPasswordController,
-                  obscureText: obscureConfirm,
-                  style: GoogleFonts.inter(fontSize: 14),
-                  decoration: InputDecoration(
-                    hintText: 'Re-enter new password',
-                    filled: true,
-                    fillColor: const Color(0xFFF8FAFC),
-                    suffixIcon: IconButton(
-                      icon: Icon(obscureConfirm ? Icons.visibility_off : Icons.visibility, color: const Color(0xFF94A3B8)),
-                      onPressed: () => setModalState(() => obscureConfirm = !obscureConfirm),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
-                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton(
-                    onPressed: isSubmitting
-                        ? null
-                        : () async {
-                            final oldP = oldPasswordController.text.trim();
-                            final newP = newPasswordController.text.trim();
-                            final confP = confirmPasswordController.text.trim();
-
-                            if (oldP.isEmpty || newP.isEmpty || confP.isEmpty) {
-                              setModalState(() => errorMessage = 'Please fill out all password fields.');
-                              return;
-                            }
-                            if (newP != confP) {
-                              setModalState(() => errorMessage = 'New passwords do not match.');
-                              return;
-                            }
-                            if (newP.length < 6) {
-                              setModalState(() => errorMessage = 'New password must be at least 6 characters.');
-                              return;
-                            }
-
-                            setModalState(() {
-                              isSubmitting = true;
-                              errorMessage = null;
-                            });
-
-                            try {
-                              final dio = ref.read(dioProvider);
-                              await dio.post(
-                                ApiConstants.changePassword,
-                                data: {
-                                  'old_password': oldP,
-                                  'new_password': newP,
-                                  'confirm_password': confP,
-                                },
-                              );
-
-                              if (context.mounted) {
-                                Navigator.pop(ctx);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Row(
-                                      children: [
-                                        Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
-                                        SizedBox(width: 8),
-                                        Text('Password updated successfully.'),
-                                      ],
-                                    ),
-                                    backgroundColor: Color(0xFF10B981),
-                                    behavior: SnackBarBehavior.floating,
-                                  ),
-                                );
-                              }
-                            } catch (e) {
-                              setModalState(() {
-                                isSubmitting = false;
-                                errorMessage = 'Failed to change password. Please check your current password.';
-                              });
-                            }
-                          },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1B2A4A),
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    ),
-                    child: isSubmitting
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                          )
-                        : Text(
-                            'Update Password',
-                            style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: Colors.white, fontSize: 15),
-                          ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-              ],
+              ),
             ),
           ),
         ),
@@ -263,6 +504,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
   }
 
   void _confirmLogout() {
+    HapticFeedback.mediumImpact();
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -274,22 +516,23 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
         ),
         content: Text(
           'Are you sure you want to log out of your Smart Attendance account?',
-          style: GoogleFonts.inter(color: const Color(0xFF5C6E84), fontSize: 14),
+          style: GoogleFonts.inter(color: const Color(0xFF64748B), fontSize: 14),
         ),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancel', style: GoogleFonts.inter(color: const Color(0xFF5C6E84), fontWeight: FontWeight.w600)),
+            child: Text('Cancel', style: GoogleFonts.inter(color: const Color(0xFF64748B), fontWeight: FontWeight.w600)),
           ),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(ctx);
               ref.read(authProvider.notifier).logout();
-              Navigator.popUntil(context, (route) => route.isFirst);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFEF4444),
               elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
             child: Text('Log Out', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600)),
@@ -315,51 +558,71 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
     final guardianName = rawGuardian.isNotEmpty ? rawGuardian : 'Robert Johnson (Father)';
     const guardianDetails = '+1 (555) 019-2834 • r.johnson@workmail.com';
 
+    final faceEmbeddingsCount = profile?.faceEmbeddingsCount ?? 0;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F9FD),
+      backgroundColor: const Color(0xFFF8FAFC),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(vertical: 20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
 
               // Avatar Circle with Navy Outer Ring (matching Mockup 11)
               Center(
-                child: Container(
-                  width: 96,
-                  height: 96,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: const Color(0xFF1B2A4A),
-                      width: 2.5,
-                    ),
-                  ),
-                  child: ClipOval(
-                    child: Image.network(
-                      'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300',
-                      fit: BoxFit.cover,
-                      errorBuilder: (ctx, err, stack) {
-                        return Container(
-                          color: const Color(0xFF1B2A4A),
-                          child: Center(
-                            child: Text(
-                              fullName.isNotEmpty ? fullName[0] : 'S',
-                              style: GoogleFonts.outfit(
-                                fontSize: 36,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
+                child: GestureDetector(
+                  onTap: () => _showDigitalIdModal(fullName, studentId, section),
+                  child: Stack(
+                    alignment: Alignment.bottomRight,
+                    children: [
+                      Container(
+                        width: 96,
+                        height: 96,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: const Color(0xFF10213E),
+                            width: 2.5,
                           ),
-                        );
-                      },
-                    ),
+                        ),
+                        child: ClipOval(
+                          child: Image.network(
+                            'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300',
+                            fit: BoxFit.cover,
+                            errorBuilder: (ctx, err, stack) {
+                              return Container(
+                                color: const Color(0xFF10213E),
+                                child: Center(
+                                  child: Text(
+                                    fullName.isNotEmpty ? fullName[0] : 'S',
+                                    style: GoogleFonts.outfit(
+                                      fontSize: 36,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                      Container(
+                        width: 28,
+                        height: 28,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF10213E),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                        ),
+                        child: const Icon(Icons.qr_code_rounded, size: 14, color: Colors.white),
+                      ),
+                    ],
                   ),
                 ),
-              ).animate().scale(duration: 350.ms, curve: Curves.easeOutBack),
+              ).animate().scale(duration: 300.ms, curve: Curves.easeOutBack),
 
               const SizedBox(height: 14),
 
@@ -367,22 +630,25 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
               Text(
                 fullName,
                 style: GoogleFonts.outfit(
-                  fontSize: 22,
+                  fontSize: 24,
                   fontWeight: FontWeight.w800,
                   color: const Color(0xFF10213E),
-                  letterSpacing: -0.3,
+                  letterSpacing: -0.4,
                 ),
-              ).animate().fadeIn(duration: 250.ms).slideY(begin: 0.1, end: 0),
+              ).animate().fadeIn(duration: 200.ms).slideY(begin: 0.08, end: 0),
 
               const SizedBox(height: 4),
 
               // Student ID
-              Text(
-                'Student ID: $studentId',
-                style: GoogleFonts.inter(
-                  fontSize: 13,
-                  color: const Color(0xFF64748B),
-                  fontWeight: FontWeight.w500,
+              GestureDetector(
+                onTap: () => _showDigitalIdModal(fullName, studentId, section),
+                child: Text(
+                  'Student ID: $studentId',
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    color: const Color(0xFF64748B),
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
 
@@ -392,7 +658,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
               Text(
                 section,
                 style: GoogleFonts.inter(
-                  fontSize: 13,
+                  fontSize: 13.5,
                   fontWeight: FontWeight.w600,
                   color: const Color(0xFF2563EB),
                 ),
@@ -408,48 +674,70 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                   padding: const EdgeInsets.all(18),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
+                    boxShadow: const [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.03),
-                        blurRadius: 10,
-                        offset: const Offset(0, 3),
+                        color: Color(0x03000000),
+                        blurRadius: 2,
+                        offset: Offset(0, 1),
                       ),
                     ],
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  child: Row(
                     children: [
-                      Text(
-                        'EMERGENCY GUARDIAN',
-                        style: GoogleFonts.inter(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: const Color(0xFF94A3B8),
-                          letterSpacing: 0.6,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'EMERGENCY GUARDIAN',
+                              style: GoogleFonts.inter(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFF94A3B8),
+                                letterSpacing: 0.7,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              guardianName,
+                              style: GoogleFonts.outfit(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFF10213E),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              guardianDetails,
+                              style: GoogleFonts.inter(
+                                fontSize: 13,
+                                color: const Color(0xFF64748B),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 6),
-                      Text(
-                        guardianName,
-                        style: GoogleFonts.inter(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: const Color(0xFF10213E),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        guardianDetails,
-                        style: GoogleFonts.inter(
-                          fontSize: 13,
-                          color: const Color(0xFF64748B),
-                        ),
+                      IconButton(
+                        icon: const Icon(Icons.phone_outlined, color: Color(0xFF2563EB), size: 20),
+                        tooltip: 'Call Guardian',
+                        onPressed: () {
+                          Clipboard.setData(const ClipboardData(text: '+15550192834'));
+                          HapticFeedback.lightImpact();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Guardian number copied: +1 (555) 019-2834'),
+                              behavior: SnackBarBehavior.floating,
+                              backgroundColor: Color(0xFF10213E),
+                            ),
+                          );
+                        },
                       ),
                     ],
                   ),
                 ),
-              ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.05, end: 0),
+              ).animate().fadeIn(delay: 80.ms).slideY(begin: 0.04, end: 0),
 
               const SizedBox(height: 16),
 
@@ -460,11 +748,12 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(18),
-                    boxShadow: [
+                    border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
+                    boxShadow: const [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.03),
-                        blurRadius: 10,
-                        offset: const Offset(0, 3),
+                        color: Color(0x03000000),
+                        blurRadius: 2,
+                        offset: Offset(0, 1),
                       ),
                     ],
                   ),
@@ -472,11 +761,19 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                     children: [
                       // Row 1: Arabic Language
                       _buildSettingsSwitchRow(
-                        icon: Icons.language_rounded,
+                        icon: Icons.public_rounded,
                         title: 'Arabic Language',
                         value: _arabicLanguage,
                         onChanged: (val) {
+                          HapticFeedback.selectionClick();
                           setState(() => _arabicLanguage = val);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(val ? 'Arabic language enabled' : 'English language enabled'),
+                              duration: const Duration(seconds: 1),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
                         },
                       ),
                       const Divider(height: 1, color: Color(0xFFF1F5F9), indent: 18, endIndent: 18),
@@ -487,6 +784,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                         title: 'Absence Push Alerts',
                         value: _absencePushAlerts,
                         onChanged: (val) {
+                          HapticFeedback.selectionClick();
                           setState(() => _absencePushAlerts = val);
                         },
                       ),
@@ -498,6 +796,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                         title: 'Biometric Login',
                         value: _biometricLogin,
                         onChanged: (val) {
+                          HapticFeedback.selectionClick();
                           setState(() => _biometricLogin = val);
                         },
                       ),
@@ -508,7 +807,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                         onTap: _showResetPasswordModal,
                         borderRadius: const BorderRadius.vertical(bottom: Radius.circular(18)),
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 15),
+                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
                           child: Row(
                             children: [
                               const Icon(Icons.lock_outline_rounded, color: Color(0xFF10213E), size: 20),
@@ -524,8 +823,8 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                                 ),
                               ),
                               const Icon(
-                                Icons.arrow_forward_ios_rounded,
-                                size: 14,
+                                Icons.chevron_right_rounded,
+                                size: 20,
                                 color: Color(0xFF94A3B8),
                               ),
                             ],
@@ -535,7 +834,68 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                     ],
                   ),
                 ),
-              ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.05, end: 0),
+              ).animate().fadeIn(delay: 150.ms).slideY(begin: 0.04, end: 0),
+
+              const SizedBox(height: 16),
+
+              // Face Biometrics Status Quick Card
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: InkWell(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const FaceEnrollmentScreen()),
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(16),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEFF6FF),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFBFDBFE)),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.face_retouching_natural_rounded, color: Color(0xFF2563EB), size: 20),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                faceEmbeddingsCount > 0 ? 'Face Biometrics Enrolled' : 'Face Biometrics Pending',
+                                style: GoogleFonts.inter(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFF1E3A8A),
+                                ),
+                              ),
+                              Text(
+                                faceEmbeddingsCount > 0 ? '$faceEmbeddingsCount/5 high-resolution templates synced' : 'Enroll face for kiosk & check-in',
+                                style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  color: const Color(0xFF3B82F6),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(Icons.chevron_right_rounded, color: Color(0xFF3B82F6), size: 20),
+                      ],
+                    ),
+                  ),
+                ),
+              ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.04, end: 0),
 
               const SizedBox(height: 20),
 
@@ -552,22 +912,22 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                       side: const BorderSide(color: Color(0xFFE2E8F0)),
                       elevation: 0,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(16),
                       ),
                     ),
                     child: Text(
                       'Log Out',
                       style: GoogleFonts.inter(
                         fontSize: 15,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w700,
                         color: const Color(0xFF10213E),
                       ),
                     ),
                   ),
                 ),
-              ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.05, end: 0),
+              ).animate().fadeIn(delay: 250.ms).slideY(begin: 0.04, end: 0),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
             ],
           ),
         ),
@@ -577,7 +937,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
           color: Colors.white,
-          border: Border(top: BorderSide(color: Color(0xFFE5EEF8), width: 1)),
+          border: Border(top: BorderSide(color: Color(0xFFE2E8F0), width: 1)),
         ),
         child: BottomNavigationBar(
           currentIndex: 4, // Profile is active
@@ -643,7 +1003,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
     required ValueChanged<bool> onChanged,
   }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
       child: Row(
         children: [
           Icon(icon, color: const Color(0xFF10213E), size: 20),
@@ -660,7 +1020,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
           ),
           CupertinoSwitch(
             value: value,
-            activeTrackColor: const Color(0xFF1B2A4A),
+            activeTrackColor: const Color(0xFF10213E),
             onChanged: onChanged,
           ),
         ],

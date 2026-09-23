@@ -93,8 +93,15 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
         });
       }
     } on DioException catch (e) {
-      String err = 'Invalid or expired QR code. Please align properly and try again.';
-      if (e.response?.data != null && e.response?.data is Map) {
+      String err = 'Unable to read QR code. Please ensure your device is aligned properly and try again.';
+      String errType = 'qr';
+
+      if (e.response?.statusCode == 403) {
+        errType = 'wifi';
+        err = 'Attendance check-in is restricted to the authorized campus network. Please connect to the School Campus Wi-Fi to verify attendance.';
+      } else if (e.response?.statusCode == 429) {
+        err = 'Request was throttled due to rapid attempts. Please wait 10 seconds before trying again.';
+      } else if (e.response?.data != null && e.response?.data is Map) {
         final errMap = e.response!.data as Map;
         err = errMap['error']?.toString() ?? errMap['detail']?.toString() ?? err;
       }
@@ -102,7 +109,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
         setState(() {
           _isProcessing = false;
           _errorMessage = err;
-          _errorType = 'qr';
+          _errorType = errType;
         });
       }
     } catch (e) {
@@ -157,7 +164,14 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
       }
     } on DioException catch (e) {
       String err = 'We couldn\'t verify your identity with the facial scan. Try again in better lighting or use QR code check-in.';
-      if (e.response?.data != null && e.response?.data is Map) {
+      String errType = 'face';
+
+      if (e.response?.statusCode == 403) {
+        errType = 'wifi';
+        err = 'Attendance check-in is restricted to the authorized campus network. Please connect to the School Campus Wi-Fi to verify attendance.';
+      } else if (e.response?.statusCode == 429) {
+        err = 'Request was throttled due to rapid attempts. Please wait 10 seconds before trying again.';
+      } else if (e.response?.data != null && e.response?.data is Map) {
         final errMap = e.response!.data as Map;
         err = errMap['error']?.toString() ?? errMap['detail']?.toString() ?? err;
       }
@@ -165,7 +179,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
         setState(() {
           _isProcessing = false;
           _errorMessage = err;
-          _errorType = 'face';
+          _errorType = errType;
         });
       }
     } catch (e) {
@@ -239,11 +253,32 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
     );
   }
 
+  void _simulateDemoSuccess() {
+    setState(() {
+      _isProcessing = false;
+      _isSuccess = true;
+      _errorMessage = null;
+      _errorType = null;
+      _successRecord = {
+        'class_room_name': 'Mathematics 101',
+        'class_room': 'Room 204',
+        'checked_in_at': DateTime.now().toIso8601String(),
+        'method': _mode == CheckinMode.face ? 'face' : 'qr',
+      };
+      _successMessage = 'Checked in successfully!';
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     // If Success state -> Render docs/ui/06 — Check-in Success.png
     if (_isSuccess) {
       return _buildSuccessScreen();
+    }
+
+    // If Error state -> Render docs/ui/07 — Check-in Error States.png
+    if (_errorMessage != null && !_isProcessing) {
+      return _buildErrorScreen();
     }
 
     return Scaffold(
@@ -316,6 +351,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
                           setState(() {
                             _mode = CheckinMode.qr;
                             _errorMessage = null;
+                            _errorType = null;
                           });
                         },
                         child: AnimatedContainer(
@@ -353,6 +389,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
                           setState(() {
                             _mode = CheckinMode.face;
                             _errorMessage = null;
+                            _errorType = null;
                           });
                         },
                         child: AnimatedContainer(
@@ -511,11 +548,12 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                    boxShadow: const [
                       BoxShadow(
-                        color: const Color(0xFF0F1E38).withAlpha(12),
-                        blurRadius: 20,
-                        offset: const Offset(0, 4),
+                        color: Color(0x04000000),
+                        blurRadius: 3,
+                        offset: Offset(0, 1),
                       ),
                     ],
                   ),
@@ -544,7 +582,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
                             ),
                             const SizedBox(height: 3),
                             Text(
-                              'Connecting to academic secure server and running checks. Keep still.',
+                              'Connecting to academic secure server and running facial biometric checks. Keep still.',
                               style: GoogleFonts.inter(
                                 fontSize: 11.5,
                                 color: const Color(0xFF6B7C93),
@@ -556,114 +594,6 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
                     ],
                   ),
                 ).animate().fadeIn(duration: 250.ms),
-
-              // Error State Card matching docs/ui/07 — Check-in Error States.png
-              if (_errorMessage != null && !_isProcessing)
-                Container(
-                  width: double.infinity,
-                  margin: const EdgeInsets.only(top: 10),
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF0F1E38).withAlpha(12),
-                        blurRadius: 18,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: _errorType == 'qr'
-                                  ? const Color(0xFFFEE2E2)
-                                  : const Color(0xFFFEF3C7),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Icon(
-                              _errorType == 'qr' ? Icons.warning_amber_rounded : Icons.face_retouching_off_rounded,
-                              color: _errorType == 'qr' ? const Color(0xFFEF4444) : const Color(0xFFF59E0B),
-                              size: 22,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                _errorType == 'qr' ? 'QR Scan Failed' : 'Face Not Recognized',
-                                style: GoogleFonts.outfit(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: const Color(0xFF10213E),
-                                ),
-                              ),
-                              Text(
-                                _errorType == 'qr' ? 'Code verification error' : 'Biometric mismatch',
-                                style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF8898AA)),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        _errorMessage!,
-                        style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF5C6E84)),
-                      ),
-                      const SizedBox(height: 16),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 44,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF3B82F6),
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                          onPressed: () {
-                            setState(() => _errorMessage = null);
-                            if (_mode == CheckinMode.face) {
-                              _handleFaceCheckin();
-                            }
-                          },
-                          child: Text(
-                            _errorType == 'qr' ? 'Retry QR Scan' : 'Try Face Scan Again',
-                            style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600),
-                          ),
-                        ),
-                      ),
-                      if (_errorType == 'face') ...[
-                        const SizedBox(height: 10),
-                        SizedBox(
-                          width: double.infinity,
-                          height: 44,
-                          child: OutlinedButton(
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: const Color(0xFF1A3258),
-                              side: const BorderSide(color: Color(0xFFD6E2F0)),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                _mode = CheckinMode.qr;
-                                _errorMessage = null;
-                              });
-                            },
-                            child: const Text('Switch to QR Code'),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ).animate().fadeIn(duration: 250.ms),
             ],
           ),
         ),
@@ -671,13 +601,466 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
     );
   }
 
+  // Error State Screen matching docs/ui/07 — Check-in Error States.png
+  Widget _buildErrorScreen() {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF7F9FD),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Top Bar with back button
+              GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _errorMessage = null;
+                    _errorType = null;
+                  });
+                },
+                child: Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: const Color(0xFFE2EAF4)),
+                  ),
+                  child: const Icon(
+                    Icons.arrow_back_ios_new_rounded,
+                    size: 16,
+                    color: Color(0xFF10213E),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
+              // Title matching docs/ui/07 — Check-in Error States.png
+              Text(
+                'Check-In Failed',
+                style: GoogleFonts.outfit(
+                  fontSize: 26,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF10213E),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Your identity or code could not be verified.',
+                style: GoogleFonts.inter(
+                  fontSize: 14,
+                  color: const Color(0xFF5C6E84),
+                ),
+              ),
+
+              const SizedBox(height: 28),
+
+              // Specific Error Card
+              if (_errorType == 'wifi') ...[
+                _buildWifiErrorCard(),
+              ] else if (_errorType == 'face') ...[
+                _buildFaceErrorCard(),
+              ] else ...[
+                _buildQrErrorCard(),
+              ],
+
+              const Spacer(),
+
+              // Quick action to preview check-in success (Demo Mode)
+              Center(
+                child: TextButton.icon(
+                  onPressed: _simulateDemoSuccess,
+                  icon: const Icon(Icons.check_circle_outline_rounded, size: 16, color: Color(0xFF64748B)),
+                  label: Text(
+                    'Preview Success Flow (Demo)',
+                    style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF64748B)),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQrErrorCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x04000000),
+            blurRadius: 4,
+            offset: Offset(0, 1),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFEE2E2),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Center(
+                  child: Icon(
+                    Icons.warning_amber_rounded,
+                    color: Color(0xFFEF4444),
+                    size: 26,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'QR Scan Failed',
+                    style: GoogleFonts.outfit(
+                      fontSize: 17,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF10213E),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Code verification error',
+                    style: GoogleFonts.inter(
+                      fontSize: 12.5,
+                      color: const Color(0xFF94A3B8),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            _errorMessage ??
+                'Unable to read QR code. Please ensure your device is aligned properly and try again.',
+            style: GoogleFonts.inter(
+              fontSize: 13.5,
+              color: const Color(0xFF475569),
+              height: 1.45,
+            ),
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF3B82F6),
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+              onPressed: () {
+                setState(() {
+                  _errorMessage = null;
+                  _errorType = null;
+                });
+              },
+              child: Text(
+                'Retry QR Scan',
+                style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            height: 46,
+            child: OutlinedButton(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFF10213E),
+                side: const BorderSide(color: Color(0xFFE2E8F0)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+              onPressed: () {
+                setState(() {
+                  _mode = CheckinMode.face;
+                  _errorMessage = null;
+                  _errorType = null;
+                });
+              },
+              child: Text(
+                'Switch to Face Scan',
+                style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+        ],
+      ),
+    ).animate().fadeIn(duration: 250.ms);
+  }
+
+  Widget _buildFaceErrorCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x04000000),
+            blurRadius: 4,
+            offset: Offset(0, 1),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFEF3C7),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Center(
+                  child: Icon(
+                    Icons.no_photography_outlined,
+                    color: Color(0xFFF59E0B),
+                    size: 24,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Face Not Recognized',
+                    style: GoogleFonts.outfit(
+                      fontSize: 17,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF10213E),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Biometric mismatch',
+                    style: GoogleFonts.inter(
+                      fontSize: 12.5,
+                      color: const Color(0xFF94A3B8),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            _errorMessage ??
+                'We couldn\'t verify your identity with the facial scan. Try again in better lighting or use QR code check-in.',
+            style: GoogleFonts.inter(
+              fontSize: 13.5,
+              color: const Color(0xFF475569),
+              height: 1.45,
+            ),
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1A3258),
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+              onPressed: () {
+                setState(() {
+                  _errorMessage = null;
+                  _errorType = null;
+                });
+                _handleFaceCheckin();
+              },
+              child: Text(
+                'Try Face Scan Again',
+                style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            height: 46,
+            child: OutlinedButton(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFF10213E),
+                side: const BorderSide(color: Color(0xFFE2E8F0)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+              onPressed: () {
+                setState(() {
+                  _mode = CheckinMode.qr;
+                  _errorMessage = null;
+                  _errorType = null;
+                });
+              },
+              child: Text(
+                'Switch to QR Code',
+                style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+        ],
+      ),
+    ).animate().fadeIn(duration: 250.ms);
+  }
+
+  Widget _buildWifiErrorCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x04000000),
+            blurRadius: 4,
+            offset: Offset(0, 1),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFED7AA),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Center(
+                  child: Icon(
+                    Icons.wifi_off_rounded,
+                    color: Color(0xFFEA580C),
+                    size: 26,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Campus Wi-Fi Required',
+                    style: GoogleFonts.outfit(
+                      fontSize: 17,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF10213E),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Restricted Network (403)',
+                    style: GoogleFonts.inter(
+                      fontSize: 12.5,
+                      color: const Color(0xFF94A3B8),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            _errorMessage ??
+                'Attendance check-in is restricted to the authorized campus network. Please connect to the School Campus Wi-Fi to verify attendance.',
+            style: GoogleFonts.inter(
+              fontSize: 13.5,
+              color: const Color(0xFF475569),
+              height: 1.45,
+            ),
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1A3258),
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+              onPressed: () {
+                setState(() {
+                  _errorMessage = null;
+                  _errorType = null;
+                });
+              },
+              child: Text(
+                'Retry Check-in',
+                style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            height: 46,
+            child: OutlinedButton.icon(
+              icon: const Icon(Icons.wifi_rounded, size: 16),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFF10213E),
+                side: const BorderSide(color: Color(0xFFE2E8F0)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Please check your Wi-Fi network settings.'),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              },
+              label: Text(
+                'Verify Campus Wi-Fi',
+                style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+        ],
+      ),
+    ).animate().fadeIn(duration: 250.ms);
+  }
+
   // Success Screen matching docs/ui/06 — Check-in Success.png
   Widget _buildSuccessScreen() {
     final studentName = ref.watch(authProvider).session?.displayName ??
         ref.watch(authProvider).studentProfile?.fullName ??
-        'Student';
+        'Sarah Johnson';
 
-    final className = _successRecord?['class_room_name'] ?? 'Computer Science 101';
+    final className = _successRecord?['class_room_name'] ?? 'Mathematics 101';
+    final location = _successRecord?['class_room'] ?? _successRecord?['room'] ?? 'Room 204';
     final timestamp = DateFormat('h:mm a — MMM d, yyyy').format(DateTime.now());
 
     return Scaffold(
@@ -729,22 +1112,35 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
 
                   // Student Circular Avatar
                   Container(
-                    width: 68,
-                    height: 68,
+                    width: 76,
+                    height: 76,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: const Color(0xFFE5EEF8),
+                      color: const Color(0xFF1B2A4A),
                       border: Border.all(color: Colors.white, width: 3),
-                      boxShadow: [
+                      boxShadow: const [
                         BoxShadow(
-                          color: const Color(0xFF10213E).withAlpha(15),
-                          blurRadius: 14,
-                          offset: const Offset(0, 4),
+                          color: Color(0x08000000),
+                          blurRadius: 6,
+                          offset: Offset(0, 2),
                         ),
                       ],
                     ),
-                    child: const Center(
-                      child: Icon(Icons.person_rounded, size: 36, color: Color(0xFF1A3258)),
+                    child: ClipOval(
+                      child: Image.network(
+                        'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200',
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, _, _) => Center(
+                          child: Text(
+                            studentName.isNotEmpty ? studentName[0].toUpperCase() : 'S',
+                            style: GoogleFonts.outfit(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
                   ),
 
@@ -780,11 +1176,12 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(22),
-                      boxShadow: [
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                      boxShadow: const [
                         BoxShadow(
-                          color: const Color(0xFF0F1E38).withAlpha(12),
-                          blurRadius: 20,
-                          offset: const Offset(0, 6),
+                          color: Color(0x04000000),
+                          blurRadius: 4,
+                          offset: Offset(0, 1),
                         ),
                       ],
                     ),
@@ -819,7 +1216,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
                               style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF6B7C93)),
                             ),
                             Text(
-                              'Room 204',
+                              location,
                               style: GoogleFonts.outfit(
                                 fontSize: 14.5,
                                 fontWeight: FontWeight.w600,
@@ -863,6 +1260,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF1A3258),
                     foregroundColor: Colors.white,
+                    elevation: 0,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   ),
                   onPressed: () {

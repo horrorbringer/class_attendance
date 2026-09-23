@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'attendance_history_screen.dart';
@@ -32,13 +33,20 @@ class AbsenceAlertDetailScreen extends StatefulWidget {
 }
 
 class _AbsenceAlertDetailScreenState extends State<AbsenceAlertDetailScreen> {
+  // Tracks submission state for UX feedback
+  bool _hasSubmittedExcuse = false;
+  String _submittedCategory = 'Medical / Sick Leave';
+  String _submittedNote = '';
+  String? _attachedFileName;
+
   void _openContactTeacherModal() {
+    HapticFeedback.lightImpact();
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
         decoration: const BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -49,7 +57,7 @@ class _AbsenceAlertDetailScreenState extends State<AbsenceAlertDetailScreen> {
           children: [
             Center(
               child: Container(
-                width: 40,
+                width: 44,
                 height: 4,
                 decoration: BoxDecoration(
                   color: const Color(0xFFCBD5E1),
@@ -58,11 +66,13 @@ class _AbsenceAlertDetailScreenState extends State<AbsenceAlertDetailScreen> {
               ),
             ),
             const SizedBox(height: 20),
+
+            // Teacher Profile Header
             Row(
               children: [
                 CircleAvatar(
                   radius: 26,
-                  backgroundColor: const Color(0xFF1B2A4A),
+                  backgroundColor: const Color(0xFF10213E),
                   child: Text(
                     widget.professor.split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join(),
                     style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
@@ -75,77 +85,125 @@ class _AbsenceAlertDetailScreenState extends State<AbsenceAlertDetailScreen> {
                     children: [
                       Text(
                         widget.professor,
-                        style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFF10213E)),
+                        style: GoogleFonts.outfit(fontSize: 19, fontWeight: FontWeight.bold, color: const Color(0xFF10213E)),
                       ),
                       Text(
-                        'Faculty of Science & Mathematics',
-                        style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF5C6E84)),
+                        'Faculty of Computer Science & Mathematics',
+                        style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF64748B)),
                       ),
                     ],
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 22),
+
+            // Contact Details Card
             Container(
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: const Color(0xFFF8FAFC),
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: const Color(0xFFE2E8F0)),
               ),
               child: Column(
                 children: [
-                  _buildContactRow(Icons.email_outlined, 'Email', 'alan.turing@university.edu'),
+                  _buildContactRow(
+                    Icons.email_outlined,
+                    'Email',
+                    'alan.turing@university.edu',
+                    onCopy: () => _copyToClipboard('alan.turing@university.edu', 'Email copied'),
+                  ),
                   const Divider(height: 18, color: Color(0xFFE2E8F0)),
-                  _buildContactRow(Icons.location_on_outlined, 'Office', '${widget.location} / Science Wing 3B'),
+                  _buildContactRow(
+                    Icons.location_on_outlined,
+                    'Office',
+                    '${widget.location} / Science Wing 3B',
+                    onCopy: () => _copyToClipboard('${widget.location} / Science Wing 3B', 'Office location copied'),
+                  ),
                   const Divider(height: 18, color: Color(0xFFE2E8F0)),
-                  _buildContactRow(Icons.access_time_rounded, 'Office Hours', 'Mon & Thu 02:00 PM - 04:00 PM'),
+                  _buildContactRow(
+                    Icons.access_time_rounded,
+                    'Office Hours',
+                    'Mon & Thu 02:00 PM — 04:00 PM',
+                  ),
+                  const Divider(height: 18, color: Color(0xFFE2E8F0)),
+                  _buildContactRow(
+                    Icons.send_rounded,
+                    'Alert Channel',
+                    'Automated Telegram dispatch active',
+                  ),
                 ],
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 22),
+
+            // Direct Send Email Action
             SizedBox(
               width: double.infinity,
-              height: 48,
+              height: 52,
               child: ElevatedButton.icon(
                 onPressed: () {
                   Navigator.pop(ctx);
+                  _copyToClipboard('alan.turing@university.edu', 'Draft recipient copied to clipboard');
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Message drafted to ${widget.professor}'),
-                      backgroundColor: const Color(0xFF1B2A4A),
+                      content: Row(
+                        children: [
+                          const Icon(Icons.email_outlined, color: Colors.white, size: 20),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'Email drafted to ${widget.professor} for ${widget.courseName}',
+                              style: GoogleFonts.inter(fontWeight: FontWeight.w500),
+                            ),
+                          ),
+                        ],
+                      ),
+                      backgroundColor: const Color(0xFF10213E),
                       behavior: SnackBarBehavior.floating,
                     ),
                   );
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1B2A4A),
+                  backgroundColor: const Color(0xFF10213E),
                   elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 ),
                 icon: const Icon(Icons.send_rounded, size: 18, color: Colors.white),
                 label: Text(
-                  'Send Email Directly',
-                  style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: Colors.white),
+                  'Compose Email to Faculty',
+                  style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 15, color: Colors.white),
                 ),
               ),
             ),
-            const SizedBox(height: 12),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildContactRow(IconData icon, String title, String value) {
+  void _copyToClipboard(String text, String message) {
+    Clipboard.setData(ClipboardData(text: text));
+    HapticFeedback.lightImpact();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: const Color(0xFF1E293B),
+      ),
+    );
+  }
+
+  Widget _buildContactRow(IconData icon, String title, String value, {VoidCallback? onCopy}) {
     return Row(
       children: [
-        Icon(icon, size: 18, color: const Color(0xFF5C6E84)),
+        Icon(icon, size: 18, color: const Color(0xFF64748B)),
         const SizedBox(width: 10),
         Text(
           '$title: ',
-          style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500, color: const Color(0xFF5C6E84)),
+          style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500, color: const Color(0xFF64748B)),
         ),
         Expanded(
           child: Text(
@@ -154,14 +212,29 @@ class _AbsenceAlertDetailScreenState extends State<AbsenceAlertDetailScreen> {
             overflow: TextOverflow.ellipsis,
           ),
         ),
+        if (onCopy != null)
+          IconButton(
+            icon: const Icon(Icons.copy_rounded, size: 16, color: Color(0xFF94A3B8)),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+            onPressed: onCopy,
+            tooltip: 'Copy',
+          ),
       ],
     );
   }
 
   void _openExcuseNoteModal() {
-    final noteController = TextEditingController();
-    String selectedCategory = 'Medical / Sick Leave';
-    final categories = ['Medical / Sick Leave', 'Transit Delay', 'Family Emergency', 'Official School Event'];
+    HapticFeedback.lightImpact();
+    final noteController = TextEditingController(text: _submittedNote);
+    String selectedCategory = _submittedCategory;
+    String? localAttachment = _attachedFileName;
+    final categories = [
+      'Medical / Sick Leave',
+      'Transit Delay',
+      'Family Emergency',
+      'Official School Event',
+    ];
 
     showModalBottomSheet(
       context: context,
@@ -171,123 +244,212 @@ class _AbsenceAlertDetailScreenState extends State<AbsenceAlertDetailScreen> {
         builder: (context, setModalState) => Padding(
           padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
           child: Container(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 28),
             decoration: const BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFCBD5E1),
-                      borderRadius: BorderRadius.circular(2),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 44,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFCBD5E1),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 18),
-                Text(
-                  'Submit Excuse Note',
-                  style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.bold, color: const Color(0xFF10213E)),
-                ),
-                Text(
-                  '${widget.courseName} • ${widget.date}',
-                  style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF5C6E84)),
-                ),
-                const SizedBox(height: 18),
-                Text(
-                  'Reason Category',
-                  style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: const Color(0xFF10213E)),
-                ),
-                const SizedBox(height: 8),
-                DropdownButtonFormField<String>(
-                  initialValue: selectedCategory,
-                  decoration: InputDecoration(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                    filled: true,
-                    fillColor: const Color(0xFFF8FAFC),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                    ),
+                  const SizedBox(height: 18),
+                  Text(
+                    _hasSubmittedExcuse ? 'Update Excuse Note' : 'Submit Excuse Note',
+                    style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.bold, color: const Color(0xFF10213E)),
                   ),
-                  items: categories.map((c) => DropdownMenuItem(value: c, child: Text(c, style: GoogleFonts.inter(fontSize: 13)))).toList(),
-                  onChanged: (val) {
-                    if (val != null) {
-                      setModalState(() => selectedCategory = val);
-                    }
-                  },
-                ),
-                const SizedBox(height: 14),
-                Text(
-                  'Explanation / Message',
-                  style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: const Color(0xFF10213E)),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: noteController,
-                  maxLines: 3,
-                  style: GoogleFonts.inter(fontSize: 13),
-                  decoration: InputDecoration(
-                    hintText: 'Describe why you were absent or unable to log attendance...',
-                    hintStyle: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF94A3B8)),
-                    filled: true,
-                    fillColor: const Color(0xFFF8FAFC),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                    ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${widget.courseName} • ${widget.date}',
+                    style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF64748B)),
                   ),
-                ),
-                const SizedBox(height: 20),
-                SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(ctx);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Row(
-                            children: [
-                              const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text('Excuse note submitted to ${widget.professor} for review.'),
-                              ),
-                            ],
+                  const SizedBox(height: 20),
+
+                  // Reason Category selection
+                  Text(
+                    'Reason Category',
+                    style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: const Color(0xFF10213E)),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: categories.map((cat) {
+                      final isSelected = selectedCategory == cat;
+                      return ChoiceChip(
+                        label: Text(cat),
+                        selected: isSelected,
+                        onSelected: (val) {
+                          if (val) setModalState(() => selectedCategory = cat);
+                        },
+                        selectedColor: const Color(0xFF10213E),
+                        backgroundColor: const Color(0xFFF8FAFC),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                          side: BorderSide(
+                            color: isSelected ? const Color(0xFF10213E) : const Color(0xFFE2E8F0),
                           ),
-                          backgroundColor: const Color(0xFF10B981),
-                          behavior: SnackBarBehavior.floating,
+                        ),
+                        labelStyle: GoogleFonts.inter(
+                          fontSize: 12,
+                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                          color: isSelected ? Colors.white : const Color(0xFF475569),
                         ),
                       );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1B2A4A),
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    child: Text(
-                      'Submit for Review',
-                      style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: Colors.white),
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Explanation Text Area
+                  Text(
+                    'Explanation / Message',
+                    style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: const Color(0xFF10213E)),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: noteController,
+                    maxLines: 3,
+                    style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF10213E)),
+                    decoration: InputDecoration(
+                      hintText: 'Describe why you were absent or unable to complete biometric check-in...',
+                      hintStyle: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF94A3B8)),
+                      filled: true,
+                      fillColor: const Color(0xFFF8FAFC),
+                      contentPadding: const EdgeInsets.all(14),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: Color(0xFF10213E), width: 1.5),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 12),
-              ],
+                  const SizedBox(height: 16),
+
+                  // Attachment / Proof
+                  Text(
+                    'Attach Supporting Document (Optional)',
+                    style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: const Color(0xFF10213E)),
+                  ),
+                  const SizedBox(height: 8),
+                  if (localAttachment != null)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFCBD5E1)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.attach_file_rounded, size: 18, color: Color(0xFF475569)),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              localAttachment!,
+                              style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500, color: const Color(0xFF1E293B)),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () => setModalState(() => localAttachment = null),
+                            child: const Icon(Icons.close_rounded, size: 18, color: Color(0xFF94A3B8)),
+                          ),
+                        ],
+                      ),
+                    )
+                  else
+                    InkWell(
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        setModalState(() {
+                          localAttachment = 'Medical_Certificate_${DateTime.now().millisecondsSinceEpoch % 10000}.pdf';
+                        });
+                      },
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFE2E8F0), style: BorderStyle.solid),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.upload_file_rounded, size: 18, color: Color(0xFF64748B)),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Upload Medical Certificate or Proof',
+                              style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500, color: const Color(0xFF64748B)),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                  const SizedBox(height: 24),
+
+                  // Submit Button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          _hasSubmittedExcuse = true;
+                          _submittedCategory = selectedCategory;
+                          _submittedNote = noteController.text.trim();
+                          _attachedFileName = localAttachment;
+                        });
+                        Navigator.pop(ctx);
+                        HapticFeedback.mediumImpact();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Row(
+                              children: [
+                                const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text('Excuse note submitted to ${widget.professor} for review.'),
+                                ),
+                              ],
+                            ),
+                            backgroundColor: const Color(0xFF059669),
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF10213E),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      ),
+                      child: Text(
+                        'Submit for Review',
+                        style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 15, color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -298,18 +460,18 @@ class _AbsenceAlertDetailScreenState extends State<AbsenceAlertDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F9FD),
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF7F9FD),
+        backgroundColor: const Color(0xFFF8FAFC),
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFF10213E), size: 20),
+          icon: const Icon(Icons.arrow_back, color: Color(0xFF10213E), size: 22),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           'Alert Detail',
           style: GoogleFonts.outfit(
-            fontSize: 20,
+            fontSize: 22,
             fontWeight: FontWeight.bold,
             color: const Color(0xFF10213E),
           ),
@@ -329,18 +491,19 @@ class _AbsenceAlertDetailScreenState extends State<AbsenceAlertDetailScreen> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
+                  border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
+                  boxShadow: const [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.04),
-                      blurRadius: 16,
-                      offset: const Offset(0, 4),
+                      color: Color(0x03000000),
+                      blurRadius: 2,
+                      offset: Offset(0, 1),
                     ),
                   ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Badge & Timestamp Header
+                    // Badge & Timestamp Header matching Mockup 10
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       crossAxisAlignment: CrossAxisAlignment.center,
@@ -355,17 +518,23 @@ class _AbsenceAlertDetailScreenState extends State<AbsenceAlertDetailScreen> {
                             'Absence Alert',
                             style: GoogleFonts.inter(
                               color: const Color(0xFFE11D48),
-                              fontWeight: FontWeight.w600,
+                              fontWeight: FontWeight.w700,
                               fontSize: 12,
                             ),
                           ),
                         ),
-                        Text(
-                          widget.alertTime,
-                          style: GoogleFonts.inter(
-                            fontSize: 13,
-                            color: const Color(0xFF94A3B8),
-                            fontWeight: FontWeight.w500,
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            widget.alertTime,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.end,
+                            style: GoogleFonts.inter(
+                              fontSize: 13,
+                              color: const Color(0xFF94A3B8),
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                         ),
                       ],
@@ -387,7 +556,7 @@ class _AbsenceAlertDetailScreenState extends State<AbsenceAlertDetailScreen> {
                     const Divider(color: Color(0xFFF1F5F9), height: 1),
                     const SizedBox(height: 16),
 
-                    // Key-Value Rows
+                    // Key-Value Rows matching Mockup 10
                     _buildDetailRow('Date', widget.date),
                     const SizedBox(height: 14),
                     _buildDetailRow('Schedule Time', widget.scheduleTime),
@@ -404,11 +573,11 @@ class _AbsenceAlertDetailScreenState extends State<AbsenceAlertDetailScreen> {
                     ),
                   ],
                 ),
-              ).animate().fadeIn(duration: 350.ms).slideY(begin: 0.05, end: 0),
+              ).animate().fadeIn(duration: 250.ms).slideY(begin: 0.04, end: 0),
 
               const SizedBox(height: 18),
 
-              // Yellow Guardian Alert Banner (matching Mockup 10)
+              // Guardian Alert Banner matching Mockup 10
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -436,19 +605,64 @@ class _AbsenceAlertDetailScreenState extends State<AbsenceAlertDetailScreen> {
                     ),
                   ],
                 ),
-              ).animate().fadeIn(delay: 150.ms).slideY(begin: 0.05, end: 0),
+              ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.04, end: 0),
+
+              // Excuse Note Submitted Feedback Pill if submitted
+              if (_hasSubmittedExcuse) ...[
+                const SizedBox(height: 16),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFECFDF5),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: const Color(0xFFA7F3D0)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.check_circle_rounded,
+                        color: Color(0xFF059669),
+                        size: 20,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Excuse Note Submitted • Under Review',
+                              style: GoogleFonts.inter(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFF065F46),
+                              ),
+                            ),
+                            Text(
+                              'Category: $_submittedCategory${_attachedFileName != null ? ' • 1 Attachment' : ''}',
+                              style: GoogleFonts.inter(
+                                fontSize: 12,
+                                color: const Color(0xFF047857),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ).animate().fadeIn(duration: 200.ms).scale(begin: const Offset(0.98, 0.98)),
+              ],
 
               const SizedBox(height: 24),
 
-              // Action Buttons
-              // Primary Navy Button: Contact Teacher
+              // Primary Solid Navy Button: Contact Teacher
               SizedBox(
                 width: double.infinity,
                 height: 52,
                 child: ElevatedButton(
                   onPressed: _openContactTeacherModal,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1B2A4A),
+                    backgroundColor: const Color(0xFF10213E),
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
@@ -463,7 +677,7 @@ class _AbsenceAlertDetailScreenState extends State<AbsenceAlertDetailScreen> {
                     ),
                   ),
                 ),
-              ).animate().fadeIn(delay: 250.ms).slideY(begin: 0.05, end: 0),
+              ).animate().fadeIn(delay: 150.ms).slideY(begin: 0.04, end: 0),
 
               const SizedBox(height: 12),
 
@@ -482,7 +696,7 @@ class _AbsenceAlertDetailScreenState extends State<AbsenceAlertDetailScreen> {
                     ),
                   ),
                   child: Text(
-                    'Submit Excuse Note',
+                    _hasSubmittedExcuse ? 'Update Excuse Note' : 'Submit Excuse Note',
                     style: GoogleFonts.inter(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
@@ -490,7 +704,7 @@ class _AbsenceAlertDetailScreenState extends State<AbsenceAlertDetailScreen> {
                     ),
                   ),
                 ),
-              ).animate().fadeIn(delay: 350.ms).slideY(begin: 0.05, end: 0),
+              ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.04, end: 0),
 
               const SizedBox(height: 24),
             ],
@@ -498,11 +712,11 @@ class _AbsenceAlertDetailScreenState extends State<AbsenceAlertDetailScreen> {
         ),
       ),
 
-      // Fixed Bottom Navigation Bar matching mockup
+      // Fixed Bottom Navigation Bar matching Mockup 10
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
           color: Colors.white,
-          border: Border(top: BorderSide(color: Color(0xFFE5EEF8), width: 1)),
+          border: Border(top: BorderSide(color: Color(0xFFE2E8F0), width: 1)),
         ),
         child: BottomNavigationBar(
           currentIndex: 3, // Alerts is active
@@ -526,8 +740,6 @@ class _AbsenceAlertDetailScreenState extends State<AbsenceAlertDetailScreen> {
                 context,
                 MaterialPageRoute(builder: (_) => const ProfileSettingsScreen()),
               );
-            } else {
-              Navigator.pop(context);
             }
           },
           backgroundColor: Colors.white,

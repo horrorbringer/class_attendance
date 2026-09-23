@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/config/api_constants.dart';
+import '../../../core/config/app_navigator.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../models/auth_models.dart';
@@ -53,6 +54,7 @@ class AuthNotifier extends Notifier<AuthState> {
       if (state.isAuthenticated) {
         debugPrint('[AuthNotifier] 401 detected — forcing logout');
         state = AuthState(isLoading: false);
+        appNavigatorKey.currentState?.popUntil((route) => route.isFirst);
       }
     });
 
@@ -164,6 +166,7 @@ class AuthNotifier extends Notifier<AuthState> {
     } finally {
       await StorageService.clearSession();
       state = AuthState(isLoading: false);
+      appNavigatorKey.currentState?.popUntil((route) => route.isFirst);
     }
   }
 }
