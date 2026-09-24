@@ -30,6 +30,7 @@ class _TeacherDynamicQrScreenState extends ConsumerState<TeacherDynamicQrScreen>
   String? _errorMessage;
   int _secondsLeft = 20;
   bool _isDemoMode = false;
+  bool _isNetworkPaused = false;
   Timer? _countdownTimer;
 
   @override
@@ -38,7 +39,7 @@ class _TeacherDynamicQrScreenState extends ConsumerState<TeacherDynamicQrScreen>
     _setupScreenPerformance();
     _fetchDynamicQr();
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!mounted || _qrData == null || _isLoading) return;
+      if (!mounted || _qrData == null || _isLoading || _isNetworkPaused) return;
       if (_secondsLeft > 1) {
         setState(() => _secondsLeft--);
       } else {
@@ -105,26 +106,51 @@ class _TeacherDynamicQrScreenState extends ConsumerState<TeacherDynamicQrScreen>
           _qrData = data;
           _secondsLeft = data.expiresInSeconds > 0 ? data.expiresInSeconds : data.intervalSeconds;
           _isLoading = false;
+          _isNetworkPaused = false;
           _errorMessage = null;
           _isDemoMode = false;
         });
       }
     } on DioException catch (e) {
       if (mounted) {
-        final detail = e.response?.data is Map && (e.response!.data as Map).containsKey('detail')
-            ? (e.response!.data['detail'].toString())
-            : (e.message ?? 'Unable to connect to dynamic QR service');
-        setState(() {
-          _errorMessage = detail;
-          _isLoading = false;
-        });
+        if (_qrData != null) {
+          setState(() {
+            _isNetworkPaused = true;
+            _isLoading = false;
+          });
+          Future.delayed(const Duration(seconds: 3), () {
+            if (mounted && _isNetworkPaused) {
+              _fetchDynamicQr();
+            }
+          });
+        } else {
+          final detail = e.response?.data is Map && (e.response!.data as Map).containsKey('detail')
+              ? (e.response!.data['detail'].toString())
+              : (e.message ?? 'Unable to connect to dynamic QR service');
+          setState(() {
+            _errorMessage = detail;
+            _isLoading = false;
+          });
+        }
       }
     } catch (e) {
       if (mounted) {
-        setState(() {
-          _errorMessage = e.toString();
-          _isLoading = false;
-        });
+        if (_qrData != null) {
+          setState(() {
+            _isNetworkPaused = true;
+            _isLoading = false;
+          });
+          Future.delayed(const Duration(seconds: 3), () {
+            if (mounted && _isNetworkPaused) {
+              _fetchDynamicQr();
+            }
+          });
+        } else {
+          setState(() {
+            _errorMessage = e.toString();
+            _isLoading = false;
+          });
+        }
       }
     }
   }
@@ -296,7 +322,7 @@ class _TeacherDynamicQrScreenState extends ConsumerState<TeacherDynamicQrScreen>
                     ),
                   ),
 
-                // QR Display Card
+                // QR Display Card with Network Disconnect Guard
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
@@ -310,19 +336,57 @@ class _TeacherDynamicQrScreenState extends ConsumerState<TeacherDynamicQrScreen>
                       ),
                     ],
                   ),
-                  child: QrImageView(
-                    data: _qrData!.token,
-                    version: QrVersions.auto,
-                    size: 240.0,
-                    backgroundColor: Colors.white,
-                    eyeStyle: const QrEyeStyle(
-                      eyeShape: QrEyeShape.square,
-                      color: Color(0xFF0F172A),
-                    ),
-                    dataModuleStyle: const QrDataModuleStyle(
-                      dataModuleShape: QrDataModuleShape.square,
-                      color: Color(0xFF0F172A),
-                    ),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Opacity(
+                        opacity: _isNetworkPaused ? 0.2 : 1.0,
+                        child: QrImageView(
+                          data: _qrData!.token,
+                          version: QrVersions.auto,
+                          size: 240.0,
+                          backgroundColor: Colors.white,
+                          eyeStyle: const QrEyeStyle(
+                            eyeShape: QrEyeShape.square,
+                            color: Color(0xFF0F172A),
+                          ),
+                          dataModuleStyle: const QrDataModuleStyle(
+                            dataModuleShape: QrDataModuleShape.square,
+                            color: Color(0xFF0F172A),
+                          ),
+                        ),
+                      ),
+                      if (_isNetworkPaused)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: Colors.black87,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.orangeAccent,
+                                ),
+                              ),
+                              SizedBox(width: 10),
+                              Text(
+                                "Reconnecting... QR Paused",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
                   ),
                 ),
 

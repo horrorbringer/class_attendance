@@ -1,4 +1,21 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
+
+class ApiError {
+  final String title;
+  final String message;
+  final String? code;
+  final IconData icon;
+  final Color color;
+
+  ApiError({
+    required this.title,
+    required this.message,
+    this.code,
+    required this.icon,
+    required this.color,
+  });
+}
 
 /// Maps HTTP errors, backend error codes, and Dio exceptions to user-friendly messages
 /// following Section 5 HTTP Status Code & Error Handling Matrix from mobile_api_guide.md
@@ -12,76 +29,133 @@ class ApiErrorHandler {
     return null;
   }
 
-  static String getMessage(dynamic error) {
-    if (error is! DioException) {
-      return error?.toString() ?? 'An unexpected error occurred.';
-    }
-
-    final statusCode = error.response?.statusCode;
-    final data = error.response?.data;
-
-    // 1. Check if backend provided a specific security/business error code
-    if (data is Map) {
-      final code = data['code']?.toString();
-      if (code != null) {
+  static ApiError parse(dynamic error) {
+    if (error is DioException) {
+      if (error.type == DioExceptionType.connectionTimeout ||
+          error.type == DioExceptionType.connectionError) {
+        return ApiError(
+          title: "Network Error",
+          message: "Unable to reach classroom server. Please check your Wi-Fi.",
+          code: "NETWORK_ERROR",
+          icon: Icons.wifi_off_rounded,
+          color: Colors.orange,
+        );
+      }
+      final data = error.response?.data;
+      if (data is Map) {
+        final code = data['code']?.toString();
+        final message = (data['error'] ?? data['detail'] ?? "An error occurred").toString();
         switch (code) {
-          case 'QR_EXPIRED':
-            return 'Code Expired: Please scan the active rotating QR code currently on the teacher\'s screen.';
+          case 'DEVICE_REUSE_BLOCKED':
+            return ApiError(
+              title: "Device Already Used",
+              message: "This phone was already used to check in another student for this session.",
+              code: code,
+              icon: Icons.phonelink_lock_rounded,
+              color: Colors.redAccent,
+            );
+          case 'FACE_IDENTITY_MISMATCH':
+            return ApiError(
+              title: "Identity Mismatch",
+              message: message,
+              code: code,
+              icon: Icons.face_retouching_off_rounded,
+              color: Colors.redAccent,
+            );
           case 'TEACHER_LOCKED':
-            return data['error']?.toString() ??
-                data['message']?.toString() ??
-                'Teacher Locked: This attendance record was manually recorded by your teacher and cannot be overwritten.';
+            return ApiError(
+              title: "Teacher Locked",
+              message: message,
+              code: code,
+              icon: Icons.lock_clock_rounded,
+              color: Colors.amber.shade800,
+            );
           case 'IMPOSSIBLE_TRAVEL':
-            return 'Impossible Travel: You checked in to another classroom less than 15 minutes ago.';
-          case 'SESSION_EXPIRED':
+            return ApiError(
+              title: "Impossible Check-in",
+              message: message,
+              code: code,
+              icon: Icons.warning_amber_rounded,
+              color: Colors.orange.shade800,
+            );
+          case 'QR_EXPIRED':
+            return ApiError(
+              title: "Code Expired",
+              message: "Please scan the refreshed QR code on the teacher's screen.",
+              code: code,
+              icon: Icons.timer_off_rounded,
+              color: Colors.orange,
+            );
           case 'SESSION_ENDED':
-            return 'Session Closed: This class session has concluded and is no longer accepting check-ins.';
+          case 'SESSION_EXPIRED':
+            return ApiError(
+              title: "Class Session Closed",
+              message: "This session has ended and is no longer accepting check-ins.",
+              code: code,
+              icon: Icons.event_busy_rounded,
+              color: Colors.grey.shade700,
+            );
           case 'NOT_ENROLLED':
-            return 'Wrong Classroom: You are not enrolled in this course or section.';
-          case 'ALREADY_CHECKED_IN':
-            return 'Already Checked In: Your attendance was already recorded for this session.';
+            return ApiError(
+              title: "Wrong Classroom",
+              message: "You are not enrolled in this classroom.",
+              code: code,
+              icon: Icons.person_off_rounded,
+              color: Colors.red,
+            );
+          default:
+            return ApiError(
+              title: "Check-in Notice",
+              message: message,
+              code: code,
+              icon: Icons.info_outline_rounded,
+              color: Colors.blueAccent,
+            );
         }
       }
 
-      // 2. Check if the backend sent a specific detail or error message in JSON
-      final detail = data['detail'] ?? data['error'] ?? data['message'];
-      if (detail != null && detail.toString().isNotEmpty) {
-        return detail.toString();
+      if (error.response?.statusCode == 403) {
+        return ApiError(
+          title: "Restricted Network",
+          message: "Attendance check-in is restricted to the authorized campus Wi-Fi network.",
+          code: "WIFI_RESTRICTED",
+          icon: Icons.wifi_off_rounded,
+          color: Colors.orange,
+        );
       }
     }
 
-    switch (statusCode) {
-      case 400:
-        return 'Invalid request. Please verify your data and retry.';
-      case 401:
-        return 'Session expired. Please sign in again.';
-      case 403:
-        return 'Attendance check-in is restricted to the authorized campus Wi-Fi network.';
-      case 404:
-        return 'The requested resource or session was not found.';
-      case 409:
-        return 'Conflict detected. Please verify your check-in status with your instructor.';
-      case 429:
-        return 'Too many requests. Please wait 10 seconds before trying again.';
-      case 500:
-        return 'Internal server error. Please try again later.';
-      case 502:
-      case 503:
-      case 504:
-        return 'Server undergoing maintenance. Please try again shortly.';
-    }
+    return ApiError(
+      title: "Unexpected Error",
+      message: error?.toString() ?? "An unexpected error occurred.",
+      icon: Icons.error_outline_rounded,
+      color: Colors.redAccent,
+    );
+  }
 
-    switch (error.type) {
-      case DioExceptionType.connectionTimeout:
-      case DioExceptionType.sendTimeout:
-      case DioExceptionType.receiveTimeout:
-        return 'Connection timed out. Please check your network connection.';
-      case DioExceptionType.connectionError:
-        return 'Unable to connect to the server. Please check your internet connection.';
-      case DioExceptionType.cancel:
-        return 'Request was cancelled.';
-      default:
-        return 'A network error occurred. Please try again.';
-    }
+  static void showErrorDialog(BuildContext context, dynamic error) {
+    final parsed = parse(error);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        icon: CircleAvatar(
+          backgroundColor: parsed.color.withValues(alpha: 0.15),
+          radius: 28,
+          child: Icon(parsed.icon, color: parsed.color, size: 30),
+        ),
+        title: Text(parsed.title, style: const TextStyle(fontWeight: FontWeight.bold)),
+        content: Text(parsed.message, textAlign: TextAlign.center),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text("OK"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static String getMessage(dynamic error) {
+    return parse(error).message;
   }
 }

@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import '../../../core/network/api_error_handler.dart';
 import '../repositories/student_repository.dart';
@@ -47,6 +48,22 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
   String? _errorType; // 'qr' or 'face'
   Map<String, dynamic>? _successRecord;
   String _successMessage = 'Checked in successfully!';
+
+  Future<String> _getDeviceId() async {
+    final deviceInfo = DeviceInfoPlugin();
+    try {
+      if (Platform.isAndroid) {
+        final androidInfo = await deviceInfo.androidInfo;
+        return androidInfo.id;
+      } else if (Platform.isIOS) {
+        final iosInfo = await deviceInfo.iosInfo;
+        return iosInfo.identifierForVendor ?? 'ios_device';
+      }
+    } catch (e) {
+      debugPrint('Device ID detection error: $e');
+    }
+    return 'generic_device';
+  }
 
   void _safeSetState(VoidCallback fn) {
     if (!mounted) return;
@@ -210,7 +227,8 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
 
     try {
       final studentRepo = ref.read(studentRepositoryProvider);
-      final checkinRes = await studentRepo.checkinQr(token);
+      final deviceId = await _getDeviceId();
+      final checkinRes = await studentRepo.checkinQr(token, deviceId: deviceId);
 
       if (mounted) {
         if (checkinRes.isAlreadyCheckedIn) {
@@ -234,7 +252,11 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
       final err = ApiErrorHandler.getMessage(e);
       String errType = 'qr';
 
-      if (code == 'QR_EXPIRED') {
+      if (code == 'DEVICE_REUSE_BLOCKED') {
+        errType = 'device_reuse';
+      } else if (code == 'FACE_IDENTITY_MISMATCH') {
+        errType = 'face_mismatch';
+      } else if (code == 'QR_EXPIRED') {
         errType = 'qr_expired';
       } else if (code == 'TEACHER_LOCKED') {
         errType = 'teacher_locked';
@@ -325,7 +347,8 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
 
     try {
       final studentRepo = ref.read(studentRepositoryProvider);
-      final checkinRes = await studentRepo.checkinFace(photoPath);
+      final deviceId = await _getDeviceId();
+      final checkinRes = await studentRepo.checkinFace(photoPath, deviceId: deviceId);
 
       if (mounted) {
         if (checkinRes.isAlreadyCheckedIn) {
@@ -349,7 +372,11 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
       final err = ApiErrorHandler.getMessage(e);
       String errType = 'face';
 
-      if (code == 'TEACHER_LOCKED') {
+      if (code == 'DEVICE_REUSE_BLOCKED') {
+        errType = 'device_reuse';
+      } else if (code == 'FACE_IDENTITY_MISMATCH') {
+        errType = 'face_mismatch';
+      } else if (code == 'TEACHER_LOCKED') {
         errType = 'teacher_locked';
       } else if (code == 'IMPOSSIBLE_TRAVEL') {
         errType = 'impossible_travel';
@@ -879,6 +906,34 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
                 _buildWifiErrorCard(),
               ] else if (_errorType == 'face') ...[
                 _buildFaceErrorCard(),
+              ] else if (_errorType == 'device_reuse') ...[
+                _buildSecurityErrorCard(
+                  icon: Icons.phonelink_lock_rounded,
+                  iconBg: const Color(0xFFFEE2E2),
+                  iconColor: const Color(0xFFDC2626),
+                  title: 'Device Already Used',
+                  subtitle: 'Buddy Punching Blocked (DEVICE_REUSE_BLOCKED)',
+                  message: 'This phone was already used to check in another student for this session.',
+                  actionLabel: 'Return to Dashboard',
+                  onAction: () => Navigator.of(context).pop(),
+                ),
+              ] else if (_errorType == 'face_mismatch') ...[
+                _buildSecurityErrorCard(
+                  icon: Icons.face_retouching_off_rounded,
+                  iconBg: const Color(0xFFFEE2E2),
+                  iconColor: const Color(0xFFDC2626),
+                  title: 'Identity Mismatch',
+                  subtitle: 'Biometric Mismatch (FACE_IDENTITY_MISMATCH)',
+                  message: _errorMessage ?? 'The recognized face does not match your enrolled student identity.',
+                  actionLabel: 'Retry Face Scan',
+                  onAction: () {
+                    setState(() {
+                      _errorMessage = null;
+                      _errorType = null;
+                    });
+                    _handleFaceCheckin();
+                  },
+                ),
               ] else if (_errorType == 'qr_expired') ...[
                 _buildSecurityErrorCard(
                   icon: Icons.timer_off_rounded,

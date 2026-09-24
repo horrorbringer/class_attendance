@@ -48,6 +48,7 @@ dependencies:
   google_mlkit_face_detection: ^0.15.1
   wakelock_plus: ^1.8.0
   screen_brightness: ^2.1.11
+  device_info_plus: ^13.2.0
 
 dev_dependencies:
   flutter_test:

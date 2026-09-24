@@ -13,8 +13,8 @@ abstract class StudentRepository {
     int offset = 0,
   });
   Future<List<StudentAlertItem>> getAlerts();
-  Future<CheckinResponse> checkinQr(String qrToken);
-  Future<CheckinResponse> checkinFace(String imagePath, {int? sessionId});
+  Future<CheckinResponse> checkinQr(String qrToken, {String? deviceId});
+  Future<CheckinResponse> checkinFace(String imagePath, {int? sessionId, String? deviceId});
   Future<FaceEnrollmentResponse> enrollFace({
     required List<String> imagePaths,
     String? studentId,
@@ -79,16 +79,20 @@ class StudentRepositoryImpl implements StudentRepository {
   }
 
   @override
-  Future<CheckinResponse> checkinQr(String qrToken) async {
+  Future<CheckinResponse> checkinQr(String qrToken, {String? deviceId}) async {
+    final payload = <String, dynamic>{'qr_token': qrToken};
+    if (deviceId != null && deviceId.isNotEmpty) {
+      payload['device_id'] = deviceId;
+    }
     final response = await _dio.post(
       ApiConstants.checkinQr,
-      data: {'qr_token': qrToken},
+      data: payload,
     );
     return CheckinResponse.fromJson(response.data as Map<String, dynamic>);
   }
 
   @override
-  Future<CheckinResponse> checkinFace(String imagePath, {int? sessionId}) async {
+  Future<CheckinResponse> checkinFace(String imagePath, {int? sessionId, String? deviceId}) async {
     final map = <String, dynamic>{
       'image': await MultipartFile.fromFile(
         imagePath,
@@ -97,6 +101,9 @@ class StudentRepositoryImpl implements StudentRepository {
     };
     if (sessionId != null) {
       map['session_id'] = sessionId;
+    }
+    if (deviceId != null && deviceId.isNotEmpty) {
+      map['device_id'] = deviceId;
     }
 
     final formData = FormData.fromMap(map);
