@@ -854,20 +854,20 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8.5),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF10213E) : Colors.white,
+          color: isSelected ? const Color(0xFFEFF6FF) : Colors.white,
           borderRadius: BorderRadius.circular(22),
           border: Border.all(
-            color: isSelected ? const Color(0xFF10213E) : const Color(0xFFE2E8F0),
+            color: isSelected ? const Color(0xFF2563EB) : const Color(0xFFE2E8F0),
             width: 1,
           ),
           boxShadow: isSelected
               ? const [
                   BoxShadow(
-                    color: Color(0x0810213E),
-                    blurRadius: 2,
-                    offset: Offset(0, 1),
+                    color: Color(0x0C2563EB),
+                    blurRadius: 4,
+                    offset: Offset(0, 2),
                   ),
                 ]
               : null,
@@ -876,8 +876,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
           title,
           style: GoogleFonts.inter(
             fontSize: 13,
-            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-            color: isSelected ? Colors.white : const Color(0xFF475569),
+            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+            color: isSelected ? const Color(0xFF2563EB) : const Color(0xFF64748B),
           ),
         ),
       ),

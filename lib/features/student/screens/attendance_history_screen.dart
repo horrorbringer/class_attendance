@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -99,10 +100,14 @@ class _AttendanceHistoryScreenState extends ConsumerState<AttendanceHistoryScree
   }
 
   List<AttendanceRecord> get _filteredRecords {
-    if (_selectedDate == null) {
-      return _records;
+    var records = _records;
+    if (_statusFilter != null && _statusFilter!.isNotEmpty) {
+      records = records.where((r) => r.status.toLowerCase() == _statusFilter!.toLowerCase()).toList();
     }
-    return _records.where((r) {
+    if (_selectedDate == null) {
+      return records;
+    }
+    return records.where((r) {
       try {
         final dt = DateTime.parse(r.checkedInAt).toLocal();
         return dt.year == _selectedDate!.year &&
@@ -170,12 +175,16 @@ class _AttendanceHistoryScreenState extends ConsumerState<AttendanceHistoryScree
         child: RefreshIndicator(
           onRefresh: _fetchHistory,
           color: const Color(0xFF1A3258),
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(
-              parent: ClampingScrollPhysics(),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            child: Column(
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 760),
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(
+                  parent: ClampingScrollPhysics(),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
 
@@ -249,37 +258,20 @@ class _AttendanceHistoryScreenState extends ConsumerState<AttendanceHistoryScree
                       // Grid of Days
                       _buildMonthCalendarGrid(),
 
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 14),
                       const Divider(color: Color(0xFFEEF3FA), height: 1),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 10),
 
-                      // Legend Row matching docs/ui/08 — Attendance History.png
+                      // Single Unified Interactive Filter Row (Status & Legend)
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
-                          _buildLegendItem('Present', const Color(0xFF10B981)),
-                          _buildLegendItem('Absent', const Color(0xFFEF4444)),
-                          _buildLegendItem('Late', const Color(0xFFF59E0B)),
+                          _buildFilterChip('All', null),
+                          _buildFilterChip('Present', 'present', dotColor: const Color(0xFF10B981)),
+                          _buildFilterChip('Late', 'late', dotColor: const Color(0xFFF59E0B)),
+                          _buildFilterChip('Absent', 'absent', dotColor: const Color(0xFFEF4444)),
                         ],
                       ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 18),
-
-                // Status filter chips
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      _buildFilterChip('All', null),
-                      const SizedBox(width: 8),
-                      _buildFilterChip('Present', 'present'),
-                      const SizedBox(width: 8),
-                      _buildFilterChip('Late', 'late'),
-                      const SizedBox(width: 8),
-                      _buildFilterChip('Absent', 'absent'),
                     ],
                   ),
                 ),
@@ -400,6 +392,8 @@ class _AttendanceHistoryScreenState extends ConsumerState<AttendanceHistoryScree
           ),
         ),
       ),
+    ),
+  ),
 
       // Bottom Navigation Bar with History Tab Active
       bottomNavigationBar: widget.isEmbedded ? null : Container(
@@ -466,48 +460,79 @@ class _AttendanceHistoryScreenState extends ConsumerState<AttendanceHistoryScree
     );
   }
 
-  Widget _buildFilterChip(String label, String? value) {
+  Widget _buildFilterChip(String label, String? value, {Color? dotColor}) {
     final isActive = _statusFilter == value;
     Color chipBg;
+    Color chipBorder;
     Color chipText;
 
     if (isActive) {
       if (value == 'present') {
-        chipBg = const Color(0xFFD1FAE5);
+        chipBg = const Color(0xFFECFDF5);
+        chipBorder = const Color(0xFF10B981);
         chipText = const Color(0xFF059669);
       } else if (value == 'late') {
-        chipBg = const Color(0xFFFEF3C7);
+        chipBg = const Color(0xFFFFFBEB);
+        chipBorder = const Color(0xFFF59E0B);
         chipText = const Color(0xFFD97706);
       } else if (value == 'absent') {
-        chipBg = const Color(0xFFFEE2E2);
+        chipBg = const Color(0xFFFEF2F2);
+        chipBorder = const Color(0xFFEF4444);
         chipText = const Color(0xFFDC2626);
       } else {
-        chipBg = const Color(0xFF1A3258);
-        chipText = Colors.white;
+        chipBg = const Color(0xFFEFF6FF);
+        chipBorder = const Color(0xFF2563EB);
+        chipText = const Color(0xFF2563EB);
       }
     } else {
       chipBg = Colors.white;
+      chipBorder = const Color(0xFFE2EAF4);
       chipText = const Color(0xFF5C6E84);
     }
 
     return GestureDetector(
-      onTap: () => _onStatusFilterChanged(value),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      onTap: () {
+        HapticFeedback.selectionClick();
+        if (_statusFilter == value && value != null) {
+          _onStatusFilterChanged(null);
+        } else {
+          _onStatusFilterChanged(value);
+        }
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
           color: chipBg,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isActive ? chipBg : const Color(0xFFE2EAF4),
+            color: chipBorder,
+            width: 1,
           ),
         ),
-        child: Text(
-          label,
-          style: GoogleFonts.inter(
-            fontSize: 12.5,
-            fontWeight: FontWeight.w600,
-            color: chipText,
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (dotColor != null) ...[
+              Container(
+                width: 7,
+                height: 7,
+                decoration: BoxDecoration(
+                  color: dotColor,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 6),
+            ],
+            Text(
+              label,
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                color: chipText,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -727,28 +752,6 @@ class _AttendanceHistoryScreenState extends ConsumerState<AttendanceHistoryScree
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildLegendItem(String label, Color color) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 7,
-          height: 7,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-        ),
-        const SizedBox(width: 6),
-        Text(
-          label,
-          style: GoogleFonts.inter(
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-            color: const Color(0xFF5C6E84),
-          ),
-        ),
-      ],
     );
   }
 }

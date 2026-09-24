@@ -3,13 +3,17 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:screen_brightness/screen_brightness.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
-import '../repositories/teacher_repository.dart';
+import '../../../core/config/api_constants.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/modern_app_bar.dart';
 import '../../attendance/models/attendance_models.dart';
+import '../repositories/teacher_repository.dart';
+import 'teacher_live_feed_screen.dart';
 
 class TeacherDynamicQrScreen extends ConsumerStatefulWidget {
   final int sessionId;
@@ -32,6 +36,7 @@ class _TeacherDynamicQrScreenState extends ConsumerState<TeacherDynamicQrScreen>
   int _secondsLeft = 20;
   bool _isDemoMode = false;
   bool _isNetworkPaused = false;
+  bool _isPresentationMode = false;
   Timer? _countdownTimer;
 
   @override
@@ -66,8 +71,20 @@ class _TeacherDynamicQrScreenState extends ConsumerState<TeacherDynamicQrScreen>
     try {
       WakelockPlus.disable();
       ScreenBrightness().resetApplicationScreenBrightness();
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     } catch (_) {}
     super.dispose();
+  }
+
+  void _togglePresentationMode() {
+    setState(() {
+      _isPresentationMode = !_isPresentationMode;
+    });
+    if (_isPresentationMode) {
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    } else {
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    }
   }
 
   void _enableDemoMode() {
@@ -168,14 +185,702 @@ class _TeacherDynamicQrScreenState extends ConsumerState<TeacherDynamicQrScreen>
     );
   }
 
+  String get _projectorUrl => ApiConstants.sessionLiveQr(widget.sessionId);
+
+  Future<void> _launchProjectorUrl() async {
+    final uri = Uri.parse(_projectorUrl);
+    try {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not open browser: $e'),
+            backgroundColor: AppTheme.absent,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  void _copyProjectorUrl() {
+    Clipboard.setData(ClipboardData(text: _projectorUrl));
+    HapticFeedback.lightImpact();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Classroom Web Projector link copied to clipboard!'),
+        backgroundColor: AppTheme.present,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  void _navigateToLiveMonitor() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => TeacherLiveFeedScreen(
+          sessionId: widget.sessionId,
+          classRoomName: widget.classRoomName,
+        ),
+      ),
+    );
+  }
+
+  void _showProjectorModal() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 560),
+            child: Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+              ),
+              padding: EdgeInsets.fromLTRB(
+                24,
+                16,
+                24,
+                MediaQuery.of(ctx).padding.bottom + 24,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+              // Pull bar
+              Center(
+                child: Container(
+                  width: 44,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFCBD5E1),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Title and Icon
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primary.withAlpha(20),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Icon(
+                      Icons.connected_tv_rounded,
+                      color: AppTheme.primary,
+                      size: 26,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Classroom Web Projector',
+                          style: GoogleFonts.outfit(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        const Text(
+                          'Cast or open on podium PC, TV, or smart board',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppTheme.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 20),
+
+              // QR Code to scan directly from classroom laptop or tablet
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: AppTheme.surfaceBorder),
+                ),
+                child: Column(
+                  children: [
+                    QrImageView(
+                      data: _projectorUrl,
+                      version: QrVersions.auto,
+                      size: 140,
+                      backgroundColor: Colors.white,
+                      eyeStyle: const QrEyeStyle(
+                        eyeShape: QrEyeShape.square,
+                        color: Color(0xFF0F172A),
+                      ),
+                      dataModuleStyle: const QrDataModuleStyle(
+                        dataModuleShape: QrDataModuleShape.square,
+                        color: Color(0xFF0F172A),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Scan with Classroom PC webcam or tablet to open instantly',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        color: AppTheme.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // URL Box
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: AppTheme.surfaceLight,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppTheme.surfaceBorder),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.link_rounded, size: 18, color: AppTheme.textMuted),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _projectorUrl,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontFamily: 'monospace',
+                          fontSize: 11,
+                          color: AppTheme.textSecondary,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    IconButton(
+                      icon: const Icon(Icons.copy_rounded, size: 16, color: AppTheme.primary),
+                      onPressed: _copyProjectorUrl,
+                      tooltip: 'Copy Link',
+                      constraints: const BoxConstraints(),
+                      padding: EdgeInsets.zero,
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              // Action Buttons
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _copyProjectorUrl,
+                      icon: const Icon(Icons.copy_rounded, size: 18),
+                      label: const Text('Copy Link'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppTheme.primary,
+                        side: const BorderSide(color: AppTheme.primary),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.of(ctx).pop();
+                        _launchProjectorUrl();
+                      },
+                      icon: const Icon(Icons.open_in_browser_rounded, size: 18),
+                      label: const Text('Open Browser'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        elevation: 0,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 16),
+
+              // Dual-Mode explanation card
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppTheme.primary.withAlpha(10),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppTheme.primary.withAlpha(30)),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.tips_and_updates_rounded, size: 18, color: AppTheme.primary),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Dual-Mode tip: Keep your phone on the Live Monitor to track arrivals while your classroom projector or PC displays the dynamic QR code for all students!',
+                        style: GoogleFonts.inter(
+                          fontSize: 11,
+                          color: AppTheme.primary,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (_isPresentationMode) {
+      return _buildPresentationView();
+    }
+    return _buildStandardView();
+  }
+
+  // ==========================================
+  // IN-APP FULLSCREEN THEATER / PRESENTATION MODE
+  // ==========================================
+  Widget _buildPresentationView() {
+    return Scaffold(
+      backgroundColor: const Color(0xFF090D16),
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isLandscape = constraints.maxWidth > constraints.maxHeight;
+            final isCompactHeight = constraints.maxHeight < 680;
+            final shortestSide = constraints.maxWidth < constraints.maxHeight
+                ? constraints.maxWidth
+                : constraints.maxHeight;
+            final qrSize = isLandscape
+                ? (constraints.maxHeight - 140).clamp(150.0, 320.0)
+                : (isCompactHeight
+                    ? (constraints.maxHeight * 0.36).clamp(170.0, 250.0)
+                    : (shortestSide * 0.65).clamp(220.0, 360.0));
+
+            Widget presentationContent;
+
+            if (isLandscape) {
+              presentationContent = Row(
+                children: [
+                  // Left control panel
+                  Expanded(
+                    flex: 5,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      width: 8,
+                                      height: 8,
+                                      decoration: const BoxDecoration(
+                                        color: AppTheme.present,
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      'LIVE ATTENDANCE • #${widget.sessionId}',
+                                      style: GoogleFonts.inter(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w700,
+                                        letterSpacing: 1,
+                                        color: const Color(0xFF94A3B8),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  widget.classRoomName,
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            IconButton.filled(
+                              onPressed: _togglePresentationMode,
+                              icon: const Icon(Icons.fullscreen_exit_rounded, color: Colors.white, size: 20),
+                              tooltip: 'Exit Presentation Mode',
+                              style: IconButton.styleFrom(
+                                backgroundColor: const Color(0xFF1E293B),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              ),
+                            ),
+                          ],
+                        ),
+                        // Rotation countdown
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF1E293B),
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(color: const Color(0xFF334155)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  value: _secondsLeft / (_qrData?.intervalSeconds ?? 20),
+                                  strokeWidth: 2.5,
+                                  color: _secondsLeft < 5 ? AppTheme.late : AppTheme.present,
+                                  backgroundColor: const Color(0xFF334155),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Text(
+                                'Rotates in $_secondsLeft s',
+                                style: GoogleFonts.inter(
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.bold,
+                                  color: _secondsLeft < 5 ? AppTheme.late : Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Students: Scan with your app to check in',
+                              style: GoogleFonts.inter(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w500,
+                                color: const Color(0xFF94A3B8),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            TextButton.icon(
+                              onPressed: _navigateToLiveMonitor,
+                              icon: const Icon(Icons.people_alt_rounded, size: 16, color: AppTheme.present),
+                              label: Text(
+                                'Open Live Monitor & Roster',
+                                style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              style: TextButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                backgroundColor: const Color(0xFF1E293B),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 20),
+                  // Right QR code
+                  Expanded(
+                    flex: 5,
+                    child: Center(
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(24),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppTheme.primary.withAlpha(120),
+                              blurRadius: 36,
+                              spreadRadius: 6,
+                            ),
+                          ],
+                        ),
+                        child: _qrData != null
+                            ? QrImageView(
+                                data: _qrData!.token,
+                                version: QrVersions.auto,
+                                size: qrSize,
+                                backgroundColor: Colors.white,
+                                eyeStyle: const QrEyeStyle(
+                                  eyeShape: QrEyeShape.square,
+                                  color: Color(0xFF0F172A),
+                                ),
+                                dataModuleStyle: const QrDataModuleStyle(
+                                  dataModuleShape: QrDataModuleShape.square,
+                                  color: Color(0xFF0F172A),
+                                ),
+                              )
+                            : SizedBox(
+                                width: qrSize,
+                                height: qrSize,
+                                child: const Center(
+                                  child: CircularProgressIndicator(color: AppTheme.primary),
+                                ),
+                              ),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            } else {
+              // Portrait Presentation
+              presentationContent = SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(parent: ClampingScrollPhysics()),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: constraints.maxHeight - 28,
+                    maxWidth: 580,
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Top Bar
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    width: 9,
+                                    height: 9,
+                                    decoration: const BoxDecoration(
+                                      color: AppTheme.present,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'LIVE ATTENDANCE • SESSION #${widget.sessionId}',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 10.5,
+                                      fontWeight: FontWeight.w700,
+                                      letterSpacing: 1,
+                                      color: const Color(0xFF94A3B8),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                widget.classRoomName,
+                                style: GoogleFonts.outfit(
+                                  fontSize: 21,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                          IconButton.filled(
+                            onPressed: _togglePresentationMode,
+                            icon: const Icon(Icons.fullscreen_exit_rounded, color: Colors.white, size: 22),
+                            tooltip: 'Exit Presentation Mode',
+                            style: IconButton.styleFrom(
+                              backgroundColor: const Color(0xFF1E293B),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      // Center QR Showcase
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(20),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(28),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppTheme.primary.withAlpha(120),
+                                  blurRadius: 40,
+                                  spreadRadius: 8,
+                                ),
+                              ],
+                            ),
+                            child: _qrData != null
+                                ? QrImageView(
+                                    data: _qrData!.token,
+                                    version: QrVersions.auto,
+                                    size: qrSize,
+                                    backgroundColor: Colors.white,
+                                    eyeStyle: const QrEyeStyle(
+                                      eyeShape: QrEyeShape.square,
+                                      color: Color(0xFF0F172A),
+                                    ),
+                                    dataModuleStyle: const QrDataModuleStyle(
+                                      dataModuleShape: QrDataModuleShape.square,
+                                      color: Color(0xFF0F172A),
+                                    ),
+                                  )
+                                : SizedBox(
+                                    width: qrSize,
+                                    height: qrSize,
+                                    child: const Center(
+                                      child: CircularProgressIndicator(color: AppTheme.primary),
+                                    ),
+                                  ),
+                          ),
+                          const SizedBox(height: 18),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF1E293B),
+                              borderRadius: BorderRadius.circular(30),
+                              border: Border.all(color: const Color(0xFF334155)),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    value: _secondsLeft / (_qrData?.intervalSeconds ?? 20),
+                                    strokeWidth: 2.5,
+                                    color: _secondsLeft < 5 ? AppTheme.late : AppTheme.present,
+                                    backgroundColor: const Color(0xFF334155),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Text(
+                                  'Rotates in $_secondsLeft s',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: _secondsLeft < 5 ? AppTheme.late : Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      // Bottom Theater Helper
+                      Column(
+                        children: [
+                          Text(
+                            'Point student phone camera to scan and check in',
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: const Color(0xFF94A3B8),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          TextButton.icon(
+                            onPressed: _navigateToLiveMonitor,
+                            icon: const Icon(Icons.people_alt_rounded, size: 17, color: AppTheme.present),
+                            label: Text(
+                              'Switch to Live Monitor & Roster',
+                              style: GoogleFonts.inter(
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                            ),
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+                              backgroundColor: const Color(0xFF1E293B),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 860),
+                  child: presentationContent,
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  // ==========================================
+  // STANDARD DUAL-MODE VIEW
+  // ==========================================
+  Widget _buildStandardView() {
     return Scaffold(
       backgroundColor: const Color(0xFFF7F9FD),
       appBar: ModernAppBar(
         title: '${widget.classRoomName} QR',
-        subtitle: 'Rotating Beacon Token',
+        subtitle: 'Dual-Mode Attendance',
         actions: [
+          ModernAppBarAction(
+            icon: Icons.connected_tv_rounded,
+            tooltip: 'Web Projector Hub',
+            onPressed: _showProjectorModal,
+          ),
+          const SizedBox(width: 6),
+          ModernAppBarAction(
+            icon: Icons.fullscreen_rounded,
+            tooltip: 'Theater Presentation Mode',
+            onPressed: _togglePresentationMode,
+          ),
+          const SizedBox(width: 6),
           ModernAppBarAction(
             icon: Icons.refresh_rounded,
             tooltip: 'Refresh Token Now',
@@ -187,21 +892,127 @@ class _TeacherDynamicQrScreenState extends ConsumerState<TeacherDynamicQrScreen>
               }
             },
           ),
-          const SizedBox(width: 8),
-          ModernAppBarAction(
-            icon: Icons.copy_rounded,
-            tooltip: 'Copy Token',
-            onPressed: _copyToken,
-          ),
         ],
       ),
+      bottomNavigationBar: SafeArea(
+        child: Center(
+          heightFactor: 1.0,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 580),
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(20, 10, 20, 14),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                border: Border(top: BorderSide(color: AppTheme.surfaceBorder)),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: _navigateToLiveMonitor,
+                      icon: const Icon(Icons.people_alt_rounded, size: 20),
+                      label: const Text('Open Live Monitor & Roster'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        elevation: 0,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  IconButton.filledTonal(
+                    onPressed: _showProjectorModal,
+                    icon: const Icon(Icons.connected_tv_rounded),
+                    tooltip: 'Web Projector Hub',
+                    style: IconButton.styleFrom(
+                      padding: const EdgeInsets.all(14),
+                      backgroundColor: AppTheme.primary.withAlpha(20),
+                      foregroundColor: AppTheme.primary,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        side: BorderSide(color: AppTheme.primary.withAlpha(40)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
       body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 580),
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(parent: ClampingScrollPhysics()),
+            padding: EdgeInsets.symmetric(
+              horizontal: MediaQuery.of(context).size.width < 360 ? 14 : 24,
+              vertical: 16,
+            ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Header description
+              // Dual-mode projector banner
+              InkWell(
+                onTap: _showProjectorModal,
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppTheme.surfaceBorder),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x04000000),
+                        blurRadius: 4,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primary.withAlpha(20),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.cast_connected_rounded, size: 20, color: AppTheme.primary),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Classroom Projector Available',
+                              style: GoogleFonts.outfit(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.textPrimary,
+                              ),
+                            ),
+                            const Text(
+                              'Tap to launch or copy link for PC/TV display',
+                              style: TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(Icons.arrow_forward_ios_rounded, size: 12, color: AppTheme.textMuted),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              // Title and Description
               Text(
                 'Classroom Dynamic Attendance QR',
                 style: Theme.of(context).textTheme.headlineSmall,
@@ -214,7 +1025,7 @@ class _TeacherDynamicQrScreenState extends ConsumerState<TeacherDynamicQrScreen>
                 textAlign: TextAlign.center,
               ),
 
-              const SizedBox(height: 28),
+              const SizedBox(height: 24),
 
               if (_isLoading && _qrData == null)
                 const SizedBox(
@@ -348,7 +1159,7 @@ class _TeacherDynamicQrScreenState extends ConsumerState<TeacherDynamicQrScreen>
                         child: QrImageView(
                           data: _qrData!.token,
                           version: QrVersions.auto,
-                          size: 240.0,
+                          size: (MediaQuery.of(context).size.width - 96).clamp(170.0, 240.0),
                           backgroundColor: Colors.white,
                           eyeStyle: const QrEyeStyle(
                             eyeShape: QrEyeShape.square,
@@ -470,6 +1281,7 @@ class _TeacherDynamicQrScreenState extends ConsumerState<TeacherDynamicQrScreen>
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 }

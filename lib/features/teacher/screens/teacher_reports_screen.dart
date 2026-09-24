@@ -300,10 +300,14 @@ class _TeacherReportsScreenState extends ConsumerState<TeacherReportsScreen> {
       ),
       body: SafeArea(
         top: false,
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(parent: ClampingScrollPhysics()),
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          child: Column(
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 780),
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(parent: ClampingScrollPhysics()),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
 
@@ -381,38 +385,47 @@ class _TeacherReportsScreenState extends ConsumerState<TeacherReportsScreen> {
                         final item = days[index];
                         final isSelected = index == _selectedDayIndex;
 
-                        return GestureDetector(
-                          onTap: () => setState(() => _selectedDayIndex = index),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            padding: EdgeInsets.symmetric(
-                              horizontal: isSelected ? 16 : 12,
-                              vertical: 10,
-                            ),
-                            decoration: BoxDecoration(
-                              color: isSelected ? const Color(0xFF1B2A4A) : Colors.transparent,
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            child: Column(
-                              children: [
-                                Text(
-                                  item['day'] as String,
-                                  style: GoogleFonts.inter(
-                                    fontSize: 13,
-                                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                                    color: isSelected ? Colors.white : const Color(0xFF64748B),
+                        return Flexible(
+                          child: GestureDetector(
+                            onTap: () => setState(() => _selectedDayIndex = index),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              padding: EdgeInsets.symmetric(
+                                horizontal: isSelected ? 12 : 8,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isSelected ? const Color(0xFF1B2A4A) : Colors.transparent,
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      item['day'] as String,
+                                      style: GoogleFonts.inter(
+                                        fontSize: 12.5,
+                                        fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                                        color: isSelected ? Colors.white : const Color(0xFF64748B),
+                                      ),
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  item['rate'] as String,
-                                  style: GoogleFonts.inter(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: isSelected ? const Color(0xFF93C5FD) : const Color(0xFF94A3B8),
+                                  const SizedBox(height: 3),
+                                  FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      item['rate'] as String,
+                                      style: GoogleFonts.inter(
+                                        fontSize: 11.5,
+                                        fontWeight: FontWeight.w600,
+                                        color: isSelected ? const Color(0xFF93C5FD) : const Color(0xFF94A3B8),
+                                      ),
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
                         );
@@ -563,6 +576,8 @@ class _TeacherReportsScreenState extends ConsumerState<TeacherReportsScreen> {
           ),
         ),
       ),
+    ),
+  ),
 
       // Bottom Navigation Bar with 4 tabs matching teacher-reports.png
       bottomNavigationBar: widget.isEmbedded ? null : Container(

@@ -59,6 +59,7 @@ class ApiConstants {
   static String teacherReopenSession(int sessionId) => '/teacher/sessions/$sessionId/reopen/';
   static String sessionBulkAttendance(int sessionId) => '/teacher/sessions/$sessionId/attendance/bulk/';
   static String teacherAttendanceOverride(int recordId) => '/teacher/attendance/$recordId/';
+  static String sessionLiveQr(int sessionId) => '$baseUrl/teacher/sessions/$sessionId/live-qr/';
 
   // Reports
   static String classReport(int classId) => '/reports/class/$classId/';

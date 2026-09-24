@@ -59,6 +59,7 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
   int _totalSessions = 0;
   bool _hasReportData = false;
   bool _hasShownFacePrompt = false;
+  bool _isOpeningQrScanner = false;
 
   @override
   void initState() {
@@ -250,12 +251,20 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
     );
   }
 
-  void _openQrScanner() {
-    HapticFeedback.selectionClick();
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const QrScannerScreen()),
-    ).then((_) => _loadDashboardData());
+  void _openQrScanner() async {
+    if (_isOpeningQrScanner) return;
+    _isOpeningQrScanner = true;
+    try {
+      await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const QrScannerScreen()),
+      );
+    } finally {
+      _isOpeningQrScanner = false;
+      if (mounted) {
+        _loadDashboardData();
+      }
+    }
   }
 
   void _onBottomNavTapped(int index) {
@@ -573,41 +582,45 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
         top: false,
         child: SizedBox(
           height: 64,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildBottomNavItem(
-                index: 0,
-                icon: Icons.home_outlined,
-                activeIcon: Icons.home_rounded,
-                label: 'Home',
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 760),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildBottomNavItem(
+                    index: 0,
+                    icon: Icons.home_outlined,
+                    activeIcon: Icons.home_rounded,
+                    label: 'Home',
+                  ),
+                  _buildBottomNavItem(
+                    index: 1,
+                    icon: Icons.qr_code_scanner_rounded,
+                    activeIcon: Icons.qr_code_scanner_rounded,
+                    label: 'Check-in',
+                  ),
+                  _buildBottomNavItem(
+                    index: 2,
+                    icon: Icons.calendar_today_outlined,
+                    activeIcon: Icons.calendar_today_rounded,
+                    label: 'History',
+                  ),
+                  _buildBottomNavItem(
+                    index: 3,
+                    icon: Icons.notifications_none_rounded,
+                    activeIcon: Icons.notifications_rounded,
+                    label: 'Alerts',
+                  ),
+                  _buildBottomNavItem(
+                    index: 4,
+                    icon: Icons.person_outline_rounded,
+                    activeIcon: Icons.person_rounded,
+                    label: 'Profile',
+                  ),
+                ],
               ),
-              _buildBottomNavItem(
-                index: 1,
-                icon: Icons.qr_code_scanner_rounded,
-                activeIcon: Icons.qr_code_scanner_rounded,
-                label: 'Check-in',
-                isHighlight: true,
-              ),
-              _buildBottomNavItem(
-                index: 2,
-                icon: Icons.calendar_today_outlined,
-                activeIcon: Icons.calendar_today_rounded,
-                label: 'History',
-              ),
-              _buildBottomNavItem(
-                index: 3,
-                icon: Icons.notifications_none_rounded,
-                activeIcon: Icons.notifications_rounded,
-                label: 'Alerts',
-              ),
-              _buildBottomNavItem(
-                index: 4,
-                icon: Icons.person_outline_rounded,
-                activeIcon: Icons.person_rounded,
-                label: 'Profile',
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -619,7 +632,6 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
     required IconData icon,
     required IconData activeIcon,
     required String label,
-    bool isHighlight = false,
   }) {
     final isSelected = _selectedTabIndex == index;
     return Material(
@@ -636,21 +648,17 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
                 duration: const Duration(milliseconds: 200),
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                 decoration: BoxDecoration(
-                  color: isHighlight
-                      ? const Color(0xFF10213E)
-                      : isSelected
-                          ? const Color(0xFFEFF6FF)
-                          : Colors.transparent,
+                  color: isSelected
+                      ? const Color(0xFFEFF6FF)
+                      : Colors.transparent,
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Icon(
                   isSelected ? activeIcon : icon,
                   size: 20,
-                  color: isHighlight
-                      ? Colors.white
-                      : isSelected
-                          ? const Color(0xFF2563EB)
-                          : const Color(0xFF64748B),
+                  color: isSelected
+                      ? const Color(0xFF2563EB)
+                      : const Color(0xFF64748B),
                 ),
               ),
               const SizedBox(height: 2),
@@ -836,12 +844,16 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
         child: RefreshIndicator(
           onRefresh: _loadDashboardData,
           color: const Color(0xFF10213E),
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(
-              parent: ClampingScrollPhysics(),
-            ),
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
-            child: Column(
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 760),
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(
+                  parent: ClampingScrollPhysics(),
+                ),
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+                child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Top 3 Stat Cards matching Mockup 04 (TODAY, PRESENT, PENDING)
@@ -1051,9 +1063,10 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
           ),
         ),
       ),
-
-    );
-  }
+    ),
+  ),
+);
+}
 
   Widget _buildMetricCard({
     required String title,
@@ -1089,21 +1102,29 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
             ),
           ),
           const SizedBox(height: 4),
-          Text(
-            value,
-            style: GoogleFonts.outfit(
-              fontSize: 22,
-              fontWeight: FontWeight.w800,
-              color: valueColor,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              value,
+              style: GoogleFonts.outfit(
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                color: valueColor,
+              ),
             ),
           ),
           const SizedBox(height: 2),
-          Text(
-            subtitle,
-            style: GoogleFonts.inter(
-              fontSize: 11,
-              fontWeight: FontWeight.w400,
-              color: const Color(0xFF94A3B8),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              subtitle,
+              style: GoogleFonts.inter(
+                fontSize: 11,
+                fontWeight: FontWeight.w400,
+                color: const Color(0xFF94A3B8),
+              ),
             ),
           ),
         ],

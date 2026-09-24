@@ -268,12 +268,16 @@ class _TeacherLiveFeedScreenState extends ConsumerState<TeacherLiveFeedScreen>
       },
       color: AppTheme.primary,
       backgroundColor: AppTheme.surface,
-      child: ListView(
-        physics: const AlwaysScrollableScrollPhysics(
-          parent: ClampingScrollPhysics(),
-        ),
-        padding: const EdgeInsets.all(16),
-        children: [
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: ClampingScrollPhysics(),
+            ),
+            padding: const EdgeInsets.all(16),
+            children: [
           // Stat Counters Grid
           Container(
             padding: const EdgeInsets.all(16),
@@ -322,28 +326,57 @@ class _TeacherLiveFeedScreenState extends ConsumerState<TeacherLiveFeedScreen>
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF1E293B), Color(0xFF0F172A)],
-              ),
+              color: Colors.white,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppTheme.surfaceBorder),
+              border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF10213E).withValues(alpha: 0.04),
+                  blurRadius: 12,
+                  offset: const Offset(0, 3),
+                ),
+              ],
             ),
             child: Row(
               children: [
-                const Icon(Icons.qr_code_2_rounded, size: 36, color: AppTheme.primary),
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEFF6FF),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFDBEAFE), width: 1),
+                  ),
+                  child: const Icon(Icons.qr_code_2_rounded, size: 24, color: Color(0xFF2563EB)),
+                ),
                 const SizedBox(width: 14),
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Dynamic Projector QR', style: TextStyle(fontWeight: FontWeight.bold)),
-                      SizedBox(height: 2),
-                      Text('Broadcast rotating dynamic QR code to classroom',
-                          style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                      Text(
+                        'Dynamic Projector QR',
+                        style: GoogleFonts.outfit(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF10213E),
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Broadcast rotating dynamic QR code to classroom',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          color: const Color(0xFF64748B),
+                        ),
+                      ),
                     ],
                   ),
                 ),
-                ElevatedButton(
+                const SizedBox(width: 8),
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.cast_rounded, size: 16),
+                  label: const Text('Project'),
                   onPressed: () {
                     Navigator.push(
                       context,
@@ -355,7 +388,13 @@ class _TeacherLiveFeedScreenState extends ConsumerState<TeacherLiveFeedScreen>
                       ),
                     );
                   },
-                  child: const Text('Project'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2563EB),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  ),
                 ),
               ],
             ),
@@ -438,7 +477,9 @@ class _TeacherLiveFeedScreenState extends ConsumerState<TeacherLiveFeedScreen>
                 ),
               );
             }),
-        ],
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -469,10 +510,13 @@ class _TeacherLiveFeedScreenState extends ConsumerState<TeacherLiveFeedScreen>
       onRefresh: _fetchRoster,
       color: AppTheme.primary,
       backgroundColor: AppTheme.surface,
-      child: ListView.separated(
-        physics: const AlwaysScrollableScrollPhysics(
-          parent: ClampingScrollPhysics(),
-        ),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: ListView.separated(
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: ClampingScrollPhysics(),
+            ),
         padding: const EdgeInsets.all(16),
         itemCount: _rosterList.length,
         separatorBuilder: (_, _) => const SizedBox(height: 10),
@@ -575,22 +619,34 @@ class _TeacherLiveFeedScreenState extends ConsumerState<TeacherLiveFeedScreen>
           );
         },
       ),
-    );
+    ),
+  ),
+);
   }
 
   Widget _buildStatCounter(String label, int count, Color color) {
-    return Column(
-      children: [
-        Text(
-          '$count',
-          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: color),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          style: const TextStyle(fontSize: 11, color: AppTheme.textMuted),
-        ),
-      ],
+    return Expanded(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              '$count',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: color),
+            ),
+          ),
+          const SizedBox(height: 2),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              label,
+              maxLines: 1,
+              style: const TextStyle(fontSize: 10.5, color: AppTheme.textMuted),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

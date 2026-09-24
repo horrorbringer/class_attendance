@@ -73,16 +73,25 @@ class _TeacherCreateSessionSheetState extends ConsumerState<TeacherCreateSession
   void initState() {
     super.initState();
 
-    _classes = widget.initialClasses != null && widget.initialClasses!.isNotEmpty
-        ? List.from(widget.initialClasses!)
-        : [
-            const ClassRoomOption(id: 1, name: 'Computer Science 101', code: 'CS-101'),
-            const ClassRoomOption(id: 2, name: 'Physics Lab II', code: 'PHY-201'),
-            const ClassRoomOption(id: 3, name: 'Advanced Mathematics', code: 'MATH-301'),
-            const ClassRoomOption(id: 4, name: 'Introduction to AI', code: 'CS-402'),
+    final rawClasses = widget.initialClasses != null && widget.initialClasses!.isNotEmpty
+        ? widget.initialClasses!
+        : const [
+            ClassRoomOption(id: 1, name: 'Computer Science 101', code: 'CS-101'),
+            ClassRoomOption(id: 2, name: 'Physics Lab II', code: 'PHY-201'),
+            ClassRoomOption(id: 3, name: 'Advanced Mathematics', code: 'MATH-301'),
+            ClassRoomOption(id: 4, name: 'Introduction to AI', code: 'CS-402'),
           ];
 
-    _selectedClassId = _classes.first.id;
+    final seen = <int>{};
+    _classes = [];
+    for (final c in rawClasses) {
+      if (!seen.contains(c.id)) {
+        seen.add(c.id);
+        _classes.add(c);
+      }
+    }
+
+    _selectedClassId = _classes.isNotEmpty ? _classes.first.id : 1;
     _selectedDate = DateTime.now();
 
     final now = TimeOfDay.now();
@@ -96,19 +105,26 @@ class _TeacherCreateSessionSheetState extends ConsumerState<TeacherCreateSession
     try {
       final classrooms = await ref.read(teacherRepositoryProvider).getClassrooms();
       if (classrooms.isNotEmpty && mounted) {
-        setState(() {
-          _classes = classrooms.map((c) {
+        final seen = <int>{};
+        final uniqueList = <ClassRoomOption>[];
+        for (final c in classrooms) {
+          if (!seen.contains(c.id)) {
+            seen.add(c.id);
             final words = c.name.split(' ');
             final code = words.length > 1
                 ? '${words[0].substring(0, 1)}${words[1].substring(0, 1)}-${c.id}'
                 : 'CR-${c.id}';
-            return ClassRoomOption(id: c.id, name: c.name, code: code);
-          }).toList();
-
-          if (!_classes.any((c) => c.id == _selectedClassId)) {
-            _selectedClassId = _classes.first.id;
+            uniqueList.add(ClassRoomOption(id: c.id, name: c.name, code: code));
           }
-        });
+        }
+        if (uniqueList.isNotEmpty && mounted) {
+          setState(() {
+            _classes = uniqueList;
+            if (!_classes.any((c) => c.id == _selectedClassId)) {
+              _selectedClassId = _classes.first.id;
+            }
+          });
+        }
       }
     } catch (_) {}
   }
@@ -463,12 +479,15 @@ class _TeacherCreateSessionSheetState extends ConsumerState<TeacherCreateSession
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
-    return Container(
-      padding: EdgeInsets.only(bottom: bottomInset),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 640),
+        child: Container(
+          padding: EdgeInsets.only(bottom: bottomInset),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          ),
       child: SafeArea(
         top: false,
         child: SingleChildScrollView(
@@ -606,48 +625,62 @@ class _TeacherCreateSessionSheetState extends ConsumerState<TeacherCreateSession
                   border: Border.all(color: const Color(0xFFE2E8F0)),
                 ),
                 child: DropdownButtonHideUnderline(
-                  child: DropdownButton<int>(
-                    value: _selectedClassId,
-                    isExpanded: true,
-                    icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF64748B)),
-                    items: _classes.map((cls) {
-                      return DropdownMenuItem<int>(
-                        value: cls.id,
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFE2E8F0),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                cls.code,
-                                style: GoogleFonts.inter(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                  color: const Color(0xFF334155),
+                  child: Builder(
+                    builder: (context) {
+                      final Map<int, ClassRoomOption> uniqueMap = {};
+                      for (final c in _classes) {
+                        uniqueMap[c.id] = c;
+                      }
+
+                      int? effectiveValue = _selectedClassId;
+                      if (!uniqueMap.containsKey(effectiveValue)) {
+                        effectiveValue = uniqueMap.isNotEmpty ? uniqueMap.keys.first : null;
+                      }
+
+                      return DropdownButton<int>(
+                        value: effectiveValue,
+                        isExpanded: true,
+                        icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF64748B)),
+                        items: uniqueMap.values.map((cls) {
+                          return DropdownMenuItem<int>(
+                            value: cls.id,
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFE2E8F0),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    cls.code,
+                                    style: GoogleFonts.inter(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      color: const Color(0xFF334155),
+                                    ),
+                                  ),
                                 ),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                cls.name,
-                                style: GoogleFonts.inter(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: const Color(0xFF10213E),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    cls.name,
+                                    style: GoogleFonts.inter(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: const Color(0xFF10213E),
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
+                              ],
                             ),
-                          ],
-                        ),
+                          );
+                        }).toList(),
+                        onChanged: (val) {
+                          if (val != null) setState(() => _selectedClassId = val);
+                        },
                       );
-                    }).toList(),
-                    onChanged: (val) {
-                      if (val != null) setState(() => _selectedClassId = val);
                     },
                   ),
                 ),
@@ -974,6 +1007,8 @@ class _TeacherCreateSessionSheetState extends ConsumerState<TeacherCreateSession
           ),
         ),
       ),
-    );
+    ),
+  ),
+);
   }
 }

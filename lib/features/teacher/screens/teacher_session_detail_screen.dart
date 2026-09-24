@@ -529,7 +529,10 @@ class _TeacherSessionDetailScreenState extends ConsumerState<TeacherSessionDetai
       backgroundColor: const Color(0xFFF7F9FD),
       body: SafeArea(
         top: false,
-        child: Column(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 820),
+            child: Column(
           children: [
             // Top Navy Banner matching docs/teacher/teacher-session-detail.png
             _buildHeaderBanner(context),
@@ -867,7 +870,9 @@ class _TeacherSessionDetailScreenState extends ConsumerState<TeacherSessionDetai
           ],
         ),
       ),
-    );
+    ),
+  ),
+);
   }
 
   Widget _buildHeaderBanner(BuildContext context) {
@@ -1101,24 +1106,56 @@ class _TeacherSessionDetailScreenState extends ConsumerState<TeacherSessionDetai
 
   Widget _buildFilterChip(String filterKey, String label) {
     final isSelected = _selectedFilter == filterKey;
+    Color chipBg;
+    Color chipBorder;
+    Color chipText;
+
+    if (isSelected) {
+      if (filterKey == 'present') {
+        chipBg = const Color(0xFFECFDF5);
+        chipBorder = const Color(0xFF10B981);
+        chipText = const Color(0xFF059669);
+      } else if (filterKey == 'late') {
+        chipBg = const Color(0xFFFFFBEB);
+        chipBorder = const Color(0xFFF59E0B);
+        chipText = const Color(0xFFD97706);
+      } else if (filterKey == 'absent') {
+        chipBg = const Color(0xFFFEF2F2);
+        chipBorder = const Color(0xFFEF4444);
+        chipText = const Color(0xFFDC2626);
+      } else {
+        chipBg = const Color(0xFFEFF6FF);
+        chipBorder = const Color(0xFF2563EB);
+        chipText = const Color(0xFF2563EB);
+      }
+    } else {
+      chipBg = const Color(0xFFF8FAFC);
+      chipBorder = const Color(0xFFE2E8F0);
+      chipText = const Color(0xFF64748B);
+    }
+
     return GestureDetector(
-      onTap: () => setState(() => _selectedFilter = filterKey),
+      onTap: () {
+        HapticFeedback.selectionClick();
+        setState(() => _selectedFilter = filterKey);
+      },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF1B2A4A) : const Color(0xFFF8FAFC),
-          borderRadius: BorderRadius.circular(10),
+          color: chipBg,
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? const Color(0xFF1B2A4A) : const Color(0xFFE2E8F0),
+            color: chipBorder,
+            width: 1,
           ),
         ),
         child: Text(
           label,
           style: GoogleFonts.inter(
             fontSize: 12,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-            color: isSelected ? Colors.white : const Color(0xFF64748B),
+            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+            color: chipText,
           ),
         ),
       ),

@@ -408,54 +408,59 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen> {
       ),
     ),
   ),
-  body: SafeArea(
+      body: SafeArea(
         top: false,
         child: RefreshIndicator(
           onRefresh: _fetchTodayClasses,
           color: const Color(0xFF1B2A4A),
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(
-              parent: ClampingScrollPhysics(),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // 1. Welcome Greeting Banner
-                _buildWelcomeBanner(teacherName),
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 780),
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(
+                  parent: ClampingScrollPhysics(),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 1. Welcome Greeting Banner
+                    _buildWelcomeBanner(teacherName),
 
-                const SizedBox(height: 18),
+                    const SizedBox(height: 18),
 
-                // 2. Active "Live Attendance" Session Hero Card
-                _buildLiveSessionHeroCard(),
+                    // 2. Active "Live Attendance" Session Hero Card
+                    _buildLiveSessionHeroCard(),
 
-                const SizedBox(height: 24),
+                    const SizedBox(height: 24),
 
-                // 3. KPI Metrics Grid (2x2)
-                _buildKpiMetricsGrid(),
+                    // 3. KPI Metrics Grid (2x2)
+                    _buildKpiMetricsGrid(),
 
-                const SizedBox(height: 24),
+                    const SizedBox(height: 24),
 
-                // 4. Quick Actions Hub
-                _buildQuickActionsHub(),
+                    // 4. Quick Actions Hub
+                    _buildQuickActionsHub(),
 
-                const SizedBox(height: 24),
+                    const SizedBox(height: 24),
 
-                // 5. Today's Class Schedule Preview
-                _buildScheduleSection(),
+                    // 5. Today's Class Schedule Preview
+                    _buildScheduleSection(),
 
-                const SizedBox(height: 24),
+                    const SizedBox(height: 24),
 
-                // 6. Recent Activity & Security Alerts
-                _buildRecentActivitySection(),
+                    // 6. Recent Activity & Security Alerts
+                    _buildRecentActivitySection(),
 
-                const SizedBox(height: 24),
-              ],
+                    const SizedBox(height: 24),
+                  ],
+                ),
+              ),
             ),
           ),
         ),
       ),
-
     );
   }
 
@@ -538,21 +543,14 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen> {
         width: double.infinity,
         padding: const EdgeInsets.all(22),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF162846),
-              Color(0xFF11213B),
-              Color(0xFF0F172A),
-            ],
-          ),
+          color: Colors.white,
           borderRadius: BorderRadius.circular(22),
-          boxShadow: const [
+          border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
+          boxShadow: [
             BoxShadow(
-              color: Color(0x08000000),
-              blurRadius: 8,
-              offset: Offset(0, 2),
+              color: const Color(0xFF10213E).withValues(alpha: 0.05),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
@@ -565,10 +563,10 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF64748B).withValues(alpha: 0.2),
+                    color: const Color(0xFFF1F5F9),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: const Color(0xFF94A3B8).withValues(alpha: 0.3),
+                      color: const Color(0xFFCBD5E1),
                       width: 1,
                     ),
                   ),
@@ -578,17 +576,24 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen> {
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 0.5,
-                      color: const Color(0xFF94A3B8),
+                      color: const Color(0xFF64748B),
                     ),
                   ),
                 ),
-                Text(
-                  'Anti-Proxy Active',
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: const Color(0xFF94A3B8),
-                  ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.verified_user_outlined, size: 14, color: Color(0xFF10B981)),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Anti-Proxy Active',
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF475569),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -598,13 +603,13 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen> {
               style: GoogleFonts.outfit(
                 fontSize: 22,
                 fontWeight: FontWeight.w800,
-                color: Colors.white,
+                color: const Color(0xFF10213E),
               ),
             ),
             const SizedBox(height: 6),
             Text(
               'Start a live session to project dynamic QR tokens and monitor student check-ins in real time.',
-              style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF94A3B8), height: 1.4),
+              style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF64748B), height: 1.4),
             ),
             const SizedBox(height: 18),
             SizedBox(
@@ -614,11 +619,11 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen> {
                 label: const Text('Start New Session'),
                 onPressed: _openCreateSession,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: const Color(0xFF10213E),
+                  backgroundColor: const Color(0xFF2563EB),
+                  foregroundColor: Colors.white,
                   elevation: 0,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  padding: const EdgeInsets.symmetric(vertical: 13),
                 ),
               ),
             ),
@@ -641,21 +646,19 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF162846),
-            Color(0xFF11213B),
-            Color(0xFF0F172A),
-          ],
-        ),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(22),
-        boxShadow: const [
+        border: Border.all(
+          color: isLive ? const Color(0xFF10B981).withValues(alpha: 0.35) : const Color(0xFFE2E8F0),
+          width: 1.5,
+        ),
+        boxShadow: [
           BoxShadow(
-            color: Color(0x08000000),
-            blurRadius: 8,
-            offset: Offset(0, 2),
+            color: isLive
+                ? const Color(0xFF10B981).withValues(alpha: 0.08)
+                : const Color(0xFF10213E).withValues(alpha: 0.05),
+            blurRadius: 18,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -670,13 +673,13 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: isLive
-                      ? const Color(0xFF10B981).withValues(alpha: 0.18)
-                      : const Color(0xFF3B82F6).withValues(alpha: 0.18),
+                      ? const Color(0xFFECFDF5)
+                      : (active.isEnded ? const Color(0xFFF1F5F9) : const Color(0xFFEFF6FF)),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
                     color: isLive
-                        ? const Color(0xFF10B981).withValues(alpha: 0.4)
-                        : const Color(0xFF3B82F6).withValues(alpha: 0.4),
+                        ? const Color(0xFFA7F3D0)
+                        : (active.isEnded ? const Color(0xFFCBD5E1) : const Color(0xFFBFDBFE)),
                     width: 1,
                   ),
                 ),
@@ -687,7 +690,9 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen> {
                       width: 7,
                       height: 7,
                       decoration: BoxDecoration(
-                        color: isLive ? const Color(0xFF10B981) : const Color(0xFF60A5FA),
+                        color: isLive
+                            ? const Color(0xFF10B981)
+                            : (active.isEnded ? const Color(0xFF64748B) : const Color(0xFF2563EB)),
                         shape: BoxShape.circle,
                       ),
                     ),
@@ -698,19 +703,28 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen> {
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 0.5,
-                        color: isLive ? const Color(0xFF34D399) : const Color(0xFF93C5FD),
+                        color: isLive
+                            ? const Color(0xFF047857)
+                            : (active.isEnded ? const Color(0xFF475569) : const Color(0xFF1D4ED8)),
                       ),
                     ),
                   ],
                 ),
               ),
-              Text(
-                'Anti-Proxy Active',
-                style: GoogleFonts.inter(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: const Color(0xFF94A3B8),
-                ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.verified_user_outlined, size: 14, color: Color(0xFF10B981)),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Anti-Proxy Active',
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF475569),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -723,24 +737,24 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen> {
             style: GoogleFonts.outfit(
               fontSize: 22,
               fontWeight: FontWeight.w800,
-              color: Colors.white,
+              color: const Color(0xFF10213E),
             ),
           ),
           const SizedBox(height: 4),
           Row(
             children: [
-              const Icon(Icons.access_time_rounded, size: 14, color: Color(0xFF94A3B8)),
+              const Icon(Icons.access_time_rounded, size: 14, color: Color(0xFF64748B)),
               const SizedBox(width: 5),
               Text(
                 timeStr,
-                style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF94A3B8)),
+                style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF64748B), fontWeight: FontWeight.w500),
               ),
               const SizedBox(width: 12),
-              const Icon(Icons.location_on_outlined, size: 14, color: Color(0xFF94A3B8)),
+              const Icon(Icons.location_on_outlined, size: 14, color: Color(0xFF64748B)),
               const SizedBox(width: 4),
               Text(
                 roomName,
-                style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF94A3B8)),
+                style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF64748B), fontWeight: FontWeight.w500),
               ),
             ],
           ),
@@ -756,7 +770,7 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen> {
                 style: GoogleFonts.inter(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
-                  color: Colors.white,
+                  color: const Color(0xFF10213E),
                 ),
               ),
               Text(
@@ -764,7 +778,7 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen> {
                 style: GoogleFonts.inter(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: isLive ? const Color(0xFF60A5FA) : const Color(0xFF94A3B8),
+                  color: isLive ? const Color(0xFF047857) : const Color(0xFF2563EB),
                 ),
               ),
             ],
@@ -775,9 +789,9 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen> {
             child: LinearProgressIndicator(
               value: isLive ? 1.0 : (active.isEnded ? 1.0 : 0.4),
               minHeight: 6,
-              backgroundColor: const Color(0xFF1E293B),
+              backgroundColor: const Color(0xFFF1F5F9),
               valueColor: AlwaysStoppedAnimation<Color>(
-                isLive ? const Color(0xFF10B981) : const Color(0xFF3B82F6),
+                isLive ? const Color(0xFF10B981) : const Color(0xFF2563EB),
               ),
             ),
           ),
@@ -803,8 +817,8 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen> {
                     );
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: const Color(0xFF10213E),
+                    backgroundColor: const Color(0xFF10213E),
+                    foregroundColor: Colors.white,
                     elevation: 0,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                     padding: const EdgeInsets.symmetric(vertical: 12),
@@ -828,8 +842,9 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen> {
                     );
                   },
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.white,
-                    side: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
+                    backgroundColor: const Color(0xFFEFF6FF),
+                    foregroundColor: const Color(0xFF2563EB),
+                    side: const BorderSide(color: Color(0xFFDBEAFE), width: 1.2),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                     padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
@@ -944,44 +959,57 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
-                width: 36,
-                height: 36,
+                width: 34,
+                height: 34,
                 decoration: BoxDecoration(
                   color: iconColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(icon, size: 20, color: iconColor),
+                child: Icon(icon, size: 18, color: iconColor),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: badgeColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  badge,
-                  style: GoogleFonts.inter(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: badgeColor,
+              const SizedBox(width: 6),
+              Flexible(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                  decoration: BoxDecoration(
+                    color: badgeColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      badge,
+                      style: GoogleFonts.inter(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.bold,
+                        color: badgeColor,
+                      ),
+                    ),
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          Text(
-            value,
-            style: GoogleFonts.outfit(
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-              color: const Color(0xFF10213E),
+          const SizedBox(height: 10),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              value,
+              style: GoogleFonts.outfit(
+                fontSize: 19,
+                fontWeight: FontWeight.w800,
+                color: const Color(0xFF10213E),
+              ),
             ),
           ),
+          const SizedBox(height: 2),
           Text(
             title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: GoogleFonts.inter(
-              fontSize: 12,
+              fontSize: 11.5,
               color: const Color(0xFF64748B),
             ),
           ),

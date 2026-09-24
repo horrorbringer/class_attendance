@@ -85,8 +85,8 @@ class _TeacherClassesScreenState extends ConsumerState<TeacherClassesScreen> {
           ModernAppBarAction(
             icon: Icons.group_add_outlined,
             tooltip: 'Enrollment Roster',
-            iconColor: Colors.white,
-            backgroundColor: const Color(0xFF1E293B),
+            iconColor: const Color(0xFF10213E),
+            backgroundColor: const Color(0xFFF8FAFC),
             onPressed: () {
               if (_sessions.isNotEmpty) {
                 final first = _sessions.first;
@@ -108,8 +108,8 @@ class _TeacherClassesScreenState extends ConsumerState<TeacherClassesScreen> {
           ModernAppBarAction(
             icon: Icons.add_rounded,
             tooltip: 'Create New Session',
-            iconColor: Colors.white,
-            backgroundColor: const Color(0xFF10213E),
+            iconColor: const Color(0xFF2563EB),
+            backgroundColor: const Color(0xFFEFF6FF),
             onPressed: _openCreateSessionSheet,
           ),
           const SizedBox(width: 8),
@@ -125,30 +125,30 @@ class _TeacherClassesScreenState extends ConsumerState<TeacherClassesScreen> {
         child: RefreshIndicator(
           onRefresh: _fetchTodayClasses,
           color: const Color(0xFF1B2A4A),
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(parent: ClampingScrollPhysics()),
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            child: Column(
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 780),
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(parent: ClampingScrollPhysics()),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
 
-                // Hero Stats Card matching teacher-class-list.png
+                // Hero Stats Card matching clean executive card design
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(22),
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [Color(0xFF0F172A), Color(0xFF1E293B)],
-                    ),
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: const Color(0xFF334155), width: 1),
-                    boxShadow: const [
+                    border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
+                    boxShadow: [
                       BoxShadow(
-                        color: Color(0x0D0F172A),
-                        blurRadius: 4,
-                        offset: Offset(0, 2),
+                        color: const Color(0xFF10213E).withValues(alpha: 0.05),
+                        blurRadius: 16,
+                        offset: const Offset(0, 4),
                       ),
                     ],
                   ),
@@ -162,8 +162,8 @@ class _TeacherClassesScreenState extends ConsumerState<TeacherClassesScreen> {
                               'Today\'s Average Attendance',
                               style: GoogleFonts.inter(
                                 fontSize: 13,
-                                color: const Color(0xFF94A3B8),
-                                fontWeight: FontWeight.w500,
+                                color: const Color(0xFF64748B),
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                             const SizedBox(height: 6),
@@ -172,31 +172,54 @@ class _TeacherClassesScreenState extends ConsumerState<TeacherClassesScreen> {
                               style: GoogleFonts.outfit(
                                 fontSize: 36,
                                 fontWeight: FontWeight.w800,
-                                color: Colors.white,
+                                color: const Color(0xFF10213E),
                                 letterSpacing: -0.5,
                               ),
                             ),
-                            const SizedBox(height: 6),
-                            Text(
-                              'Goal: above 95% • 3 Active classes',
-                              style: GoogleFonts.inter(
-                                fontSize: 12,
-                                color: const Color(0xFFCBD5E1),
-                              ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFECFDF5),
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(color: const Color(0xFFA7F3D0), width: 1),
+                                  ),
+                                  child: Text(
+                                    'Target >95%',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      color: const Color(0xFF047857),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  '3 Active classes today',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 12,
+                                    color: const Color(0xFF64748B),
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
                       ),
                       Container(
-                        width: 58,
-                        height: 58,
+                        width: 56,
+                        height: 56,
                         decoration: BoxDecoration(
-                          color: const Color(0xFF283F66),
+                          color: const Color(0xFFEFF6FF),
                           shape: BoxShape.circle,
+                          border: Border.all(color: const Color(0xFFDBEAFE), width: 1.5),
                         ),
                         child: const Icon(
                           Icons.auto_graph_rounded,
-                          color: Colors.white,
+                          color: Color(0xFF2563EB),
                           size: 26,
                         ),
                       ),
@@ -354,6 +377,8 @@ class _TeacherClassesScreenState extends ConsumerState<TeacherClassesScreen> {
           ),
         ),
       ),
+    ),
+  ),
 
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _openCreateSessionSheet,
