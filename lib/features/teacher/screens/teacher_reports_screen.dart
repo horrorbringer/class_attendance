@@ -251,6 +251,7 @@ class _TeacherReportsScreenState extends ConsumerState<TeacherReportsScreen> {
       body: SafeArea(
         top: false,
         child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

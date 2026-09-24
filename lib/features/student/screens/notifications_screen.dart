@@ -705,8 +705,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
           onRefresh: _fetchAlerts,
           color: const Color(0xFF10213E),
           child: CustomScrollView(
-            physics: const AlwaysScrollableScrollPhysics(
-              parent: ClampingScrollPhysics(),
+            physics: const BouncingScrollPhysics(
+              parent: AlwaysScrollableScrollPhysics(),
             ),
             slivers: [
               SliverToBoxAdapter(

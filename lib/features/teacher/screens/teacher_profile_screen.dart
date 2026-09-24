@@ -505,8 +505,8 @@ class _TeacherProfileScreenState extends ConsumerState<TeacherProfileScreen> {
       body: SafeArea(
         top: false,
         child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(
-            parent: ClampingScrollPhysics(),
+          physics: const BouncingScrollPhysics(
+            parent: AlwaysScrollableScrollPhysics(),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

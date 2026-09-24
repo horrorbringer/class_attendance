@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -89,53 +90,58 @@ class ModernAppBar extends StatelessWidget implements PreferredSizeWidget {
       );
     }
 
-    return Container(
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        border: showBottomBorder
-            ? const Border(
-                bottom: BorderSide(
-                  color: Color(0xFFE2E8F0),
-                  width: 1.0,
-                ),
-              )
-            : null,
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF10213E).withValues(alpha: 0.04),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        bottom: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SizedBox(
-              height: toolbarHeight,
-              child: Row(
-                children: [
-                  if (leadingWidget != null)
-                    leadingWidget
-                  else
-                    const SizedBox(width: 20),
-                  const SizedBox(width: 12),
-                  if (centerTitleWidget != null)
-                    Expanded(child: centerTitleWidget)
-                  else
-                    const Spacer(),
-                  if (actions != null) ...[
-                    ...actions!,
-                    const SizedBox(width: 16),
-                  ] else
-                    const SizedBox(width: 20),
-                ],
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+        child: Container(
+          decoration: BoxDecoration(
+            color: backgroundColor.withValues(alpha: 0.94),
+            border: showBottomBorder
+                ? const Border(
+                    bottom: BorderSide(
+                      color: Color(0xFFE2E8F0),
+                      width: 1.0,
+                    ),
+                  )
+                : null,
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF10213E).withValues(alpha: 0.05),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
               ),
+            ],
+          ),
+          child: SafeArea(
+            bottom: false,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  height: toolbarHeight,
+                  child: Row(
+                    children: [
+                      if (leadingWidget != null)
+                        leadingWidget
+                      else
+                        const SizedBox(width: 20),
+                      const SizedBox(width: 12),
+                      if (centerTitleWidget != null)
+                        Expanded(child: centerTitleWidget)
+                      else
+                        const Spacer(),
+                      if (actions != null) ...[
+                        ...actions!,
+                        const SizedBox(width: 16),
+                      ] else
+                        const SizedBox(width: 20),
+                    ],
+                  ),
+                ),
+                ?bottom,
+              ],
             ),
-            ?bottom,
-          ],
+          ),
         ),
       ),
     );

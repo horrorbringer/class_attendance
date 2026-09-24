@@ -1,4 +1,6 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -70,21 +72,24 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen> {
       backgroundColor: const Color(0xFFF7F9FD),
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(68),
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            border: const Border(
-              bottom: BorderSide(color: Color(0xFFE2E8F0), width: 1.0),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF10213E).withValues(alpha: 0.04),
-                blurRadius: 6,
-                offset: const Offset(0, 2),
+        child: ClipRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.94),
+                border: const Border(
+                  bottom: BorderSide(color: Color(0xFFE2E8F0), width: 1.0),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF10213E).withValues(alpha: 0.05),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
-            ],
-          ),
-          child: SafeArea(
+              child: SafeArea(
             bottom: false,
             child: Container(
               height: 68,
@@ -265,13 +270,17 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen> {
           ),
         ),
       ),
-      body: SafeArea(
+    ),
+  ),
+  body: SafeArea(
         top: false,
         child: RefreshIndicator(
           onRefresh: _fetchTodayClasses,
           color: const Color(0xFF1B2A4A),
           child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
+            physics: const BouncingScrollPhysics(
+              parent: AlwaysScrollableScrollPhysics(),
+            ),
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -866,44 +875,51 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen> {
     required Color color,
     required VoidCallback onTap,
   }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x03000000),
-              blurRadius: 2,
-              offset: Offset(0, 1),
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          HapticFeedback.lightImpact();
+          onTap();
+        },
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x0410213E),
+                blurRadius: 4,
+                offset: Offset(0, 2),
               ),
-              child: Icon(icon, size: 20, color: color),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: GoogleFonts.inter(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: const Color(0xFF10213E),
+            ],
+          ),
+          child: Column(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, size: 20, color: color),
               ),
-            ),
-          ],
+              const SizedBox(height: 8),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.inter(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF10213E),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -1013,35 +1029,39 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen> {
     required bool isLive,
     required int sessionId,
   }) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => TeacherSessionDetailScreen(
-              sessionId: sessionId,
-              className: title,
-              scheduleTime: time,
-              room: room,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          HapticFeedback.selectionClick();
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => TeacherSessionDetailScreen(
+                sessionId: sessionId,
+                className: title,
+                scheduleTime: time,
+                room: room,
+              ),
             ),
+          );
+        },
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x0410213E),
+                blurRadius: 4,
+                offset: Offset(0, 2),
+              ),
+            ],
           ),
-        );
-      },
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x03000000),
-              blurRadius: 2,
-              offset: Offset(0, 1),
-            ),
-          ],
-        ),
-        child: Row(
+          child: Row(
           children: [
             Container(
               width: 44,
@@ -1121,8 +1141,9 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildRecentActivitySection() {
     return Column(

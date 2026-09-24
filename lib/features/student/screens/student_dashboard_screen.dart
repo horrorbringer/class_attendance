@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -679,21 +680,24 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(68),
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            border: const Border(
-              bottom: BorderSide(color: Color(0xFFE2E8F0), width: 1.0),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF10213E).withValues(alpha: 0.04),
-                blurRadius: 6,
-                offset: const Offset(0, 2),
+        child: ClipRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.94),
+                border: const Border(
+                  bottom: BorderSide(color: Color(0xFFE2E8F0), width: 1.0),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF10213E).withValues(alpha: 0.05),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
-            ],
-          ),
-          child: SafeArea(
+              child: SafeArea(
             bottom: false,
             child: Container(
               height: 68,
@@ -868,14 +872,16 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
           ),
         ),
       ),
-      body: SafeArea(
+    ),
+  ),
+  body: SafeArea(
         top: false,
         child: RefreshIndicator(
           onRefresh: _loadDashboardData,
           color: const Color(0xFF10213E),
           child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(
-              parent: ClampingScrollPhysics(),
+            physics: const BouncingScrollPhysics(
+              parent: AlwaysScrollableScrollPhysics(),
             ),
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             child: Column(
