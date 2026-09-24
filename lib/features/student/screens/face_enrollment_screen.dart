@@ -626,7 +626,7 @@ class _FaceEnrollmentScreenState extends ConsumerState<FaceEnrollmentScreen>
             final viewfinderInnerSize = isCompact ? 176.0 : 212.0;
 
             return SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
+              physics: const ClampingScrollPhysics(),
               child: ConstrainedBox(
                 constraints: BoxConstraints(minHeight: constraints.maxHeight),
                 child: IntrinsicHeight(

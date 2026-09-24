@@ -124,7 +124,7 @@ class _TeacherClassesScreenState extends ConsumerState<TeacherClassesScreen> {
           onRefresh: _fetchTodayClasses,
           color: const Color(0xFF1B2A4A),
           child: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+            physics: const AlwaysScrollableScrollPhysics(parent: ClampingScrollPhysics()),
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

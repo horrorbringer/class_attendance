@@ -709,8 +709,8 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
           onRefresh: _loadDashboardData,
           color: const Color(0xFF10213E),
           child: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(
-              parent: AlwaysScrollableScrollPhysics(),
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: ClampingScrollPhysics(),
             ),
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
             child: Column(

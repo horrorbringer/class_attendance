@@ -169,8 +169,8 @@ class _AttendanceHistoryScreenState extends ConsumerState<AttendanceHistoryScree
           onRefresh: _fetchHistory,
           color: const Color(0xFF1A3258),
           child: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(
-              parent: AlwaysScrollableScrollPhysics(),
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: ClampingScrollPhysics(),
             ),
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             child: Column(

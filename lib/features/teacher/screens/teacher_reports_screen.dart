@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../auth/models/auth_models.dart';
 import '../repositories/teacher_repository.dart';
 import '../../auth/controllers/auth_controller.dart';
 import 'teacher_classes_screen.dart';
@@ -20,6 +21,29 @@ class _TeacherReportsScreenState extends ConsumerState<TeacherReportsScreen> {
   int _selectedDayIndex = 2; // Wednesday active by default (matching teacher-reports.png)
   int _selectedWeekOffset = 0; // -1: Prev, 0: This, 1: Next
   bool _isExporting = false;
+  List<ClassRoom> _classrooms = [];
+  bool _isLoadingClassrooms = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchClassrooms();
+  }
+
+  Future<void> _fetchClassrooms() async {
+    setState(() => _isLoadingClassrooms = true);
+    try {
+      final list = await ref.read(teacherRepositoryProvider).getClassrooms();
+      if (mounted) {
+        setState(() {
+          _classrooms = list;
+          _isLoadingClassrooms = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isLoadingClassrooms = false);
+    }
+  }
 
   final List<Map<String, dynamic>> _weekPresets = [
     {
@@ -168,12 +192,36 @@ class _TeacherReportsScreenState extends ConsumerState<TeacherReportsScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // Class options
-                _buildExportClassTile(ctx, 'Intro to Computer Science', 3, 'Grade 11-A • 35 Students'),
-                const SizedBox(height: 8),
-                _buildExportClassTile(ctx, 'Advanced Mathematics', 1, 'Grade 11-B • 32 Students'),
-                const SizedBox(height: 8),
-                _buildExportClassTile(ctx, 'Physics Lab II', 2, 'Grade 11-A • 28 Students'),
+                // Class options from backend
+                if (_isLoadingClassrooms)
+                  const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(24),
+                      child: CircularProgressIndicator(color: Color(0xFF10213E)),
+                    ),
+                  )
+                else if (_classrooms.isNotEmpty)
+                  ..._classrooms.map((cr) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: _buildExportClassTile(
+                        ctx,
+                        cr.name,
+                        cr.id,
+                        'Classroom #${cr.id}',
+                      ),
+                    );
+                  })
+                else
+                  Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 24),
+                      child: Text(
+                        'No classrooms found for export.',
+                        style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF64748B)),
+                      ),
+                    ),
+                  ),
 
                 const SizedBox(height: 12),
               ],
@@ -251,7 +299,7 @@ class _TeacherReportsScreenState extends ConsumerState<TeacherReportsScreen> {
       body: SafeArea(
         top: false,
         child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+          physics: const AlwaysScrollableScrollPhysics(parent: ClampingScrollPhysics()),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

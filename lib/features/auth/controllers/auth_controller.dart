@@ -164,14 +164,18 @@ class AuthNotifier extends Notifier<AuthState> {
   }
 
   Future<void> logout() async {
+    // 1. Immediately reset state and pop all routes so UI transitions to Login instantly
+    state = AuthState(isLoading: false);
+    appNavigatorKey.currentState?.popUntil((route) => route.isFirst);
+
+    // 2. Clear stored credentials and notify backend in the background without blocking the UI
     try {
-      await _authRepository.logout();
+      await Future.wait([
+        StorageService.clearSession(),
+        _authRepository.logout().timeout(const Duration(seconds: 2)).catchError((_) {}),
+      ]);
     } catch (_) {
-      // Ignore network errors on logout
-    } finally {
-      await StorageService.clearSession();
-      state = AuthState(isLoading: false);
-      appNavigatorKey.currentState?.popUntil((route) => route.isFirst);
+      // Ignore background logout errors
     }
   }
 }

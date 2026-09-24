@@ -97,7 +97,7 @@ class _AuthGateState extends ConsumerState<AuthGate> {
     final authState = ref.watch(authProvider);
 
     return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 500),
+      duration: const Duration(milliseconds: 200),
       transitionBuilder: (child, animation) {
         return FadeTransition(opacity: animation, child: child);
       },

@@ -93,53 +93,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   bool _isLoading = false;
   List<NotificationItem> _items = [];
 
-  // Default mockup items from UI Mockup 09
-  final List<NotificationItem> _defaultMockupItems = const [
-    NotificationItem(
-      id: 'abs_1',
-      title: 'Absence Alert',
-      subtitle: 'You were marked absent in Mathematics 101',
-      timestamp: '2 hours ago',
-      category: AlertCategory.absences,
-      hasLeftAccent: true,
-      isUnread: true,
-      courseName: 'Mathematics 101',
-      date: 'Thursday, Sep 15, 2026',
-      scheduleTime: '09:00 AM — 10:30 AM',
-      location: 'Room 204',
-      professor: 'Prof. Alan Turing',
-      failureReason: 'No biometric or QR log recorded',
-      guardianAlertTime: '9:15 AM',
-    ),
-    NotificationItem(
-      id: 'late_1',
-      title: 'Tardy Logged',
-      subtitle: 'You checked in late for Physics Lab 202',
-      timestamp: 'Yesterday',
-      category: AlertCategory.late,
-      hasLeftAccent: false,
-      isUnread: false,
-      courseName: 'Physics Lab 202',
-      date: 'Wednesday, Sep 14, 2026',
-      scheduleTime: '01:30 PM — 03:00 PM',
-      location: 'Science Lab 4',
-      professor: 'Dr. Marie Curie',
-      failureReason: 'Checked in 14 minutes past class start',
-      guardianAlertTime: '01:44 PM',
-    ),
-    NotificationItem(
-      id: 'sys_1',
-      title: 'System Update',
-      subtitle: 'Facial database re-enrolled successfully.',
-      timestamp: '3 days ago',
-      category: AlertCategory.system,
-      hasLeftAccent: false,
-      isUnread: false,
-      courseName: 'Biometric Security Service',
-      date: 'Monday, Sep 12, 2026',
-      failureReason: '5/5 high-resolution face templates synced',
-    ),
-  ];
+
 
   @override
   void initState() {
@@ -269,14 +223,14 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
 
       if (mounted) {
         setState(() {
-          _items = fetched.isNotEmpty ? fetched : List.from(_defaultMockupItems);
+          _items = fetched;
           _isLoading = false;
         });
       }
     } catch (_) {
       if (mounted) {
         setState(() {
-          _items = List.from(_defaultMockupItems);
+          _items = [];
           _isLoading = false;
         });
       }
@@ -705,8 +659,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
           onRefresh: _fetchAlerts,
           color: const Color(0xFF10213E),
           child: CustomScrollView(
-            physics: const BouncingScrollPhysics(
-              parent: AlwaysScrollableScrollPhysics(),
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: ClampingScrollPhysics(),
             ),
             slivers: [
               SliverToBoxAdapter(
@@ -720,7 +674,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 24),
                       child: SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
-                        physics: const BouncingScrollPhysics(),
+                        physics: const ClampingScrollPhysics(),
                         child: Row(
                           children: [
                             _buildFilterPill('All', AlertCategory.all),

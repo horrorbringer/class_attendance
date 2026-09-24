@@ -47,6 +47,19 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen> {
     }
   }
 
+  TeacherClassSession? get _activeSession {
+    if (_sessions.isEmpty) return null;
+    try {
+      return _sessions.firstWhere((s) => !s.isEnded && s.isQrValid);
+    } catch (_) {
+      try {
+        return _sessions.firstWhere((s) => !s.isEnded);
+      } catch (_) {
+        return _sessions.first;
+      }
+    }
+  }
+
   String _getTimeGreeting() {
     final hour = DateTime.now().hour;
     if (hour < 12) return 'Good morning';
@@ -278,8 +291,8 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen> {
           onRefresh: _fetchTodayClasses,
           color: const Color(0xFF1B2A4A),
           child: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(
-              parent: AlwaysScrollableScrollPhysics(),
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: ClampingScrollPhysics(),
             ),
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             child: Column(
@@ -456,6 +469,110 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen> {
   }
 
   Widget _buildLiveSessionHeroCard() {
+    if (_sessions.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(22),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF162846),
+              Color(0xFF11213B),
+              Color(0xFF0F172A),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(22),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x08000000),
+              blurRadius: 8,
+              offset: Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF64748B).withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: const Color(0xFF94A3B8).withValues(alpha: 0.3),
+                      width: 1,
+                    ),
+                  ),
+                  child: Text(
+                    'STANDBY',
+                    style: GoogleFonts.inter(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.5,
+                      color: const Color(0xFF94A3B8),
+                    ),
+                  ),
+                ),
+                Text(
+                  'Anti-Proxy Active',
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF94A3B8),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No Active Class Session',
+              style: GoogleFonts.outfit(
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Start a live session to project dynamic QR tokens and monitor student check-ins in real time.',
+              style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF94A3B8), height: 1.4),
+            ),
+            const SizedBox(height: 18),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                icon: const Icon(Icons.add_circle_outline_rounded, size: 18),
+                label: const Text('Start New Session'),
+                onPressed: _openCreateSession,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: const Color(0xFF10213E),
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.05, end: 0);
+    }
+
+    final active = _activeSession!;
+    final title = active.classRoomName.isNotEmpty
+        ? active.classRoomName
+        : (active.classRoom?.name ?? 'Class Session #${active.id}');
+    final timeStr = (active.startTime.length >= 5 && active.endTime.length >= 5)
+        ? '${active.startTime.substring(0, 5)} - ${active.endTime.substring(0, 5)}'
+        : (active.startTime.isNotEmpty ? '${active.startTime} - ${active.endTime}' : 'Scheduled Today');
+    final roomName = active.classRoomName.isNotEmpty ? active.classRoomName : 'Campus Classroom';
+    final isLive = !active.isEnded && active.isQrValid;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -488,10 +605,14 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF10B981).withValues(alpha: 0.18),
+                  color: isLive
+                      ? const Color(0xFF10B981).withValues(alpha: 0.18)
+                      : const Color(0xFF3B82F6).withValues(alpha: 0.18),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: const Color(0xFF10B981).withValues(alpha: 0.4),
+                    color: isLive
+                        ? const Color(0xFF10B981).withValues(alpha: 0.4)
+                        : const Color(0xFF3B82F6).withValues(alpha: 0.4),
                     width: 1,
                   ),
                 ),
@@ -501,19 +622,19 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen> {
                     Container(
                       width: 7,
                       height: 7,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF10B981),
+                      decoration: BoxDecoration(
+                        color: isLive ? const Color(0xFF10B981) : const Color(0xFF60A5FA),
                         shape: BoxShape.circle,
                       ),
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      'LIVE ATTENDANCE',
+                      isLive ? 'LIVE ATTENDANCE' : (active.isEnded ? 'SESSION ENDED' : 'SCHEDULED'),
                       style: GoogleFonts.inter(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 0.5,
-                        color: const Color(0xFF34D399),
+                        color: isLive ? const Color(0xFF34D399) : const Color(0xFF93C5FD),
                       ),
                     ),
                   ],
@@ -534,7 +655,7 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen> {
 
           // Class Name & Time
           Text(
-            'Advanced Mathematics',
+            title,
             style: GoogleFonts.outfit(
               fontSize: 22,
               fontWeight: FontWeight.w800,
@@ -547,14 +668,14 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen> {
               const Icon(Icons.access_time_rounded, size: 14, color: Color(0xFF94A3B8)),
               const SizedBox(width: 5),
               Text(
-                '09:00 AM - 10:30 AM',
+                timeStr,
                 style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF94A3B8)),
               ),
               const SizedBox(width: 12),
               const Icon(Icons.location_on_outlined, size: 14, color: Color(0xFF94A3B8)),
               const SizedBox(width: 4),
               Text(
-                'Room 402',
+                roomName,
                 style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF94A3B8)),
               ),
             ],
@@ -562,12 +683,12 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen> {
 
           const SizedBox(height: 18),
 
-          // Attendance Counter & Progress Bar
+          // Status & Indicator
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                '28 / 32 Checked In',
+                'Classroom #${active.classRoom?.id ?? active.id}',
                 style: GoogleFonts.inter(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
@@ -575,11 +696,11 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen> {
                 ),
               ),
               Text(
-                '87.5% Present',
+                isLive ? 'Dynamic QR Rotating' : (active.isEnded ? 'Completed' : 'Ready to Start'),
                 style: GoogleFonts.inter(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: const Color(0xFF60A5FA),
+                  color: isLive ? const Color(0xFF60A5FA) : const Color(0xFF94A3B8),
                 ),
               ),
             ],
@@ -587,11 +708,13 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen> {
           const SizedBox(height: 8),
           ClipRRect(
             borderRadius: BorderRadius.circular(6),
-            child: const LinearProgressIndicator(
-              value: 0.875,
+            child: LinearProgressIndicator(
+              value: isLive ? 1.0 : (active.isEnded ? 1.0 : 0.4),
               minHeight: 6,
-              backgroundColor: Color(0xFF1E293B),
-              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF3B82F6)),
+              backgroundColor: const Color(0xFF1E293B),
+              valueColor: AlwaysStoppedAnimation<Color>(
+                isLive ? const Color(0xFF10B981) : const Color(0xFF3B82F6),
+              ),
             ),
           ),
 
@@ -608,9 +731,9 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => const TeacherLiveFeedScreen(
-                          sessionId: 1,
-                          classRoomName: 'Advanced Mathematics',
+                        builder: (_) => TeacherLiveFeedScreen(
+                          sessionId: active.id,
+                          classRoomName: title,
                         ),
                       ),
                     );
@@ -633,9 +756,9 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => const TeacherDynamicQrScreen(
-                          sessionId: 1,
-                          classRoomName: 'Advanced Mathematics',
+                        builder: (_) => TeacherDynamicQrScreen(
+                          sessionId: active.id,
+                          classRoomName: title,
                         ),
                       ),
                     );
@@ -656,6 +779,11 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen> {
   }
 
   Widget _buildKpiMetricsGrid() {
+    final totalSessions = _sessions.length;
+    final liveSessions = _sessions.where((s) => !s.isEnded && s.isQrValid).length;
+    final endedSessions = _sessions.where((s) => s.isEnded).length;
+    final remainingSessions = _sessions.where((s) => !s.isEnded).length;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -672,23 +800,23 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen> {
           children: [
             Expanded(
               child: _buildKpiCard(
-                title: 'Attendance',
-                value: '91.8%',
-                badge: '+2.4%',
-                badgeColor: const Color(0xFF047857),
-                icon: Icons.pie_chart_rounded,
+                title: 'Total Classes',
+                value: '$totalSessions Today',
+                badge: totalSessions > 0 ? '$totalSessions Scheduled' : 'No Classes',
+                badgeColor: const Color(0xFF2563EB),
+                icon: Icons.calendar_today_rounded,
                 iconColor: const Color(0xFF2563EB),
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: _buildKpiCard(
-                title: 'Active Classes',
-                value: '3 Today',
-                badge: '1 Live',
-                badgeColor: const Color(0xFF2563EB),
-                icon: Icons.calendar_today_rounded,
-                iconColor: const Color(0xFF10B981),
+                title: 'Live Now',
+                value: '$liveSessions Active',
+                badge: liveSessions > 0 ? 'In Progress' : 'Idle',
+                badgeColor: liveSessions > 0 ? const Color(0xFF047857) : const Color(0xFF64748B),
+                icon: Icons.sensors_rounded,
+                iconColor: liveSessions > 0 ? const Color(0xFF10B981) : const Color(0xFF64748B),
               ),
             ),
           ],
@@ -698,22 +826,22 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen> {
           children: [
             Expanded(
               child: _buildKpiCard(
-                title: 'Present Now',
-                value: '88 / 95',
-                badge: '92.6%',
-                badgeColor: const Color(0xFF047857),
-                icon: Icons.group_rounded,
+                title: 'Remaining',
+                value: '$remainingSessions Classes',
+                badge: remainingSessions > 0 ? 'Upcoming' : 'All Ended',
+                badgeColor: const Color(0xFF0D9488),
+                icon: Icons.timelapse_rounded,
                 iconColor: const Color(0xFF0D9488),
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: _buildKpiCard(
-                title: 'Absence Alerts',
-                value: '2 Flags',
-                badge: 'Needs Review',
+                title: 'Completed',
+                value: '$endedSessions Finished',
+                badge: endedSessions > 0 ? 'Logged' : 'Pending',
                 badgeColor: const Color(0xFFB45309),
-                icon: Icons.shield_outlined,
+                icon: Icons.check_circle_outline_rounded,
                 iconColor: const Color(0xFFD97706),
               ),
             ),
@@ -989,34 +1117,46 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen> {
               ),
             );
           })
-        else ...[
-          _buildScheduleItem(
-            title: 'Advanced Mathematics',
-            time: '09:00 AM - 10:30 AM',
-            room: 'Room 402 • Main Block',
-            rate: '87% Present',
-            isLive: true,
-            sessionId: 1,
+        else
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 28),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFEFF6FF),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.calendar_today_outlined, size: 26, color: Color(0xFF2563EB)),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'No Class Sessions Today',
+                  style: GoogleFonts.outfit(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF10213E),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Tap "+ New Session" above to start or schedule a class session.',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.inter(
+                    fontSize: 12.5,
+                    color: const Color(0xFF94A3B8),
+                  ),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 10),
-          _buildScheduleItem(
-            title: 'Physics Lab II',
-            time: '11:00 AM - 12:30 PM',
-            room: 'Room 402 • Main Block',
-            rate: '92% Present',
-            isLive: false,
-            sessionId: 2,
-          ),
-          const SizedBox(height: 10),
-          _buildScheduleItem(
-            title: 'Intro to Computer Science',
-            time: '02:00 PM - 03:30 PM',
-            room: 'Room 402 • Main Block',
-            rate: '94% Present',
-            isLive: false,
-            sessionId: 3,
-          ),
-        ],
       ],
     ).animate().fadeIn(delay: 250.ms);
   }
