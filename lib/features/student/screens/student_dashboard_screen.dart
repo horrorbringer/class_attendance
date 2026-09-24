@@ -288,126 +288,6 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
     }
   }
 
-  void _showProfileDialog() {
-    HapticFeedback.lightImpact();
-    final profile = ref.read(authProvider).studentProfile;
-    final fullName = profile?.fullName.isNotEmpty == true ? profile!.fullName : 'Sarah Johnson';
-    final studentId = profile?.studentId.isNotEmpty == true ? profile!.studentId : '#STU-2026-904';
-    final section = profile?.classRoom?.name ?? 'Computer Science — Section B';
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        padding: const EdgeInsets.fromLTRB(24, 16, 24, 28),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Center(
-              child: Container(
-                width: 44,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFCBD5E1),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(color: const Color(0xFF10213E), width: 2),
-                  ),
-                  child: ClipOval(
-                    child: Image.network(
-                      'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300',
-                      fit: BoxFit.cover,
-                      errorBuilder: (c, e, s) => Container(
-                        color: const Color(0xFF10213E),
-                        child: Center(
-                          child: Text(
-                            fullName[0],
-                            style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 22),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        fullName,
-                        style: GoogleFonts.outfit(
-                          fontSize: 19,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF10213E),
-                        ),
-                      ),
-                      Text(
-                        'Student ID: $studentId',
-                        style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF64748B)),
-                      ),
-                      Text(
-                        section,
-                        style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF2563EB), fontWeight: FontWeight.w600),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 22),
-            OutlinedButton.icon(
-              icon: const Icon(Icons.person_outline_rounded, size: 20, color: Color(0xFF10213E)),
-              label: Text('View Profile & Settings', style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: const Color(0xFF10213E))),
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                side: const BorderSide(color: Color(0xFFE2E8F0)),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-              ),
-              onPressed: () {
-                Navigator.pop(ctx);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const ProfileSettingsScreen()),
-                );
-              },
-            ),
-            const SizedBox(height: 10),
-            ElevatedButton.icon(
-              icon: const Icon(Icons.qr_code_scanner_rounded, size: 20, color: Colors.white),
-              label: Text('Open QR Scanner', style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: Colors.white)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF10213E),
-                elevation: 0,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-              ),
-              onPressed: () {
-                Navigator.pop(ctx);
-                _openQrScanner();
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   void _onClassCardTapped(DashboardClassItem item) {
     HapticFeedback.lightImpact();
 
@@ -655,13 +535,6 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
     );
   }
 
-  String _getTimeGreeting() {
-    final hour = DateTime.now().hour;
-    if (hour < 12) return 'Good morning';
-    if (hour < 17) return 'Good afternoon';
-    return 'Good evening';
-  }
-
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
@@ -679,7 +552,7 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(69),
+        preferredSize: const Size.fromHeight(61),
         child: ClipRect(
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
@@ -691,8 +564,8 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF10213E).withValues(alpha: 0.05),
-                    blurRadius: 8,
+                    color: const Color(0xFF10213E).withValues(alpha: 0.04),
+                    blurRadius: 6,
                     offset: const Offset(0, 2),
                   ),
                 ],
@@ -700,20 +573,25 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
               child: SafeArea(
             bottom: false,
             child: Container(
-              height: 68,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              height: 60,
+              padding: const EdgeInsets.symmetric(horizontal: 14),
               child: Row(
                 children: [
                   GestureDetector(
-                    onTap: _showProfileDialog,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const ProfileSettingsScreen()),
+                      );
+                    },
                     child: Stack(
                       children: [
                         Container(
-                          width: 44,
-                          height: 44,
+                          width: 38,
+                          height: 38,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            border: Border.all(color: const Color(0xFF10213E), width: 1.8),
+                            border: Border.all(color: const Color(0xFF10213E), width: 1.5),
                           ),
                           child: ClipOval(
                             child: Image.network(
@@ -726,7 +604,7 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
                                     firstName.isNotEmpty ? firstName[0] : 'S',
                                     style: GoogleFonts.outfit(
                                       color: Colors.white,
-                                      fontSize: 18,
+                                      fontSize: 16,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
@@ -739,19 +617,19 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
                           bottom: 0,
                           right: 0,
                           child: Container(
-                            width: 12,
-                            height: 12,
+                            width: 10,
+                            height: 10,
                             decoration: BoxDecoration(
                               color: const Color(0xFF10B981),
                               shape: BoxShape.circle,
-                              border: Border.all(color: Colors.white, width: 2),
+                              border: Border.all(color: Colors.white, width: 1.8),
                             ),
                           ),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -763,8 +641,8 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
                               child: Text(
                                 fullName,
                                 style: GoogleFonts.outfit(
-                                  fontSize: 16.5,
-                                  fontWeight: FontWeight.w800,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700,
                                   color: const Color(0xFF10213E),
                                   letterSpacing: -0.2,
                                 ),
@@ -772,41 +650,34 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                            const SizedBox(width: 6),
+                            const SizedBox(width: 5),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
                               decoration: BoxDecoration(
                                 color: const Color(0xFFEFF6FF),
-                                borderRadius: BorderRadius.circular(6),
+                                borderRadius: BorderRadius.circular(5),
                               ),
                               child: Text(
                                 'STUDENT',
                                 style: GoogleFonts.inter(
-                                  fontSize: 9.5,
+                                  fontSize: 9,
                                   fontWeight: FontWeight.w700,
                                   color: const Color(0xFF2563EB),
-                                  letterSpacing: 0.5,
+                                  letterSpacing: 0.4,
                                 ),
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 2),
+                        const SizedBox(height: 1),
                         Row(
                           children: [
-                            Container(
-                              width: 6,
-                              height: 6,
-                              decoration: const BoxDecoration(
-                                color: Color(0xFF10B981),
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                            const SizedBox(width: 5),
+                            const Icon(Icons.calendar_today_outlined, size: 11, color: Color(0xFF64748B)),
+                            const SizedBox(width: 4),
                             Text(
-                              'Campus Sync Active',
+                              todayFormatted,
                               style: GoogleFonts.inter(
-                                fontSize: 11.5,
+                                fontSize: 11,
                                 color: const Color(0xFF64748B),
                                 fontWeight: FontWeight.w500,
                               ),
@@ -816,45 +687,6 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
                       ],
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  // Quick QR Scan Action Button
-                  Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: _openQrScanner,
-                      borderRadius: BorderRadius.circular(12),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF10213E),
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Color(0x1410213E),
-                              blurRadius: 4,
-                              offset: Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.qr_code_scanner_rounded, size: 16, color: Colors.white),
-                            const SizedBox(width: 6),
-                            Text(
-                              'Scan',
-                              style: GoogleFonts.inter(
-                                fontSize: 12.5,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
                   // Notification bell action
                   ModernAppBarAction(
                     icon: Icons.notifications_none_rounded,
@@ -883,43 +715,10 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
             physics: const BouncingScrollPhysics(
               parent: AlwaysScrollableScrollPhysics(),
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Top Greeting & Date Banner
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${_getTimeGreeting()}, $firstName 👋',
-                      style: GoogleFonts.outfit(
-                        fontSize: 25,
-                        fontWeight: FontWeight.w800,
-                        color: const Color(0xFF10213E),
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Row(
-                      children: [
-                        const Icon(Icons.calendar_today_outlined, size: 13.5, color: Color(0xFF64748B)),
-                        const SizedBox(width: 6),
-                        Text(
-                          todayFormatted,
-                          style: GoogleFonts.inter(
-                            fontSize: 13.5,
-                            color: const Color(0xFF64748B),
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ).animate().fadeIn(duration: 250.ms),
-
-                const SizedBox(height: 22),
-
                 // Top 3 Stat Cards matching Mockup 04 (TODAY, PRESENT, PENDING)
                 Row(
                   children: [
@@ -932,7 +731,7 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
                         valueColor: const Color(0xFF10213E),
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: _buildMetricCard(
                         title: 'PRESENT',
@@ -942,7 +741,7 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
                         valueColor: const Color(0xFF10B981),
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: _buildMetricCard(
                         title: 'PENDING',
@@ -953,30 +752,30 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
                       ),
                     ),
                   ],
-                ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.04, end: 0),
+                ).animate().fadeIn(delay: 80.ms).slideY(begin: 0.04, end: 0),
 
                 // Biometric Setup Banner if face templates = 0
                 if (profile?.faceEmbeddingsCount == 0)
                   Container(
-                    margin: const EdgeInsets.only(top: 18),
-                    padding: const EdgeInsets.all(16),
+                    margin: const EdgeInsets.only(top: 12),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     decoration: BoxDecoration(
                       color: const Color(0xFFEFF6FF),
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(13),
                       border: Border.all(color: const Color(0xFFBFDBFE)),
                     ),
                     child: Row(
                       children: [
                         Container(
-                          width: 42,
-                          height: 42,
+                          width: 34,
+                          height: 34,
                           decoration: const BoxDecoration(
                             color: Colors.white,
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.face_retouching_natural_rounded, color: Color(0xFF2563EB), size: 22),
+                          child: const Icon(Icons.face_retouching_natural_rounded, color: Color(0xFF2563EB), size: 18),
                         ),
-                        const SizedBox(width: 14),
+                        const SizedBox(width: 11),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -984,16 +783,16 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
                               Text(
                                 'Biometric Face Enrollment',
                                 style: GoogleFonts.inter(
-                                  fontSize: 14,
+                                  fontSize: 13,
                                   fontWeight: FontWeight.w700,
                                   color: const Color(0xFF1E3A8A),
                                 ),
                               ),
-                              const SizedBox(height: 2),
+                              const SizedBox(height: 1),
                               Text(
-                                'Set up face templates for instant kiosk check-in',
+                                'Set up face templates for kiosk check-in',
                                 style: GoogleFonts.inter(
-                                  fontSize: 12,
+                                  fontSize: 11,
                                   color: const Color(0xFF3B82F6),
                                 ),
                               ),
@@ -1004,8 +803,8 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF10213E),
                             foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
                             elevation: 0,
                           ),
                           onPressed: () {
@@ -1014,13 +813,13 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
                               MaterialPageRoute(builder: (_) => const FaceEnrollmentScreen()),
                             ).then((_) => _loadDashboardData());
                           },
-                          child: const Text('Setup', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                          child: const Text('Setup', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600)),
                         ),
                       ],
                     ),
-                  ).animate().fadeIn(delay: 150.ms),
+                  ).animate().fadeIn(delay: 120.ms),
 
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
 
                 // "Today's Schedule" Section Header matching Mockup 04
                 Row(
@@ -1030,10 +829,10 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
                     Text(
                       'Today\'s Schedule',
                       style: GoogleFonts.outfit(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w800,
+                        fontSize: 16.5,
+                        fontWeight: FontWeight.w700,
                         color: const Color(0xFF10213E),
-                        letterSpacing: -0.3,
+                        letterSpacing: -0.2,
                       ),
                     ),
                     GestureDetector(
@@ -1047,7 +846,7 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
                       child: Text(
                         'View Calendar',
                         style: GoogleFonts.inter(
-                          fontSize: 14,
+                          fontSize: 12.5,
                           fontWeight: FontWeight.w600,
                           color: const Color(0xFF2563EB),
                         ),
@@ -1056,12 +855,12 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
                   ],
                 ),
 
-                const SizedBox(height: 14),
+                const SizedBox(height: 10),
 
                 if (_isLoading)
                   const Center(
                     child: Padding(
-                      padding: EdgeInsets.all(36),
+                      padding: EdgeInsets.all(32),
                       child: CircularProgressIndicator(color: Color(0xFF10213E)),
                     ),
                   )
@@ -1070,15 +869,15 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
                     final index = entry.key;
                     final item = entry.value;
                     return Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.only(bottom: 9),
                       child: _buildClassScheduleCard(item)
                           .animate()
-                          .fadeIn(duration: 220.ms, delay: (150 + index * 40).ms)
-                          .slideY(begin: 0.04, end: 0),
+                          .fadeIn(duration: 200.ms, delay: (100 + index * 30).ms)
+                          .slideY(begin: 0.03, end: 0),
                     );
                   }),
 
-                const SizedBox(height: 18),
+                const SizedBox(height: 14),
               ],
             ),
           ),
@@ -1138,14 +937,14 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
     required Color valueColor,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 10),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(13),
         border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x03000000),
+            color: Color(0x02000000),
             blurRadius: 2,
             offset: Offset(0, 1),
           ),
@@ -1157,26 +956,26 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
           Text(
             title,
             style: GoogleFonts.inter(
-              fontSize: 11,
+              fontSize: 10,
               fontWeight: FontWeight.w700,
               color: headerColor,
-              letterSpacing: 0.7,
+              letterSpacing: 0.5,
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
           Text(
             value,
             style: GoogleFonts.outfit(
-              fontSize: 28,
+              fontSize: 22,
               fontWeight: FontWeight.w800,
               color: valueColor,
             ),
           ),
-          const SizedBox(height: 3),
+          const SizedBox(height: 2),
           Text(
             subtitle,
             style: GoogleFonts.inter(
-              fontSize: 12,
+              fontSize: 11,
               fontWeight: FontWeight.w400,
               color: const Color(0xFF94A3B8),
             ),
@@ -1222,11 +1021,11 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(13),
         border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x03000000),
+            color: Color(0x02000000),
             blurRadius: 2,
             offset: Offset(0, 1),
           ),
@@ -1236,11 +1035,11 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
         color: Colors.transparent,
         child: InkWell(
           onTap: () => _onClassCardTapped(item),
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(13),
           splashColor: const Color(0xFFF1F5F9),
           highlightColor: const Color(0xFFF8FAFC),
           child: Padding(
-            padding: const EdgeInsets.all(18),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -1252,23 +1051,23 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
                       child: Text(
                         item.courseName,
                         style: GoogleFonts.outfit(
-                          fontSize: 17,
+                          fontSize: 14.5,
                           fontWeight: FontWeight.w700,
                           color: const Color(0xFF10213E),
                         ),
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4.5),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
                         color: pillBg,
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(7),
                       ),
                       child: Text(
                         statusLabel,
                         style: GoogleFonts.inter(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
                           color: pillTextColor,
                         ),
                       ),
@@ -1276,33 +1075,33 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
                   ],
                 ),
 
-                const SizedBox(height: 14),
+                const SizedBox(height: 8),
 
                 // Thin Divider
-                const Divider(height: 1, color: Color(0xFFF8FAFC)),
+                const Divider(height: 1, color: Color(0xFFF1F5F9)),
 
-                const SizedBox(height: 14),
+                const SizedBox(height: 8),
 
                 // Bottom Row: Time, Room, Professor (matching Mockup 04)
                 Row(
                   children: [
-                    const Icon(Icons.access_time_rounded, size: 15, color: Color(0xFF64748B)),
-                    const SizedBox(width: 5),
+                    const Icon(Icons.access_time_rounded, size: 13.5, color: Color(0xFF64748B)),
+                    const SizedBox(width: 4),
                     Text(
                       item.time,
                       style: GoogleFonts.inter(
-                        fontSize: 13,
+                        fontSize: 12,
                         fontWeight: FontWeight.w500,
                         color: const Color(0xFF64748B),
                       ),
                     ),
-                    const SizedBox(width: 14),
-                    const Icon(Icons.location_on_outlined, size: 15, color: Color(0xFF64748B)),
-                    const SizedBox(width: 4),
+                    const SizedBox(width: 12),
+                    const Icon(Icons.location_on_outlined, size: 13.5, color: Color(0xFF64748B)),
+                    const SizedBox(width: 3),
                     Text(
                       item.location,
                       style: GoogleFonts.inter(
-                        fontSize: 13,
+                        fontSize: 12,
                         fontWeight: FontWeight.w500,
                         color: const Color(0xFF64748B),
                       ),
@@ -1314,7 +1113,7 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
                         overflow: TextOverflow.ellipsis,
                         textAlign: TextAlign.end,
                         style: GoogleFonts.inter(
-                          fontSize: 13,
+                          fontSize: 12,
                           fontWeight: FontWeight.w400,
                           color: const Color(0xFF64748B),
                         ),

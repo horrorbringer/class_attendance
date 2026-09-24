@@ -64,6 +64,7 @@ class _AttendanceHistoryScreenState extends ConsumerState<AttendanceHistoryScree
       final newRecords = paginatedRes.results;
       _hasMore = (_offset + _pageSize) < paginatedRes.count;
 
+      if (!mounted) return;
       setState(() {
         if (loadMore) {
           _records.addAll(newRecords);
@@ -75,12 +76,14 @@ class _AttendanceHistoryScreenState extends ConsumerState<AttendanceHistoryScree
         _isLoadingMore = false;
       });
     } on DioException catch (e) {
+      if (!mounted) return;
       setState(() {
         _errorMessage = e.message ?? 'Failed to load attendance history';
         _isLoading = false;
         _isLoadingMore = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _errorMessage = e.toString();
         _isLoading = false;

@@ -2,8 +2,21 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:local_auth/local_auth.dart';
 
+class BiometricAuthResult {
+  final bool success;
+  final String? errorMessage;
+  final bool noCredentialsSet;
+
+  const BiometricAuthResult({
+    required this.success,
+    this.errorMessage,
+    this.noCredentialsSet = false,
+  });
+}
+
 class BiometricService {
   static final LocalAuthentication _auth = LocalAuthentication();
+  static String? lastErrorMessage;
 
   /// Check if the device has biometric hardware capable of checking biometrics
   static Future<bool> isBiometricAvailable() async {
@@ -53,26 +66,56 @@ class BiometricService {
     return 'Biometrics';
   }
 
+  /// Authenticate using local biometrics with detailed error result
+  static Future<BiometricAuthResult> authenticateDetailed({
+    required String reason,
+  }) async {
+    lastErrorMessage = null;
+    try {
+      final isAvailable = await isBiometricAvailable();
+      if (!isAvailable) {
+        lastErrorMessage = 'Biometric hardware is not available on this device.';
+        return BiometricAuthResult(success: false, errorMessage: lastErrorMessage);
+      }
+
+      final success = await _auth.authenticate(
+        localizedReason: reason,
+      );
+
+      if (!success) {
+        lastErrorMessage = 'Biometric authentication cancelled.';
+      }
+      return BiometricAuthResult(success: success, errorMessage: lastErrorMessage);
+    } on PlatformException catch (e) {
+      debugPrint('[BiometricService] PlatformException: ${e.code} - ${e.message}');
+      if (e.code == 'noCredentialsSet' || e.code.contains('noCredentials') || e.code == 'PasscodeNotSet') {
+        lastErrorMessage = 'No fingerprint or screen lock enrolled. Please set up a fingerprint or PIN in device Settings.';
+        return BiometricAuthResult(success: false, noCredentialsSet: true, errorMessage: lastErrorMessage);
+      } else if (e.code == 'NotAvailable') {
+        lastErrorMessage = 'Biometrics is not available or disabled on this device.';
+      } else if (e.code == 'LockedOut' || e.code == 'PermanentlyLockedOut') {
+        lastErrorMessage = 'Too many attempts. Biometrics temporarily locked.';
+      } else {
+        lastErrorMessage = e.message ?? 'Biometric verification cancelled or failed.';
+      }
+      return BiometricAuthResult(success: false, errorMessage: lastErrorMessage);
+    } catch (e) {
+      debugPrint('[BiometricService] authenticate error: $e');
+      final str = e.toString();
+      if (str.contains('noCredentialsSet')) {
+        lastErrorMessage = 'No fingerprint or screen lock enrolled. Please set up a fingerprint or PIN in device Settings.';
+        return BiometricAuthResult(success: false, noCredentialsSet: true, errorMessage: lastErrorMessage);
+      }
+      lastErrorMessage = 'Biometric verification error: $e';
+      return BiometricAuthResult(success: false, errorMessage: lastErrorMessage);
+    }
+  }
+
   /// Authenticate using local biometrics (Face ID / Fingerprint)
   static Future<bool> authenticate({
     required String reason,
   }) async {
-    try {
-      final isAvailable = await isBiometricAvailable();
-      if (!isAvailable) {
-        debugPrint('[BiometricService] Biometrics not available on this device');
-        return false;
-      }
-
-      return await _auth.authenticate(
-        localizedReason: reason,
-      );
-    } on PlatformException catch (e) {
-      debugPrint('[BiometricService] PlatformException: ${e.code} - ${e.message}');
-      return false;
-    } catch (e) {
-      debugPrint('[BiometricService] authenticate error: $e');
-      return false;
-    }
+    final result = await authenticateDetailed(reason: reason);
+    return result.success;
   }
 }

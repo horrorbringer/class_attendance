@@ -80,11 +80,12 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
 
       if (!authenticated) {
         if (mounted) {
+          final err = BiometricService.lastErrorMessage ?? 'Biometric verification cancelled or failed.';
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Biometric verification cancelled or failed.'),
+            SnackBar(
+              content: Text(err),
               behavior: SnackBarBehavior.floating,
-              backgroundColor: Color(0xFF64748B),
+              backgroundColor: const Color(0xFFE11D48),
             ),
           );
         }
