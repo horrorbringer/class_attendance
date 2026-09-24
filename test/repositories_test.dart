@@ -521,6 +521,49 @@ void main() {
       expect(res.message, contains('Bulk attendance updated'));
     });
 
+    test('reopenSession posts to reopen endpoint', () async {
+      final dio = Dio();
+      dio.httpClientAdapter = MockDioAdapter((options) async {
+        expect(options.path, contains('/teacher/sessions/5/reopen/'));
+        expect(options.method, 'POST');
+        return ResponseBody.fromString(
+          jsonEncode({
+            'message': 'Session reopened successfully. Attendance check-in is active again.',
+            'session': {'id': 5, 'is_ended': false, 'is_qr_valid': true},
+          }),
+          200,
+          headers: {
+            Headers.contentTypeHeader: [Headers.jsonContentType],
+          },
+        );
+      });
+
+      final repo = TeacherRepositoryImpl(dio);
+      await expectLater(repo.reopenSession(5), completes);
+    });
+
+    test('cancelSession posts to cancel endpoint', () async {
+      final dio = Dio();
+      dio.httpClientAdapter = MockDioAdapter((options) async {
+        expect(options.path, contains('/teacher/sessions/5/cancel/'));
+        expect(options.method, 'POST');
+        return ResponseBody.fromString(
+          jsonEncode({
+            'message': 'Session has been cancelled. No absence alerts will be dispatched.',
+            'session_id': 5,
+            'status': 'cancelled',
+          }),
+          200,
+          headers: {
+            Headers.contentTypeHeader: [Headers.jsonContentType],
+          },
+        );
+      });
+
+      final repo = TeacherRepositoryImpl(dio);
+      await expectLater(repo.cancelSession(5), completes);
+    });
+
     test('exportCsv returns raw CSV string', () async {
       final dio = Dio();
       dio.httpClientAdapter = MockDioAdapter((options) async {

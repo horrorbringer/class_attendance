@@ -51,6 +51,9 @@ class ApiConstants {
   static String sessionDynamicQr(int sessionId) => '/teacher/sessions/$sessionId/qr/dynamic/';
   static String sessionRotateQr(int sessionId) => '/teacher/sessions/$sessionId/qr/';
   static String sessionEnd(int sessionId) => '/teacher/sessions/$sessionId/end/';
+  static String sessionReopen(int sessionId) => '/teacher/sessions/$sessionId/reopen/';
+  static String sessionCancel(int sessionId) => '/teacher/sessions/$sessionId/cancel/';
+  static String teacherCancelSession(int sessionId) => '/teacher/sessions/$sessionId/cancel/';
   static String sessionBulkAttendance(int sessionId) => '/teacher/sessions/$sessionId/attendance/bulk/';
   static String teacherAttendanceOverride(int recordId) => '/teacher/attendance/$recordId/';
 

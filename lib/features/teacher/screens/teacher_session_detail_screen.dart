@@ -303,10 +303,99 @@ class _TeacherSessionDetailScreenState extends ConsumerState<TeacherSessionDetai
           .map((s) => BulkAttendanceItem(studentId: s.studentId, status: s.status))
           .toList();
       successMsg = 'All roster attendance statuses synced via bulk update.';
+    } else if (action == 'reopen_session') {
+      try {
+        await ref.read(teacherRepositoryProvider).reopenSession(widget.sessionId);
+        await _fetchLiveRoster();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Session reopened successfully. Attendance check-in is active again.'),
+              backgroundColor: Color(0xFF059669),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(ApiErrorHandler.getMessage(e)),
+              backgroundColor: const Color(0xFFDC2626),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
+      return;
+    } else if (action == 'cancel_session') {
+      await _confirmCancelSession();
+      return;
     }
 
     if (records.isNotEmpty) {
       await _executeBulkAttendance(records, successMsg);
+    }
+  }
+
+  Future<void> _confirmCancelSession() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            const Icon(Icons.cancel_outlined, color: Color(0xFFDC2626), size: 24),
+            const SizedBox(width: 8),
+            Text(
+              "Cancel Session?",
+              style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: const Color(0xFF10213E)),
+            ),
+          ],
+        ),
+        content: Text(
+          "This class will be marked as cancelled. No absence alerts will be sent to parents.",
+          style: GoogleFonts.inter(fontSize: 14, color: const Color(0xFF334155)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text("Keep Active", style: GoogleFonts.inter(color: const Color(0xFF64748B), fontWeight: FontWeight.w600)),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: const Color(0xFFDC2626)),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text("Cancel Class", style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await ref.read(teacherRepositoryProvider).cancelSession(widget.sessionId);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Class session cancelled. Automated absence alerts suppressed."),
+              backgroundColor: Color(0xFF10213E),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+          Navigator.pop(context);
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(ApiErrorHandler.getMessage(e)),
+              backgroundColor: const Color(0xFFDC2626),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
     }
   }
 
@@ -440,15 +529,44 @@ class _TeacherSessionDetailScreenState extends ConsumerState<TeacherSessionDetai
                   SnackBar(
                     backgroundColor: const Color(0xFF10213E),
                     behavior: SnackBarBehavior.floating,
+                    duration: const Duration(seconds: 8),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     content: const Row(
                       children: [
                         Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 20),
                         SizedBox(width: 10),
                         Expanded(
-                          child: Text('Session finalized and attendance roster submitted successfully.'),
+                          child: Text('Session finalized. Tap Reopen if ended by mistake.'),
                         ),
                       ],
+                    ),
+                    action: SnackBarAction(
+                      label: 'Reopen',
+                      textColor: const Color(0xFF60A5FA),
+                      onPressed: () async {
+                        try {
+                          await ref.read(teacherRepositoryProvider).reopenSession(widget.sessionId);
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Session reopened successfully. Attendance check-in is active again.'),
+                                backgroundColor: Color(0xFF059669),
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(ApiErrorHandler.getMessage(e)),
+                                backgroundColor: const Color(0xFFDC2626),
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                          }
+                        }
+                      },
                     ),
                   ),
                 );
@@ -570,6 +688,34 @@ class _TeacherSessionDetailScreenState extends ConsumerState<TeacherSessionDetai
                                 const Icon(Icons.cloud_upload_outlined, color: Color(0xFF2563EB), size: 18),
                                 const SizedBox(width: 10),
                                 Text('Sync All to Cloud', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500)),
+                              ],
+                            ),
+                          ),
+                          PopupMenuItem(
+                            value: 'reopen_session',
+                            child: Row(
+                              children: [
+                                const Icon(Icons.restart_alt_rounded, color: Color(0xFF059669), size: 18),
+                                const SizedBox(width: 10),
+                                Text('Reopen Session', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500)),
+                              ],
+                            ),
+                          ),
+                          const PopupMenuDivider(),
+                          PopupMenuItem(
+                            value: 'cancel_session',
+                            child: Row(
+                              children: [
+                                const Icon(Icons.event_busy_rounded, color: Color(0xFFDC2626), size: 18),
+                                const SizedBox(width: 10),
+                                Text(
+                                  'Cancel Class Session',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                    color: const Color(0xFFDC2626),
+                                  ),
+                                ),
                               ],
                             ),
                           ),

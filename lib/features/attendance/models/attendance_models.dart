@@ -96,6 +96,7 @@ class TeacherClassSession {
   final String? qrTokenExpiresAt;
   final String? endedAt;
   final bool isEnded;
+  final bool isCancelled;
   final bool isQrValid;
 
   TeacherClassSession({
@@ -109,6 +110,7 @@ class TeacherClassSession {
     this.qrTokenExpiresAt,
     this.endedAt,
     required this.isEnded,
+    this.isCancelled = false,
     required this.isQrValid,
   });
 
@@ -133,6 +135,7 @@ class TeacherClassSession {
       qrTokenExpiresAt: json['qr_token_expires_at'] as String?,
       endedAt: json['ended_at'] as String?,
       isEnded: json['is_ended'] as bool? ?? false,
+      isCancelled: json['is_cancelled'] as bool? ?? false,
       isQrValid: json['is_qr_valid'] as bool? ?? false,
     );
   }

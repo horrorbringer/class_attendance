@@ -19,6 +19,8 @@ abstract class TeacherRepository {
     required List<BulkAttendanceItem> records,
   });
   Future<void> endSession(int sessionId);
+  Future<void> reopenSession(int sessionId);
+  Future<void> cancelSession(int sessionId);
   Future<String> exportCsv(int classId, {String? startDate, String? endDate});
 }
 
@@ -97,6 +99,16 @@ class TeacherRepositoryImpl implements TeacherRepository {
   @override
   Future<void> endSession(int sessionId) async {
     await _dio.post(ApiConstants.sessionEnd(sessionId));
+  }
+
+  @override
+  Future<void> reopenSession(int sessionId) async {
+    await _dio.post(ApiConstants.sessionReopen(sessionId));
+  }
+
+  @override
+  Future<void> cancelSession(int sessionId) async {
+    await _dio.post(ApiConstants.sessionCancel(sessionId));
   }
 
   @override
