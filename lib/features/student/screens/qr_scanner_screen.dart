@@ -10,6 +10,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import '../../../core/network/api_error_handler.dart';
 import '../repositories/student_repository.dart';
 import '../../auth/controllers/auth_controller.dart';
 
@@ -212,6 +213,15 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
       final checkinRes = await studentRepo.checkinQr(token);
 
       if (mounted) {
+        if (checkinRes.isAlreadyCheckedIn) {
+          final status = (checkinRes.record?['status'] ?? 'present').toString().toUpperCase();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("Already checked in as '$status'!"),
+              backgroundColor: const Color(0xFF2563EB),
+            ),
+          );
+        }
         _safeSetState(() {
           _isProcessing = false;
           _isSuccess = true;
@@ -220,18 +230,24 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
         });
       }
     } on DioException catch (e) {
-      String err = 'Unable to read QR code. Please ensure your device is aligned properly and try again.';
+      final code = ApiErrorHandler.getErrorCode(e);
+      final err = ApiErrorHandler.getMessage(e);
       String errType = 'qr';
 
-      if (e.response?.statusCode == 403) {
+      if (code == 'QR_EXPIRED') {
+        errType = 'qr_expired';
+      } else if (code == 'TEACHER_LOCKED') {
+        errType = 'teacher_locked';
+      } else if (code == 'IMPOSSIBLE_TRAVEL') {
+        errType = 'impossible_travel';
+      } else if (code == 'SESSION_EXPIRED' || code == 'SESSION_ENDED') {
+        errType = 'session_expired';
+      } else if (code == 'NOT_ENROLLED') {
+        errType = 'not_enrolled';
+      } else if (e.response?.statusCode == 403) {
         errType = 'wifi';
-        err = 'Attendance check-in is restricted to the authorized campus network. Please connect to the School Campus Wi-Fi to verify attendance.';
-      } else if (e.response?.statusCode == 429) {
-        err = 'Request was throttled due to rapid attempts. Please wait 10 seconds before trying again.';
-      } else if (e.response?.data != null && e.response?.data is Map) {
-        final errMap = e.response!.data as Map;
-        err = errMap['error']?.toString() ?? errMap['detail']?.toString() ?? errMap['message']?.toString() ?? err;
       }
+
       if (mounted) {
         _safeSetState(() {
           _isProcessing = false;
@@ -312,6 +328,15 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
       final checkinRes = await studentRepo.checkinFace(photoPath);
 
       if (mounted) {
+        if (checkinRes.isAlreadyCheckedIn) {
+          final status = (checkinRes.record?['status'] ?? 'present').toString().toUpperCase();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("Already checked in as '$status'!"),
+              backgroundColor: const Color(0xFF2563EB),
+            ),
+          );
+        }
         _safeSetState(() {
           _isProcessing = false;
           _isSuccess = true;
@@ -320,18 +345,22 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
         });
       }
     } on DioException catch (e) {
-      String err = 'We couldn\'t verify your identity with the facial scan. Try again in better lighting or use QR code check-in.';
+      final code = ApiErrorHandler.getErrorCode(e);
+      final err = ApiErrorHandler.getMessage(e);
       String errType = 'face';
 
-      if (e.response?.statusCode == 403) {
+      if (code == 'TEACHER_LOCKED') {
+        errType = 'teacher_locked';
+      } else if (code == 'IMPOSSIBLE_TRAVEL') {
+        errType = 'impossible_travel';
+      } else if (code == 'SESSION_EXPIRED' || code == 'SESSION_ENDED') {
+        errType = 'session_expired';
+      } else if (code == 'NOT_ENROLLED') {
+        errType = 'not_enrolled';
+      } else if (e.response?.statusCode == 403) {
         errType = 'wifi';
-        err = 'Attendance check-in is restricted to the authorized campus network. Please connect to the School Campus Wi-Fi to verify attendance.';
-      } else if (e.response?.statusCode == 429) {
-        err = 'Request was throttled due to rapid attempts. Please wait 10 seconds before trying again.';
-      } else if (e.response?.data != null && e.response?.data is Map) {
-        final errMap = e.response!.data as Map;
-        err = errMap['error']?.toString() ?? errMap['detail']?.toString() ?? errMap['message']?.toString() ?? err;
       }
+
       if (mounted) {
         _safeSetState(() {
           _isProcessing = false;
@@ -850,6 +879,66 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
                 _buildWifiErrorCard(),
               ] else if (_errorType == 'face') ...[
                 _buildFaceErrorCard(),
+              ] else if (_errorType == 'qr_expired') ...[
+                _buildSecurityErrorCard(
+                  icon: Icons.timer_off_rounded,
+                  iconBg: const Color(0xFFFEF3C7),
+                  iconColor: const Color(0xFFD97706),
+                  title: 'QR Code Expired',
+                  subtitle: 'Rotating Token Timeout (QR_EXPIRED)',
+                  message: 'Please scan the active rotating QR code currently displayed on the teacher\'s screen. Screenshots and old codes are expired.',
+                  actionLabel: 'Scan Live QR',
+                  onAction: () {
+                    setState(() {
+                      _errorMessage = null;
+                      _errorType = null;
+                    });
+                  },
+                ),
+              ] else if (_errorType == 'teacher_locked') ...[
+                _buildSecurityErrorCard(
+                  icon: Icons.lock_person_rounded,
+                  iconBg: const Color(0xFFEDE9FE),
+                  iconColor: const Color(0xFF7C3AED),
+                  title: 'Teacher Locked',
+                  subtitle: 'Instructor Sovereignty (TEACHER_LOCKED)',
+                  message: _errorMessage ?? 'This attendance record was manually marked by your instructor and cannot be overwritten by automatic scan.',
+                  actionLabel: 'Return to Dashboard',
+                  onAction: () => Navigator.of(context).pop(),
+                ),
+              ] else if (_errorType == 'impossible_travel') ...[
+                _buildSecurityErrorCard(
+                  icon: Icons.warning_amber_rounded,
+                  iconBg: const Color(0xFFFEE2E2),
+                  iconColor: const Color(0xFFDC2626),
+                  title: 'Impossible Travel',
+                  subtitle: 'Bilocation Detected (IMPOSSIBLE_TRAVEL)',
+                  message: _errorMessage ?? 'You checked in to another class less than 15 minutes ago. Bilocation attendance is prohibited.',
+                  actionLabel: 'Acknowledge',
+                  onAction: () => Navigator.of(context).pop(),
+                ),
+              ] else if (_errorType == 'session_expired') ...[
+                _buildSecurityErrorCard(
+                  icon: Icons.event_busy_rounded,
+                  iconBg: const Color(0xFFF1F5F9),
+                  iconColor: const Color(0xFF475569),
+                  title: 'Class Session Closed',
+                  subtitle: 'Session Ended (SESSION_EXPIRED)',
+                  message: _errorMessage ?? 'This session has ended and is no longer accepting check-ins.',
+                  actionLabel: 'Back to Classes',
+                  onAction: () => Navigator.of(context).pop(),
+                ),
+              ] else if (_errorType == 'not_enrolled') ...[
+                _buildSecurityErrorCard(
+                  icon: Icons.person_off_rounded,
+                  iconBg: const Color(0xFFFEE2E2),
+                  iconColor: const Color(0xFFDC2626),
+                  title: 'Wrong Classroom',
+                  subtitle: 'Not Enrolled (NOT_ENROLLED)',
+                  message: _errorMessage ?? 'You are not enrolled in this course or classroom section.',
+                  actionLabel: 'Back to Dashboard',
+                  onAction: () => Navigator.of(context).pop(),
+                ),
               ] else ...[
                 _buildQrErrorCard(),
               ],
@@ -1220,6 +1309,132 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
               },
               label: Text(
                 'Verify Campus Wi-Fi',
+                style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+        ],
+      ),
+    ).animate().fadeIn(duration: 250.ms);
+  }
+
+  Widget _buildSecurityErrorCard({
+    required IconData icon,
+    required Color iconBg,
+    required Color iconColor,
+    required String title,
+    required String subtitle,
+    required String message,
+    required String actionLabel,
+    required VoidCallback onAction,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x04000000),
+            blurRadius: 4,
+            offset: Offset(0, 1),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: iconBg,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Center(
+                  child: Icon(
+                    icon,
+                    color: iconColor,
+                    size: 26,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: GoogleFonts.outfit(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF10213E),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: const Color(0xFF94A3B8),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            message,
+            style: GoogleFonts.inter(
+              fontSize: 13.5,
+              color: const Color(0xFF475569),
+              height: 1.45,
+            ),
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF10213E),
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+              onPressed: onAction,
+              child: Text(
+                actionLabel,
+                style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            height: 46,
+            child: OutlinedButton(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFF10213E),
+                side: const BorderSide(color: Color(0xFFE2E8F0)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+              onPressed: () {
+                setState(() {
+                  _errorMessage = null;
+                  _errorType = null;
+                });
+              },
+              child: Text(
+                'Cancel & Scan Again',
                 style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600),
               ),
             ),

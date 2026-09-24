@@ -287,6 +287,7 @@ class DynamicQrData {
   final String classRoom;
   final String date;
   final String startTime;
+  final String? serverTimestamp;
 
   DynamicQrData({
     required this.sessionId,
@@ -296,6 +297,7 @@ class DynamicQrData {
     required this.classRoom,
     required this.date,
     required this.startTime,
+    this.serverTimestamp,
   });
 
   factory DynamicQrData.fromJson(Map<String, dynamic> json) {
@@ -307,6 +309,7 @@ class DynamicQrData {
       classRoom: json['class_room'] as String? ?? '',
       date: json['date'] as String? ?? '',
       startTime: json['start_time'] as String? ?? '',
+      serverTimestamp: json['server_timestamp']?.toString(),
     );
   }
 }
@@ -350,6 +353,7 @@ class BulkAttendanceResponse {
 class CheckinResponse {
   final bool success;
   final String message;
+  final String? code;
   final Map<String, dynamic>? record;
   final String? studentName;
   final double? confidenceScore;
@@ -358,20 +362,27 @@ class CheckinResponse {
   CheckinResponse({
     required this.success,
     required this.message,
+    this.code,
     this.record,
     this.studentName,
     this.confidenceScore,
     this.liveness,
   });
 
+  bool get isAlreadyCheckedIn =>
+      code == 'ALREADY_CHECKED_IN' ||
+      message.toLowerCase().contains('already checked in');
+
   factory CheckinResponse.fromJson(Map<String, dynamic> json) {
     final rec = json['record'] as Map<String, dynamic>?;
     final matched = json['matched'] as bool?;
-    final isSuccess = matched ?? (rec != null || json['status'] == 'present' || json['status'] == 'late' || json.containsKey('message'));
+    final code = json['code']?.toString();
+    final isSuccess = matched ?? (code == 'ALREADY_CHECKED_IN' || rec != null || json['status'] == 'present' || json['status'] == 'late' || json.containsKey('message'));
 
     return CheckinResponse(
       success: isSuccess,
       message: json['message']?.toString() ?? (isSuccess ? 'Check-in successful.' : 'Check-in failed.'),
+      code: code,
       record: rec ?? (json.containsKey('status') ? json : null),
       studentName: json['student_name']?.toString() ?? rec?['student_name']?.toString(),
       confidenceScore: (json['confidence_score'] as num?)?.toDouble() ?? (rec?['confidence_score'] as num?)?.toDouble(),
