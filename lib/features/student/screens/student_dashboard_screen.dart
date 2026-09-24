@@ -13,6 +13,7 @@ import 'face_enrollment_screen.dart';
 import 'notifications_screen.dart';
 import 'profile_settings_screen.dart';
 import 'qr_scanner_screen.dart';
+import '../../attendance/models/attendance_models.dart';
 import '../../../core/widgets/modern_app_bar.dart';
 
 class DashboardClassItem {
@@ -45,6 +46,7 @@ class StudentDashboardScreen extends ConsumerStatefulWidget {
 class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen> {
   bool _isLoading = true;
   List<DashboardClassItem> _classes = [];
+  List<EnrolledClassroom> _enrolledClassrooms = [];
   int _selectedTabIndex = 0;
 
   // Report stats from GET /api/reports/student/<id>/
@@ -105,19 +107,28 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
       final studentRepo = ref.read(studentRepositoryProvider);
       await ref.read(authProvider.notifier).fetchStudentProfile();
 
-      // Fetch today's schedule
+      // Fetch today's schedule & enrolled classrooms
       List<DashboardClassItem> fetchedClasses = [];
+      List<EnrolledClassroom> fetchedClassrooms = [];
       try {
-        final sessions = await studentRepo.getTodaySchedule();
-        for (final s in sessions) {
+        final scheduleResult = await studentRepo.getTodayScheduleWithClassrooms();
+        fetchedClassrooms = scheduleResult.classrooms;
+
+        for (final s in scheduleResult.sessions) {
           String status = 'upcoming';
           if (s.isCancelled) {
             status = 'cancelled';
+          } else if (s.myStatus != null && s.myStatus!.isNotEmpty) {
+            final st = s.myStatus!.toLowerCase();
+            if (st == 'late') {
+              status = 'late';
+            } else if (st == 'absent') {
+              status = 'absent';
+            } else if (st == 'present') {
+              status = 'present';
+            }
           } else if (s.isCheckedIn) {
-            final st = s.myStatus?.toLowerCase() ?? '';
-            status = st == 'late' ? 'late' : 'present';
-          } else if (s.myStatus?.toLowerCase() == 'absent') {
-            status = 'absent';
+            status = 'present';
           }
 
           fetchedClasses.add(
@@ -155,6 +166,7 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
       if (mounted) {
         setState(() {
           _classes = fetchedClasses.isNotEmpty ? fetchedClasses : List.from(_defaultMockupClasses);
+          _enrolledClassrooms = fetchedClassrooms;
           _isLoading = false;
         });
 
@@ -878,6 +890,11 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
                   }),
 
                 const SizedBox(height: 14),
+
+                // Enrolled Courses / Classrooms Section
+                _buildEnrolledClassroomsSection(),
+
+                const SizedBox(height: 14),
               ],
             ),
           ),
@@ -985,6 +1002,145 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
     );
   }
 
+  Widget _buildEnrolledClassroomsSection() {
+    if (_enrolledClassrooms.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Enrolled Courses',
+              style: GoogleFonts.outfit(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF10213E),
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEFF6FF),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFDBEAFE)),
+              ),
+              child: Text(
+                '${_enrolledClassrooms.length} Enrolled',
+                style: GoogleFonts.inter(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF2563EB),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        SizedBox(
+          height: 96,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: _enrolledClassrooms.length,
+            separatorBuilder: (ctx, i) => const SizedBox(width: 10),
+            itemBuilder: (context, index) {
+              final cr = _enrolledClassrooms[index];
+              return Container(
+                width: 210,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x02000000),
+                      blurRadius: 2,
+                      offset: Offset(0, 1),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF1F5F9),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            Icons.auto_stories_rounded,
+                            size: 15,
+                            color: Color(0xFF2563EB),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            cr.name,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.inter(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFF10213E),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        if (cr.room.isNotEmpty)
+                          Row(
+                            children: [
+                              const Icon(Icons.meeting_room_outlined, size: 12, color: Color(0xFF94A3B8)),
+                              const SizedBox(width: 3),
+                              Text(
+                                cr.room,
+                                style: GoogleFonts.inter(
+                                  fontSize: 11,
+                                  color: const Color(0xFF64748B),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        if (cr.teacher.isNotEmpty)
+                          Expanded(
+                            child: Text(
+                              cr.teacher,
+                              textAlign: TextAlign.end,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.inter(
+                                fontSize: 11,
+                                color: const Color(0xFF475569),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    ).animate().fadeIn(duration: 250.ms);
+  }
+
   Widget _buildClassScheduleCard(DashboardClassItem item) {
     Color pillBg;
     Color pillTextColor;
@@ -1002,18 +1158,18 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
         statusLabel = 'Late';
         break;
       case 'absent':
-        pillBg = const Color(0xFFFFE4E6);
-        pillTextColor = const Color(0xFFE11D48);
+        pillBg = const Color(0xFFFEE2E2);
+        pillTextColor = const Color(0xFFDC2626);
         statusLabel = 'Absent';
         break;
       case 'cancelled':
-        pillBg = const Color(0xFFFEE2E2);
-        pillTextColor = const Color(0xFFDC2626);
+        pillBg = const Color(0xFFF1F5F9);
+        pillTextColor = const Color(0xFF64748B);
         statusLabel = 'Cancelled';
         break;
       default:
-        pillBg = const Color(0xFFF1F5F9);
-        pillTextColor = const Color(0xFF64748B);
+        pillBg = const Color(0xFFEFF6FF);
+        pillTextColor = const Color(0xFF2563EB);
         statusLabel = 'Upcoming';
         break;
     }

@@ -11,6 +11,7 @@ import 'teacher_home_screen.dart';
 import 'teacher_profile_screen.dart';
 import 'teacher_reports_screen.dart';
 import 'teacher_session_detail_screen.dart';
+import 'teacher_enrollment_sheet.dart';
 import '../../../core/widgets/modern_app_bar.dart';
 
 class TeacherClassesScreen extends ConsumerStatefulWidget {
@@ -118,6 +119,29 @@ class _TeacherClassesScreenState extends ConsumerState<TeacherClassesScreen> {
         title: 'Class Sessions',
         subtitle: 'Schedule & Rosters • $teacherName',
         actions: [
+          ModernAppBarAction(
+            icon: Icons.group_add_outlined,
+            tooltip: 'Enrollment Roster',
+            iconColor: Colors.white,
+            backgroundColor: const Color(0xFF1E293B),
+            onPressed: () {
+              if (_sessions.isNotEmpty) {
+                final first = _sessions.first;
+                ClassroomEnrollmentSheet.show(
+                  context,
+                  classroomId: first.classRoom?.id ?? first.id,
+                  classroomName: first.classRoomName.isNotEmpty ? first.classRoomName : 'Class #${first.id}',
+                );
+              } else {
+                ClassroomEnrollmentSheet.show(
+                  context,
+                  classroomId: 1,
+                  classroomName: 'General Classroom',
+                );
+              }
+            },
+          ),
+          const SizedBox(width: 8),
           ModernAppBarAction(
             icon: Icons.add_rounded,
             tooltip: 'Create New Session',
@@ -305,6 +329,7 @@ class _TeacherClassesScreenState extends ConsumerState<TeacherClassesScreen> {
                         : '${session.startTime} - ${session.endTime}';
                     final item = {
                       'id': session.id,
+                      'classroomId': session.classRoom?.id ?? session.id,
                       'name': session.classRoomName.isNotEmpty ? session.classRoomName : 'Class #${session.id}',
                       'rate': session.isEnded ? 'Ended' : (session.isQrValid ? 'Live Session' : 'Scheduled'),
                       'rateVal': session.isQrValid ? 1.0 : (session.isEnded ? 0.0 : 0.88),
@@ -553,15 +578,55 @@ class _TeacherClassesScreenState extends ConsumerState<TeacherClassesScreen> {
                       ),
                     ],
                   ),
-                  if (isLive)
-                    Text(
-                      'Live Now',
-                      style: GoogleFonts.inter(
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
-                        color: const Color(0xFF2563EB),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      InkWell(
+                        onTap: () {
+                          ClassroomEnrollmentSheet.show(
+                            context,
+                            classroomId: (item['classroomId'] ?? item['id']) as int,
+                            classroomName: item['name'] as String,
+                          );
+                        },
+                        borderRadius: BorderRadius.circular(8),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEFF6FF),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: const Color(0xFFDBEAFE)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.group_outlined, size: 13, color: Color(0xFF2563EB)),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Roster',
+                                style: GoogleFonts.inter(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: const Color(0xFF2563EB),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                    ),
+                      if (isLive) ...[
+                        const SizedBox(width: 8),
+                        Text(
+                          'Live Now',
+                          style: GoogleFonts.inter(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF2563EB),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                 ],
               ),
             ],

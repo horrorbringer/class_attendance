@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../attendance/models/attendance_models.dart';
 import '../../student/repositories/student_repository.dart';
 import '../../../core/widgets/modern_app_bar.dart';
@@ -17,6 +18,7 @@ class TeacherStudentProfileScreen extends ConsumerStatefulWidget {
   final String email;
   final String guardianName;
   final String guardianPhone;
+  final String? guardianTelegramId;
 
   const TeacherStudentProfileScreen({
     super.key,
@@ -30,6 +32,7 @@ class TeacherStudentProfileScreen extends ConsumerStatefulWidget {
     this.email = 'marcus.vance@school.edu',
     this.guardianName = 'Robert Vance',
     this.guardianPhone = '(555) 019-2834',
+    this.guardianTelegramId,
   });
 
   @override
@@ -239,7 +242,11 @@ class _TeacherStudentProfileScreenState extends ConsumerState<TeacherStudentProf
                     const Divider(height: 20, color: Color(0xFFF1F5F9)),
                     _buildContactRow('Guardian Name', widget.guardianName),
                     const Divider(height: 20, color: Color(0xFFF1F5F9)),
-                    _buildContactRow('Guardian Phone', widget.guardianPhone),
+                    _buildGuardianPhoneRow(widget.guardianPhone),
+                    if (widget.guardianTelegramId != null && widget.guardianTelegramId!.isNotEmpty) ...[
+                      const Divider(height: 20, color: Color(0xFFF1F5F9)),
+                      _buildGuardianTelegramRow(widget.guardianTelegramId!),
+                    ],
                   ],
                 ),
               ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.05, end: 0),
@@ -384,6 +391,134 @@ class _TeacherStudentProfileScreenState extends ConsumerState<TeacherStudentProf
             fontWeight: FontWeight.w600,
             color: const Color(0xFF10213E),
           ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGuardianPhoneRow(String phone) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          'Guardian Phone',
+          style: GoogleFonts.inter(
+            fontSize: 13,
+            color: const Color(0xFF64748B),
+          ),
+        ),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              phone,
+              style: GoogleFonts.inter(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF10213E),
+              ),
+            ),
+            const SizedBox(width: 8),
+            InkWell(
+              borderRadius: BorderRadius.circular(8),
+              onTap: () async {
+                final clean = phone.replaceAll(RegExp(r'[^\d+]'), '');
+                if (clean.isNotEmpty) {
+                  final uri = Uri.parse('tel:$clean');
+                  try {
+                    await launchUrl(uri);
+                  } catch (_) {}
+                }
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEFF6FF),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFDBEAFE)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.phone_rounded, size: 12, color: Color(0xFF2563EB)),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Call',
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF2563EB),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGuardianTelegramRow(String telegramId) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          'Guardian Telegram',
+          style: GoogleFonts.inter(
+            fontSize: 13,
+            color: const Color(0xFF64748B),
+          ),
+        ),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              telegramId.startsWith('@') ? telegramId : '@$telegramId',
+              style: GoogleFonts.inter(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF0284C7),
+              ),
+            ),
+            const SizedBox(width: 8),
+            InkWell(
+              borderRadius: BorderRadius.circular(8),
+              onTap: () async {
+                final clean = telegramId.replaceAll('@', '').trim();
+                if (clean.isNotEmpty) {
+                  final uri = Uri.parse('https://t.me/$clean');
+                  try {
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  } catch (_) {}
+                }
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE0F2FE),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFBAE6FD)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.send_rounded, size: 12, color: Color(0xFF0284C7)),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Message',
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF0284C7),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ],
     );

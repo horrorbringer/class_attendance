@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/network/api_error_handler.dart';
 import '../../attendance/models/attendance_models.dart';
 import '../repositories/teacher_repository.dart';
@@ -19,6 +20,7 @@ class RosterStudentItem {
   final String email;
   final String guardianName;
   final String guardianPhone;
+  final String? guardianTelegramId;
   final int? recordId;
 
   RosterStudentItem({
@@ -29,6 +31,7 @@ class RosterStudentItem {
     this.email = 'student@school.edu',
     this.guardianName = 'Parent Guardian',
     this.guardianPhone = '(555) 019-2834',
+    this.guardianTelegramId,
     this.recordId,
   });
 }
@@ -159,6 +162,10 @@ class _TeacherSessionDetailScreenState extends ConsumerState<TeacherSessionDetai
               studentId: s.studentId,
               status: s.attendanceStatus,
               email: '${s.studentName.toLowerCase().replaceAll(' ', '.')}@school.edu',
+              guardianPhone: (s.guardianPhone != null && s.guardianPhone!.isNotEmpty)
+                  ? s.guardianPhone!
+                  : s.guardianContact,
+              guardianTelegramId: s.guardianTelegramId,
               recordId: s.recordId,
             );
           }).toList();
@@ -785,6 +792,7 @@ class _TeacherSessionDetailScreenState extends ConsumerState<TeacherSessionDetai
                                   email: student.email,
                                   guardianName: student.guardianName,
                                   guardianPhone: student.guardianPhone,
+                                  guardianTelegramId: student.guardianTelegramId,
                                 ),
                               ),
                             );
@@ -818,12 +826,60 @@ class _TeacherSessionDetailScreenState extends ConsumerState<TeacherSessionDetai
                                         ),
                                       ),
                                       const SizedBox(height: 3),
-                                      Text(
-                                        'ID: ${student.studentId}',
-                                        style: GoogleFonts.inter(
-                                          fontSize: 13,
-                                          color: const Color(0xFF94A3B8),
-                                        ),
+                                      Row(
+                                        children: [
+                                          Text(
+                                            'ID: ${student.studentId}',
+                                            style: GoogleFonts.inter(
+                                              fontSize: 12.5,
+                                              color: const Color(0xFF94A3B8),
+                                            ),
+                                          ),
+                                          if (student.guardianPhone.isNotEmpty) ...[
+                                            const SizedBox(width: 8),
+                                            GestureDetector(
+                                              onTap: () async {
+                                                final clean = student.guardianPhone.replaceAll(RegExp(r'[^\d+]'), '');
+                                                if (clean.isNotEmpty) {
+                                                  final uri = Uri.parse('tel:$clean');
+                                                  try {
+                                                    await launchUrl(uri);
+                                                  } catch (_) {}
+                                                }
+                                              },
+                                              child: Container(
+                                                padding: const EdgeInsets.all(4),
+                                                decoration: BoxDecoration(
+                                                  color: const Color(0xFFEFF6FF),
+                                                  borderRadius: BorderRadius.circular(6),
+                                                ),
+                                                child: const Icon(Icons.phone_rounded, size: 12, color: Color(0xFF2563EB)),
+                                              ),
+                                            ),
+                                          ],
+                                          if (student.guardianTelegramId != null && student.guardianTelegramId!.isNotEmpty) ...[
+                                            const SizedBox(width: 6),
+                                            GestureDetector(
+                                              onTap: () async {
+                                                final clean = student.guardianTelegramId!.replaceAll('@', '').trim();
+                                                if (clean.isNotEmpty) {
+                                                  final uri = Uri.parse('https://t.me/$clean');
+                                                  try {
+                                                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                                                  } catch (_) {}
+                                                }
+                                              },
+                                              child: Container(
+                                                padding: const EdgeInsets.all(4),
+                                                decoration: BoxDecoration(
+                                                  color: const Color(0xFFE0F2FE),
+                                                  borderRadius: BorderRadius.circular(6),
+                                                ),
+                                                child: const Icon(Icons.send_rounded, size: 12, color: Color(0xFF0284C7)),
+                                              ),
+                                            ),
+                                          ],
+                                        ],
                                       ),
                                     ],
                                   ),
