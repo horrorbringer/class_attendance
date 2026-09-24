@@ -108,6 +108,21 @@ class AuthNotifier extends Notifier<AuthState> {
         fullName: session.displayName,
       );
 
+      await StorageService.saveLastKnownCredentials(
+        username: username,
+        password: password,
+        role: session.role,
+      );
+
+      final isBioEnabled = await StorageService.isBiometricEnabled(session.role);
+      if (isBioEnabled) {
+        await StorageService.saveBiometricCredentials(
+          username: username,
+          password: password,
+          role: session.role,
+        );
+      }
+
       state = state.copyWith(
         isLoading: false,
         session: session,

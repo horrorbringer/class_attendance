@@ -1,7 +1,11 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../core/services/biometric_service.dart';
+import '../../../core/storage/secure_storage.dart';
 import '../../auth/repositories/auth_repository.dart';
 import '../../auth/controllers/auth_controller.dart';
 import 'teacher_classes_screen.dart';
@@ -17,6 +21,112 @@ class TeacherProfileScreen extends ConsumerStatefulWidget {
 }
 
 class _TeacherProfileScreenState extends ConsumerState<TeacherProfileScreen> {
+  bool _biometricLogin = false;
+  String _biometricSensorLabel = 'Biometrics';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBiometricSettings();
+  }
+
+  Future<void> _loadBiometricSettings() async {
+    final enabled = await StorageService.isBiometricEnabled('teacher');
+    final label = await BiometricService.getBiometricLabel();
+    if (mounted) {
+      setState(() {
+        _biometricLogin = enabled;
+        _biometricSensorLabel = label;
+      });
+    }
+  }
+
+  Future<void> _handleBiometricToggle(bool val) async {
+    HapticFeedback.selectionClick();
+    if (val) {
+      final isAvailable = await BiometricService.isBiometricAvailable();
+      if (!isAvailable) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Row(
+                children: [
+                  Icon(Icons.warning_amber_rounded, color: Colors.white, size: 20),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text('Biometric hardware (Fingerprint/Face ID) is not available or enrolled on this device.'),
+                  ),
+                ],
+              ),
+              backgroundColor: Color(0xFFE11D48),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+        return;
+      }
+
+      final authenticated = await BiometricService.authenticate(
+        reason: 'Authenticate to enable $_biometricSensorLabel for teacher portal',
+      );
+
+      if (!authenticated) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Biometric verification cancelled or failed.'),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: Color(0xFF64748B),
+            ),
+          );
+        }
+        return;
+      }
+
+      final lastCreds = await StorageService.getLastKnownCredentials('teacher');
+      final authState = ref.read(authProvider);
+      final teacherUsername = authState.session?.username ?? '';
+
+      if (lastCreds != null && lastCreds['username'] == teacherUsername) {
+        await StorageService.saveBiometricCredentials(
+          username: lastCreds['username']!,
+          password: lastCreds['password']!,
+          role: 'teacher',
+        );
+      }
+
+      await StorageService.setBiometricEnabled(true, 'teacher');
+      if (mounted) {
+        setState(() => _biometricLogin = true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                const SizedBox(width: 8),
+                Text('$_biometricSensorLabel login enabled for Instructor Portal.'),
+              ],
+            ),
+            backgroundColor: const Color(0xFF10B981),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } else {
+      await StorageService.setBiometricEnabled(false, 'teacher');
+      if (mounted) {
+        setState(() => _biometricLogin = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('$_biometricSensorLabel login disabled.'),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: const Color(0xFF64748B),
+          ),
+        );
+      }
+    }
+  }
+
   // Assigned Registries matching docs/teacher/teacher-profile.png
   final List<Map<String, String>> _registries = [
     {
@@ -676,6 +786,52 @@ class _TeacherProfileScreenState extends ConsumerState<TeacherProfileScreen> {
                                   ),
                                 ],
                               ),
+                            ),
+                          ),
+                          const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                          // Biometric Authentication Row
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.fingerprint_rounded,
+                                  size: 21,
+                                  color: Color(0xFF334155),
+                                ),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        'Biometric Authentication',
+                                        style: GoogleFonts.inter(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                          color: const Color(0xFF10213E),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        _biometricLogin
+                                            ? '$_biometricSensorLabel active for fast portal sign-in'
+                                            : 'Enable $_biometricSensorLabel for instant portal login',
+                                        style: GoogleFonts.inter(
+                                          fontSize: 12,
+                                          color: const Color(0xFF64748B),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                CupertinoSwitch(
+                                  value: _biometricLogin,
+                                  activeTrackColor: const Color(0xFF10213E),
+                                  onChanged: _handleBiometricToggle,
+                                ),
+                              ],
                             ),
                           ),
                           const Divider(height: 1, color: Color(0xFFF1F5F9)),

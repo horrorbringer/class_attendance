@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../core/services/biometric_service.dart';
+import '../../../core/storage/secure_storage.dart';
 import '../../../core/theme/app_theme.dart';
 import '../controllers/auth_controller.dart';
 
@@ -18,6 +20,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   bool _obscurePassword = true;
   bool _isTeacherPortal = false;
+  String _biometricLabel = 'Biometrics';
+  bool _isAuthenticatingBiometrics = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkBiometricAvailability();
+  }
+
+  Future<void> _checkBiometricAvailability() async {
+    final label = await BiometricService.getBiometricLabel();
+    if (mounted) {
+      setState(() {
+        _biometricLabel = label;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -29,6 +48,74 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   void _fillCredentials(String username, String password) {
     _usernameController.text = username;
     _passwordController.text = password;
+  }
+
+  Future<void> _handleBiometricLogin() async {
+    final role = _isTeacherPortal ? 'teacher' : 'student';
+    final creds = await StorageService.getBiometricCredentials(role);
+    final lastCreds = await StorageService.getLastKnownCredentials(role);
+
+    if (creds == null && lastCreds == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.info_outline_rounded, color: Colors.white, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'No biometric credentials saved. Log in once and enable Biometric Login in your profile.',
+                    style: GoogleFonts.inter(fontSize: 13),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: const Color(0xFF10213E),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+      return;
+    }
+
+    setState(() => _isAuthenticatingBiometrics = true);
+    try {
+      final authenticated = await BiometricService.authenticate(
+        reason: 'Verify your $_biometricLabel to sign in as ${_isTeacherPortal ? 'Teacher' : 'Student'}',
+      );
+
+      if (!authenticated) {
+        if (mounted) {
+          setState(() => _isAuthenticatingBiometrics = false);
+        }
+        return;
+      }
+
+      final activeCreds = creds ?? lastCreds!;
+      _usernameController.text = activeCreds['username']!;
+      _passwordController.text = activeCreds['password']!;
+
+      final success = await ref.read(authProvider.notifier).login(
+            activeCreds['username']!,
+            activeCreds['password']!,
+          );
+
+      if (!success && mounted) {
+        final error = ref.read(authProvider).errorMessage ?? 'Biometric login failed. Please sign in with password.';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(error),
+            backgroundColor: AppTheme.absent,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isAuthenticatingBiometrics = false);
+      }
+    }
   }
 
   Future<void> _submit() async {
@@ -423,9 +510,32 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                         ),
 
-                        // In Student Mode: Centered "Forgot Password?" below login button (matching Mockup 02)
+                        // In Student Mode: Centered "Forgot Password?" and Biometric Login option below login button
                         if (!_isTeacherPortal) ...[
-                          const SizedBox(height: 14),
+                          const SizedBox(height: 12),
+                          Center(
+                            child: TextButton.icon(
+                              onPressed: _isAuthenticatingBiometrics || authState.isLoading
+                                  ? null
+                                  : _handleBiometricLogin,
+                              icon: _isAuthenticatingBiometrics
+                                  ? const SizedBox(
+                                      width: 18,
+                                      height: 18,
+                                      child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF10213E)),
+                                    )
+                                  : const Icon(Icons.fingerprint_rounded, color: Color(0xFF10213E), size: 22),
+                              label: Text(
+                                _isAuthenticatingBiometrics ? 'Verifying $_biometricLabel...' : 'Sign in with $_biometricLabel',
+                                style: GoogleFonts.inter(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: const Color(0xFF10213E),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
                           Center(
                             child: TextButton(
                               style: TextButton.styleFrom(
@@ -458,17 +568,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           const SizedBox(height: 14),
                           Center(
                             child: TextButton.icon(
-                              onPressed: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Staff biometric sensor ready. Tap a quick test account or enter credentials.'),
-                                    behavior: SnackBarBehavior.floating,
-                                  ),
-                                );
-                              },
-                              icon: const Icon(Icons.fingerprint_rounded, color: Color(0xFF2563EB), size: 20),
+                              onPressed: _isAuthenticatingBiometrics || authState.isLoading
+                                  ? null
+                                  : _handleBiometricLogin,
+                              icon: _isAuthenticatingBiometrics
+                                  ? const SizedBox(
+                                      width: 18,
+                                      height: 18,
+                                      child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF2563EB)),
+                                    )
+                                  : const Icon(Icons.fingerprint_rounded, color: Color(0xFF2563EB), size: 22),
                               label: Text(
-                                'Verify Staff Biometrics',
+                                _isAuthenticatingBiometrics ? 'Verifying $_biometricLabel...' : 'Verify Staff $_biometricLabel',
                                 style: GoogleFonts.inter(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,

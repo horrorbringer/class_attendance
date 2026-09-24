@@ -11,6 +11,8 @@ import 'attendance_history_screen.dart';
 import 'face_enrollment_screen.dart';
 import 'notifications_screen.dart';
 import 'qr_scanner_screen.dart';
+import '../../../core/services/biometric_service.dart';
+import '../../../core/storage/secure_storage.dart';
 import '../../../core/widgets/modern_app_bar.dart';
 
 class ProfileSettingsScreen extends ConsumerStatefulWidget {
@@ -23,7 +25,8 @@ class ProfileSettingsScreen extends ConsumerStatefulWidget {
 class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
   bool _arabicLanguage = false;
   bool _absencePushAlerts = true;
-  bool _biometricLogin = true;
+  bool _biometricLogin = false;
+  String _biometricSensorLabel = 'Biometrics';
 
   @override
   void initState() {
@@ -31,7 +34,106 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
     // Refresh student profile upon opening
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(authProvider.notifier).fetchStudentProfile();
+      _loadBiometricSettings();
     });
+  }
+
+  Future<void> _loadBiometricSettings() async {
+    final enabled = await StorageService.isBiometricEnabled('student');
+    final label = await BiometricService.getBiometricLabel();
+    if (mounted) {
+      setState(() {
+        _biometricLogin = enabled;
+        _biometricSensorLabel = label;
+      });
+    }
+  }
+
+  Future<void> _handleBiometricToggle(bool val) async {
+    HapticFeedback.selectionClick();
+    if (val) {
+      final isAvailable = await BiometricService.isBiometricAvailable();
+      if (!isAvailable) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Row(
+                children: [
+                  Icon(Icons.warning_amber_rounded, color: Colors.white, size: 20),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text('Biometric hardware (Fingerprint/Face ID) is not available or enrolled on this device.'),
+                  ),
+                ],
+              ),
+              backgroundColor: Color(0xFFE11D48),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+        return;
+      }
+
+      final authenticated = await BiometricService.authenticate(
+        reason: 'Authenticate to enable $_biometricSensorLabel for your student account',
+      );
+
+      if (!authenticated) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Biometric verification cancelled or failed.'),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: Color(0xFF64748B),
+            ),
+          );
+        }
+        return;
+      }
+
+      // Link credentials from last known or current student
+      final lastCreds = await StorageService.getLastKnownCredentials('student');
+      final authState = ref.read(authProvider);
+      final studentUsername = authState.session?.username ?? authState.studentProfile?.studentId ?? '';
+
+      if (lastCreds != null && lastCreds['username'] == studentUsername) {
+        await StorageService.saveBiometricCredentials(
+          username: lastCreds['username']!,
+          password: lastCreds['password']!,
+          role: 'student',
+        );
+      }
+
+      await StorageService.setBiometricEnabled(true, 'student');
+      if (mounted) {
+        setState(() => _biometricLogin = true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                const SizedBox(width: 8),
+                Text('$_biometricSensorLabel login enabled successfully.'),
+              ],
+            ),
+            backgroundColor: const Color(0xFF10B981),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } else {
+      await StorageService.setBiometricEnabled(false, 'student');
+      if (mounted) {
+        setState(() => _biometricLogin = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('$_biometricSensorLabel login disabled.'),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: const Color(0xFF64748B),
+          ),
+        );
+      }
+    }
   }
 
   void _showDigitalIdModal(String fullName, String studentId, String section) {
@@ -803,11 +905,11 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                       _buildSettingsSwitchRow(
                         icon: Icons.fingerprint_rounded,
                         title: 'Biometric Login',
+                        subtitle: _biometricLogin
+                            ? '$_biometricSensorLabel enabled for fast sign-in'
+                            : 'Enable $_biometricSensorLabel for fast sign-in',
                         value: _biometricLogin,
-                        onChanged: (val) {
-                          HapticFeedback.selectionClick();
-                          setState(() => _biometricLogin = val);
-                        },
+                        onChanged: _handleBiometricToggle,
                       ),
                       const Divider(height: 1, color: Color(0xFFF1F5F9), indent: 18, endIndent: 18),
 
@@ -1008,6 +1110,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
   Widget _buildSettingsSwitchRow({
     required IconData icon,
     required String title,
+    String? subtitle,
     required bool value,
     required ValueChanged<bool> onChanged,
   }) {
@@ -1018,13 +1121,29 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
           Icon(icon, color: const Color(0xFF10213E), size: 20),
           const SizedBox(width: 14),
           Expanded(
-            child: Text(
-              title,
-              style: GoogleFonts.inter(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-                color: const Color(0xFF10213E),
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  title,
+                  style: GoogleFonts.inter(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF10213E),
+                  ),
+                ),
+                if (subtitle != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      color: const Color(0xFF64748B),
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
           CupertinoSwitch(

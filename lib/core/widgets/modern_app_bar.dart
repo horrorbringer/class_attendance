@@ -35,7 +35,9 @@ class ModernAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Size get preferredSize => Size.fromHeight(
-        toolbarHeight + (bottom?.preferredSize.height ?? 0.0),
+        toolbarHeight +
+            (showBottomBorder ? 1.0 : 0.0) +
+            (bottom?.preferredSize.height ?? 0.0),
       );
 
   @override
@@ -117,25 +119,27 @@ class ModernAppBar extends StatelessWidget implements PreferredSizeWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                SizedBox(
-                  height: toolbarHeight,
-                  child: Row(
-                    children: [
-                      if (leadingWidget != null)
-                        leadingWidget
-                      else
-                        const SizedBox(width: 20),
-                      const SizedBox(width: 12),
-                      if (centerTitleWidget != null)
-                        Expanded(child: centerTitleWidget)
-                      else
-                        const Spacer(),
-                      if (actions != null) ...[
-                        ...actions!,
-                        const SizedBox(width: 16),
-                      ] else
-                        const SizedBox(width: 20),
-                    ],
+                Flexible(
+                  child: SizedBox(
+                    height: toolbarHeight,
+                    child: Row(
+                      children: [
+                        if (leadingWidget != null)
+                          leadingWidget
+                        else
+                          const SizedBox(width: 20),
+                        const SizedBox(width: 12),
+                        if (centerTitleWidget != null)
+                          Expanded(child: centerTitleWidget)
+                        else
+                          const Spacer(),
+                        if (actions != null) ...[
+                          ...actions!,
+                          const SizedBox(width: 16),
+                        ] else
+                          const SizedBox(width: 20),
+                      ],
+                    ),
                   ),
                 ),
                 ?bottom,

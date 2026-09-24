@@ -12,6 +12,8 @@
 	<string>This app requires camera access to scan classroom attendance QR codes and capture facial enrollment templates.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>This app requires photo library access to upload documented consent references.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Authenticate securely using Face ID or Touch ID.</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoads</key>

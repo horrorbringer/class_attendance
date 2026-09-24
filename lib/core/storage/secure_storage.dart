@@ -52,6 +52,78 @@ class StorageService {
 
   static const _onboardingSeenKey = 'has_seen_onboarding';
 
+  // Biometric storage keys
+  static const _biometricStudentEnabledKey = 'biometric_student_enabled';
+  static const _biometricTeacherEnabledKey = 'biometric_teacher_enabled';
+  static const _biometricStudentUserKey = 'biometric_student_username';
+  static const _biometricStudentPassKey = 'biometric_student_password';
+  static const _biometricTeacherUserKey = 'biometric_teacher_username';
+  static const _biometricTeacherPassKey = 'biometric_teacher_password';
+  static const _lastUserKey = 'last_login_username_';
+  static const _lastPassKey = 'last_login_password_';
+
+  static Future<bool> isBiometricEnabled([String role = 'student']) async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = role == 'teacher' ? _biometricTeacherEnabledKey : _biometricStudentEnabledKey;
+    return prefs.getBool(key) ?? false;
+  }
+
+  static Future<void> setBiometricEnabled(bool enabled, [String role = 'student']) async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = role == 'teacher' ? _biometricTeacherEnabledKey : _biometricStudentEnabledKey;
+    await prefs.setBool(key, enabled);
+    if (!enabled) {
+      await clearBiometricCredentials(role);
+    }
+  }
+
+  static Future<void> saveBiometricCredentials({
+    required String username,
+    required String password,
+    String role = 'student',
+  }) async {
+    final userKey = role == 'teacher' ? _biometricTeacherUserKey : _biometricStudentUserKey;
+    final passKey = role == 'teacher' ? _biometricTeacherPassKey : _biometricStudentPassKey;
+    await _storage.write(key: userKey, value: username);
+    await _storage.write(key: passKey, value: password);
+  }
+
+  static Future<Map<String, String>?> getBiometricCredentials([String role = 'student']) async {
+    final userKey = role == 'teacher' ? _biometricTeacherUserKey : _biometricStudentUserKey;
+    final passKey = role == 'teacher' ? _biometricTeacherPassKey : _biometricStudentPassKey;
+    final username = await _storage.read(key: userKey);
+    final password = await _storage.read(key: passKey);
+    if (username != null && password != null && username.isNotEmpty && password.isNotEmpty) {
+      return {'username': username, 'password': password};
+    }
+    return null;
+  }
+
+  static Future<void> clearBiometricCredentials([String role = 'student']) async {
+    final userKey = role == 'teacher' ? _biometricTeacherUserKey : _biometricStudentUserKey;
+    final passKey = role == 'teacher' ? _biometricTeacherPassKey : _biometricStudentPassKey;
+    await _storage.delete(key: userKey);
+    await _storage.delete(key: passKey);
+  }
+
+  static Future<void> saveLastKnownCredentials({
+    required String username,
+    required String password,
+    required String role,
+  }) async {
+    await _storage.write(key: '$_lastUserKey$role', value: username);
+    await _storage.write(key: '$_lastPassKey$role', value: password);
+  }
+
+  static Future<Map<String, String>?> getLastKnownCredentials(String role) async {
+    final username = await _storage.read(key: '$_lastUserKey$role');
+    final password = await _storage.read(key: '$_lastPassKey$role');
+    if (username != null && password != null && username.isNotEmpty && password.isNotEmpty) {
+      return {'username': username, 'password': password};
+    }
+    return null;
+  }
+
   static Future<bool> hasSeenOnboarding() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool(_onboardingSeenKey) ?? false;
@@ -63,7 +135,7 @@ class StorageService {
   }
 
   static Future<void> clearSession() async {
-    await _storage.deleteAll();
+    await _storage.delete(key: _tokenKey);
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_roleKey);
     await prefs.remove(_userIdKey);

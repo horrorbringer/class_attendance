@@ -49,6 +49,7 @@ dependencies:
   wakelock_plus: ^1.8.0
   screen_brightness: ^2.1.11
   device_info_plus: ^13.2.0
+  local_auth: ^3.0.2
 
 dev_dependencies:
   flutter_test:

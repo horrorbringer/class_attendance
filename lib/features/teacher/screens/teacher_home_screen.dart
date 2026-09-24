@@ -71,7 +71,7 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF7F9FD),
       appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(68),
+        preferredSize: const Size.fromHeight(69),
         child: ClipRect(
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
