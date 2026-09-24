@@ -55,7 +55,8 @@ class TeacherSessionDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _TeacherSessionDetailScreenState extends ConsumerState<TeacherSessionDetailScreen> {
-  late List<RosterStudentItem> _students;
+  List<RosterStudentItem> _students = [];
+  bool _isLoadingRoster = true;
   String _searchQuery = '';
   String _selectedFilter = 'all'; // 'all', 'present', 'late', 'absent'
   final TextEditingController _searchController = TextEditingController();
@@ -63,7 +64,6 @@ class _TeacherSessionDetailScreenState extends ConsumerState<TeacherSessionDetai
   @override
   void initState() {
     super.initState();
-    _initDemoRoster();
     _fetchLiveRoster();
   }
 
@@ -73,87 +73,11 @@ class _TeacherSessionDetailScreenState extends ConsumerState<TeacherSessionDetai
     super.dispose();
   }
 
-  void _initDemoRoster() {
-    _students = [
-      RosterStudentItem(
-        id: '1',
-        name: 'Marcus Vance',
-        studentId: '202611',
-        status: 'present',
-        email: 'marcus.vance@school.edu',
-        guardianName: 'Robert Vance',
-        guardianPhone: '(555) 019-2834',
-      ),
-      RosterStudentItem(
-        id: '2',
-        name: 'Liam Smith',
-        studentId: '202614',
-        status: 'late',
-        email: 'liam.smith@school.edu',
-        guardianName: 'Sarah Smith',
-        guardianPhone: '(555) 021-9872',
-      ),
-      RosterStudentItem(
-        id: '3',
-        name: 'Sarah Jenkins',
-        studentId: '202619',
-        status: 'absent',
-        email: 'sarah.jenkins@school.edu',
-        guardianName: 'Thomas Jenkins',
-        guardianPhone: '(555) 034-7112',
-      ),
-      RosterStudentItem(
-        id: '4',
-        name: 'Clarissa Hall',
-        studentId: '202621',
-        status: 'present',
-        email: 'clarissa.hall@school.edu',
-        guardianName: 'Jessica Hall',
-        guardianPhone: '(555) 045-8833',
-      ),
-      RosterStudentItem(
-        id: '5',
-        name: 'David Zhao',
-        studentId: '202625',
-        status: 'present',
-        email: 'david.zhao@school.edu',
-        guardianName: 'Wei Zhao',
-        guardianPhone: '(555) 067-1144',
-      ),
-      RosterStudentItem(
-        id: '6',
-        name: 'Emily Watson',
-        studentId: '202628',
-        status: 'present',
-        email: 'emily.watson@school.edu',
-        guardianName: 'George Watson',
-        guardianPhone: '(555) 088-2911',
-      ),
-      RosterStudentItem(
-        id: '7',
-        name: 'Noah Bennett',
-        studentId: '202632',
-        status: 'absent',
-        email: 'noah.bennett@school.edu',
-        guardianName: 'Linda Bennett',
-        guardianPhone: '(555) 091-4477',
-      ),
-      RosterStudentItem(
-        id: '8',
-        name: 'Sophia Martinez',
-        studentId: '202635',
-        status: 'late',
-        email: 'sophia.martinez@school.edu',
-        guardianName: 'Carlos Martinez',
-        guardianPhone: '(555) 043-9922',
-      ),
-    ];
-  }
-
   Future<void> _fetchLiveRoster() async {
+    setState(() => _isLoadingRoster = true);
     try {
       final rosterRes = await ref.read(teacherRepositoryProvider).getSessionRoster(widget.sessionId);
-      if (rosterRes.roster.isNotEmpty && mounted) {
+      if (mounted) {
         setState(() {
           _students = rosterRes.roster.map((s) {
             return RosterStudentItem(
@@ -169,9 +93,12 @@ class _TeacherSessionDetailScreenState extends ConsumerState<TeacherSessionDetai
               recordId: s.recordId,
             );
           }).toList();
+          _isLoadingRoster = false;
         });
       }
-    } catch (_) {}
+    } catch (_) {
+      if (mounted) setState(() => _isLoadingRoster = false);
+    }
   }
 
   int get _presentCount => _students.where((s) => s.status == 'present' || s.status == 'late').length;
@@ -757,20 +684,24 @@ class _TeacherSessionDetailScreenState extends ConsumerState<TeacherSessionDetai
 
             // Students List
             Expanded(
-              child: filtered.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.person_search_rounded, size: 48, color: Colors.grey.shade400),
-                          const SizedBox(height: 12),
-                          Text(
-                            'No students match your filter',
-                            style: GoogleFonts.inter(fontSize: 14, color: const Color(0xFF64748B)),
+              child: _isLoadingRoster
+                  ? const Center(child: CircularProgressIndicator(color: Color(0xFF10213E)))
+                  : filtered.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.person_search_rounded, size: 48, color: Colors.grey.shade400),
+                              const SizedBox(height: 12),
+                              Text(
+                                _searchQuery.isNotEmpty
+                                    ? 'No students match your filter'
+                                    : 'No students enrolled in this session yet.',
+                                style: GoogleFonts.inter(fontSize: 14, color: const Color(0xFF64748B)),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                    )
+                        )
                   : ListView.separated(
                       physics: const AlwaysScrollableScrollPhysics(parent: ClampingScrollPhysics()),
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),

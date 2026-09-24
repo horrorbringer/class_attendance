@@ -24,46 +24,6 @@ class TeacherClassesScreen extends ConsumerStatefulWidget {
 class _TeacherClassesScreenState extends ConsumerState<TeacherClassesScreen> {
   List<TeacherClassSession> _sessions = [];
 
-  // Fallback demo classes matching docs/teacher/teacher-class-list.png
-  final List<Map<String, dynamic>> _mockupClasses = [
-    {
-      'id': 1,
-      'name': 'Advanced Mathematics',
-      'rate': '87% Present',
-      'rateVal': 0.87,
-      'isAmber': true,
-      'time': '09:00 AM - 10:30 AM',
-      'students': '32 students',
-      'absent': '13% Absent',
-      'room': 'Room 402 — Main Block',
-      'isLive': true,
-    },
-    {
-      'id': 2,
-      'name': 'Physics Lab II',
-      'rate': '92% Present',
-      'rateVal': 0.92,
-      'isAmber': false,
-      'time': '11:00 AM - 12:30 PM',
-      'students': '28 students',
-      'absent': '8% Absent',
-      'room': 'Room 402 — Main Block',
-      'isLive': false,
-    },
-    {
-      'id': 3,
-      'name': 'Intro to Computer Science',
-      'rate': '94% Present',
-      'rateVal': 0.94,
-      'isAmber': false,
-      'time': '02:00 PM - 03:30 PM',
-      'students': '35 students',
-      'absent': '6% Absent',
-      'room': 'Room 402 — Main Block',
-      'isLive': false,
-    },
-  ];
-
   @override
   void initState() {
     super.initState();
@@ -110,7 +70,8 @@ class _TeacherClassesScreenState extends ConsumerState<TeacherClassesScreen> {
     final authState = ref.watch(authProvider);
     final teacherName = authState.session?.teacher?.name ??
         authState.session?.displayName ??
-        'Dr. Emily Okonkwo';
+        authState.session?.username ??
+        'Faculty Instructor';
     final todayFormatted = DateFormat('MMM d, yyyy').format(DateTime.now());
 
     return Scaffold(
@@ -346,12 +307,46 @@ class _TeacherClassesScreenState extends ConsumerState<TeacherClassesScreen> {
                     );
                   })
                 else
-                  ..._mockupClasses.map((item) {
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 14),
-                      child: _buildClassCard(item),
-                    );
-                  }),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 32),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFEFF6FF),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.school_outlined, size: 28, color: Color(0xFF2563EB)),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'No Class Sessions Today',
+                          style: GoogleFonts.outfit(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFF10213E),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Tap "+ Create Session" below to start or schedule a new class session.',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.inter(
+                            fontSize: 12.5,
+                            color: const Color(0xFF94A3B8),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
               ],
             ),
           ),

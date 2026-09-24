@@ -52,47 +52,12 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
   // Report stats from GET /api/reports/student/<id>/
   double _attendanceRate = 0;
   int _reportPresent = 0;
+  // Live State
   int _reportLate = 0;
   int _reportAbsent = 0;
   int _totalSessions = 0;
   bool _hasReportData = false;
   bool _hasShownFacePrompt = false;
-
-  // Default Mockup 04 Classes
-  final List<DashboardClassItem> _defaultMockupClasses = const [
-    DashboardClassItem(
-      courseName: 'Mathematics 101',
-      status: 'present',
-      time: '09:00 AM',
-      location: 'Room 204',
-      professor: 'Prof. Alan Turing',
-      checkedInAt: '08:56 AM',
-      method: 'Face Recognition',
-    ),
-    DashboardClassItem(
-      courseName: 'Physics Lab 202',
-      status: 'late',
-      time: '11:00 AM',
-      location: 'Lab Block C',
-      professor: 'Dr. Marie Curie',
-      checkedInAt: '11:14 AM',
-      method: 'QR Code',
-    ),
-    DashboardClassItem(
-      courseName: 'Intro to Computer Sci',
-      status: 'upcoming',
-      time: '02:00 PM',
-      location: 'Virtual Room 5',
-      professor: 'Grace Hopper',
-    ),
-    DashboardClassItem(
-      courseName: 'World History',
-      status: 'absent',
-      time: '04:00 PM',
-      location: 'Hall B',
-      professor: 'Prof. Herodotus',
-    ),
-  ];
 
   @override
   void initState() {
@@ -131,13 +96,29 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
             status = 'present';
           }
 
+          // Lookup room & teacher from matching enrolled classroom if not on session
+          String location = s.room;
+          String professor = s.teacher;
+          if (location.isEmpty || professor.isEmpty) {
+            final match = fetchedClassrooms.cast<EnrolledClassroom?>().firstWhere(
+              (c) => c != null && (c.name.toLowerCase() == s.classRoom.toLowerCase() || c.id == s.id),
+              orElse: () => null,
+            );
+            if (match != null) {
+              if (location.isEmpty) location = match.room;
+              if (professor.isEmpty) professor = match.teacher;
+            }
+          }
+
           fetchedClasses.add(
             DashboardClassItem(
               courseName: s.classRoom.isNotEmpty ? s.classRoom : 'Lecture Session',
               status: status,
-              time: s.startTime.isNotEmpty ? s.startTime : '09:00 AM',
-              location: 'Room 204',
-              professor: 'Faculty Instructor',
+              time: (s.startTime.isNotEmpty && s.endTime.isNotEmpty)
+                  ? '${s.startTime.length >= 5 ? s.startTime.substring(0, 5) : s.startTime} - ${s.endTime.length >= 5 ? s.endTime.substring(0, 5) : s.endTime}'
+                  : (s.startTime.isNotEmpty ? s.startTime : 'Scheduled'),
+              location: location.isNotEmpty ? location : 'Main Campus',
+              professor: professor.isNotEmpty ? professor : 'Faculty Instructor',
               checkedInAt: s.checkedInAt,
               method: s.myMethod,
             ),
@@ -165,7 +146,7 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
 
       if (mounted) {
         setState(() {
-          _classes = fetchedClasses.isNotEmpty ? fetchedClasses : List.from(_defaultMockupClasses);
+          _classes = fetchedClasses;
           _enrolledClassrooms = fetchedClassrooms;
           _isLoading = false;
         });
@@ -184,7 +165,7 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
     } catch (_) {
       if (mounted) {
         setState(() {
-          _classes = List.from(_defaultMockupClasses);
+          _classes = [];
           _isLoading = false;
         });
       }
@@ -551,7 +532,11 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
     final profile = authState.studentProfile;
-    final fullName = profile?.fullName.isNotEmpty == true ? profile!.fullName : (authState.session?.displayName ?? 'Sarah Johnson');
+    final fullName = (profile != null && profile.fullName.isNotEmpty)
+        ? profile.fullName
+        : (authState.session != null && authState.session!.displayName.isNotEmpty
+            ? authState.session!.displayName
+            : (authState.session?.username ?? 'Student'));
     final firstName = fullName.split(' ').first;
 
     final todayFormatted = DateFormat('EEEE, MMM d, yyyy').format(DateTime.now());
@@ -874,6 +859,47 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
                     child: Padding(
                       padding: EdgeInsets.all(32),
                       child: CircularProgressIndicator(color: Color(0xFF10213E)),
+                    ),
+                  )
+                else if (_classes.isEmpty)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 28),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFF1F5F9),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.event_available_rounded, size: 28, color: Color(0xFF64748B)),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'No Classes Scheduled Today',
+                          style: GoogleFonts.outfit(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFF10213E),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'You are all caught up! Pull to refresh to check for updates.',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.inter(
+                            fontSize: 12.5,
+                            color: const Color(0xFF94A3B8),
+                          ),
+                        ),
+                      ],
                     ),
                   )
                 else

@@ -12,6 +12,8 @@ class StudentScheduleSession {
   final String? myStatus;
   final String? myMethod;
   final String? checkedInAt;
+  final String room;
+  final String teacher;
 
   StudentScheduleSession({
     required this.id,
@@ -25,12 +27,18 @@ class StudentScheduleSession {
     this.myStatus,
     this.myMethod,
     this.checkedInAt,
+    this.room = '',
+    this.teacher = '',
   });
 
   factory StudentScheduleSession.fromJson(Map<String, dynamic> json) {
     return StudentScheduleSession(
       id: json['id'] as int? ?? 0,
-      classRoom: json['class_room']?.toString() ?? '',
+      classRoom: json['class_room_name'] as String? ??
+          json['classroom_name'] as String? ??
+          json['class_room']?.toString() ??
+          json['name']?.toString() ??
+          '',
       date: json['date'] as String? ?? '',
       startTime: json['start_time'] as String? ?? '',
       endTime: json['end_time'] as String? ?? '',
@@ -40,6 +48,10 @@ class StudentScheduleSession {
       myStatus: json['my_status'] as String?,
       myMethod: json['my_method'] as String?,
       checkedInAt: json['checked_in_at'] as String?,
+      room: json['room'] as String? ?? json['room_number'] as String? ?? json['location'] as String? ?? '',
+      teacher: json['teacher'] is Map
+          ? (json['teacher']['full_name'] ?? json['teacher']['name'] ?? '').toString()
+          : (json['teacher']?.toString() ?? json['professor']?.toString() ?? ''),
     );
   }
 }
