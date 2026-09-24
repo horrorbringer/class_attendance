@@ -73,21 +73,209 @@ class _TeacherCreateSessionSheetState extends ConsumerState<TeacherCreateSession
   void initState() {
     super.initState();
 
-    _classes = widget.initialClasses ??
-        const [
-          ClassRoomOption(id: 1, name: 'Computer Science 101', code: 'CS-101'),
-          ClassRoomOption(id: 2, name: 'Physics Lab II', code: 'PHY-201'),
-          ClassRoomOption(id: 3, name: 'Advanced Mathematics', code: 'MATH-301'),
-          ClassRoomOption(id: 4, name: 'Introduction to AI', code: 'CS-402'),
-        ];
+    _classes = widget.initialClasses != null && widget.initialClasses!.isNotEmpty
+        ? List.from(widget.initialClasses!)
+        : [
+            const ClassRoomOption(id: 1, name: 'Computer Science 101', code: 'CS-101'),
+            const ClassRoomOption(id: 2, name: 'Physics Lab II', code: 'PHY-201'),
+            const ClassRoomOption(id: 3, name: 'Advanced Mathematics', code: 'MATH-301'),
+            const ClassRoomOption(id: 4, name: 'Introduction to AI', code: 'CS-402'),
+          ];
 
     _selectedClassId = _classes.first.id;
     _selectedDate = DateTime.now();
 
     final now = TimeOfDay.now();
     _startTime = now;
-    // End time 2 hours from now
     _endTime = TimeOfDay(hour: (now.hour + 2) % 24, minute: now.minute);
+
+    _loadClassrooms();
+  }
+
+  Future<void> _loadClassrooms() async {
+    try {
+      final classrooms = await ref.read(teacherRepositoryProvider).getClassrooms();
+      if (classrooms.isNotEmpty && mounted) {
+        setState(() {
+          _classes = classrooms.map((c) {
+            final words = c.name.split(' ');
+            final code = words.length > 1
+                ? '${words[0].substring(0, 1)}${words[1].substring(0, 1)}-${c.id}'
+                : 'CR-${c.id}';
+            return ClassRoomOption(id: c.id, name: c.name, code: code);
+          }).toList();
+
+          if (!_classes.any((c) => c.id == _selectedClassId)) {
+            _selectedClassId = _classes.first.id;
+          }
+        });
+      }
+    } catch (_) {}
+  }
+
+  void _showCreateClassDialog() {
+    final textController = TextEditingController();
+    bool isCreating = false;
+    String? dialogError;
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setDialogState) {
+            return AlertDialog(
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+              title: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEFF6FF),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.school_rounded, color: Color(0xFF2563EB), size: 20),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    'Create New Class',
+                    style: GoogleFonts.outfit(
+                      fontSize: 19,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF10213E),
+                    ),
+                  ),
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Enter the name of your course, subject, or laboratory section.',
+                    style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF64748B)),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: textController,
+                    autofocus: true,
+                    decoration: InputDecoration(
+                      hintText: 'e.g. Data Structures & Algorithms',
+                      hintStyle: GoogleFonts.inter(fontSize: 13.5, color: const Color(0xFF94A3B8)),
+                      filled: true,
+                      fillColor: const Color(0xFFF8FAFC),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Color(0xFF2563EB), width: 1.5),
+                      ),
+                    ),
+                  ),
+                  if (dialogError != null) ...[
+                    const SizedBox(height: 10),
+                    Text(
+                      dialogError!,
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        color: const Color(0xFFDC2626),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isCreating ? null : () => Navigator.pop(ctx),
+                  child: Text(
+                    'Cancel',
+                    style: GoogleFonts.inter(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF64748B),
+                    ),
+                  ),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2563EB),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  ),
+                  onPressed: isCreating
+                      ? null
+                      : () async {
+                          final name = textController.text.trim();
+                          if (name.isEmpty) {
+                            setDialogState(() => dialogError = 'Please enter a class name.');
+                            return;
+                          }
+
+                          setDialogState(() {
+                            isCreating = true;
+                            dialogError = null;
+                          });
+
+                          final messenger = ScaffoldMessenger.of(context);
+                          try {
+                            final newClass = await ref.read(teacherRepositoryProvider).createClassroom(name);
+                            if (mounted) {
+                              final words = newClass.name.split(' ');
+                              final code = words.length > 1
+                                  ? '${words[0].substring(0, 1)}${words[1].substring(0, 1)}-${newClass.id}'
+                                  : 'CR-${newClass.id}';
+                              final newOpt = ClassRoomOption(id: newClass.id, name: newClass.name, code: code);
+
+                              setState(() {
+                                _classes.insert(0, newOpt);
+                                _selectedClassId = newClass.id;
+                              });
+
+                              if (ctx.mounted) Navigator.pop(ctx);
+
+                              messenger.showSnackBar(
+                                SnackBar(
+                                  content: Text('Class "${newClass.name}" created successfully!'),
+                                  backgroundColor: const Color(0xFF10B981),
+                                  behavior: SnackBarBehavior.floating,
+                                  duration: const Duration(seconds: 3),
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            setDialogState(() {
+                              isCreating = false;
+                              dialogError = e.toString().replaceAll('Exception: ', '');
+                            });
+                          }
+                        },
+                  child: isCreating
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : Text(
+                          'Create Class',
+                          style: GoogleFonts.inter(fontSize: 13.5, fontWeight: FontWeight.bold),
+                        ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   String _formatTimeOfDay(TimeOfDay time) {
@@ -374,13 +562,40 @@ class _TeacherCreateSessionSheetState extends ConsumerState<TeacherCreateSession
               ],
 
               // Classroom Picker
-              Text(
-                'Classroom',
-                style: GoogleFonts.inter(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF334155),
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Classroom',
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF334155),
+                    ),
+                  ),
+                  InkWell(
+                    onTap: _showCreateClassDialog,
+                    borderRadius: BorderRadius.circular(6),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.add_circle_outline_rounded, size: 14, color: Color(0xFF2563EB)),
+                          const SizedBox(width: 4),
+                          Text(
+                            '+ Create Class',
+                            style: GoogleFonts.inter(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFF2563EB),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 8),
               Container(

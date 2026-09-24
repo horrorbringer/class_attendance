@@ -132,7 +132,11 @@ class _SplashScreenState extends State<SplashScreen> {
   void _triggerFinish() {
     if (_hasFinished) return;
     _hasFinished = true;
-    widget.onFinished();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        widget.onFinished();
+      }
+    });
   }
 
   Future<void> _completeOnboarding() async {

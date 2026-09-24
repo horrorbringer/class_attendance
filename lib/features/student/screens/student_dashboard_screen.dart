@@ -12,6 +12,7 @@ import 'face_enrollment_screen.dart';
 import 'notifications_screen.dart';
 import 'profile_settings_screen.dart';
 import 'qr_scanner_screen.dart';
+import '../../../core/widgets/modern_app_bar.dart';
 
 class DashboardClassItem {
   final String courseName;
@@ -676,7 +677,199 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(68),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: const Border(
+              bottom: BorderSide(color: Color(0xFFE2E8F0), width: 1.0),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF10213E).withValues(alpha: 0.04),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: SafeArea(
+            bottom: false,
+            child: Container(
+              height: 68,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  GestureDetector(
+                    onTap: _showProfileDialog,
+                    child: Stack(
+                      children: [
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: const Color(0xFF10213E), width: 1.8),
+                          ),
+                          child: ClipOval(
+                            child: Image.network(
+                              'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300',
+                              fit: BoxFit.cover,
+                              errorBuilder: (ctx, err, stack) => Container(
+                                color: const Color(0xFF10213E),
+                                child: Center(
+                                  child: Text(
+                                    firstName.isNotEmpty ? firstName[0] : 'S',
+                                    style: GoogleFonts.outfit(
+                                      color: Colors.white,
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: Container(
+                            width: 12,
+                            height: 12,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF10B981),
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 2),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                fullName,
+                                style: GoogleFonts.outfit(
+                                  fontSize: 16.5,
+                                  fontWeight: FontWeight.w800,
+                                  color: const Color(0xFF10213E),
+                                  letterSpacing: -0.2,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFEFF6FF),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                'STUDENT',
+                                style: GoogleFonts.inter(
+                                  fontSize: 9.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFF2563EB),
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 2),
+                        Row(
+                          children: [
+                            Container(
+                              width: 6,
+                              height: 6,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFF10B981),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 5),
+                            Text(
+                              'Campus Sync Active',
+                              style: GoogleFonts.inter(
+                                fontSize: 11.5,
+                                color: const Color(0xFF64748B),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // Quick QR Scan Action Button
+                  Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: _openQrScanner,
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF10213E),
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x1410213E),
+                              blurRadius: 4,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.qr_code_scanner_rounded, size: 16, color: Colors.white),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Scan',
+                              style: GoogleFonts.inter(
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // Notification bell action
+                  ModernAppBarAction(
+                    icon: Icons.notifications_none_rounded,
+                    tooltip: 'Notifications & Alerts',
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+                      ).then((_) => _loadDashboardData());
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
       body: SafeArea(
+        top: false,
         child: RefreshIndicator(
           onRefresh: _loadDashboardData,
           color: const Color(0xFF10213E),
@@ -688,59 +881,33 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Top Header matching Mockup 04
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.center,
+                // Top Greeting & Date Banner
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    Text(
+                      '${_getTimeGreeting()}, $firstName 👋',
+                      style: GoogleFonts.outfit(
+                        fontSize: 25,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF10213E),
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Row(
                       children: [
-                        Text(
-                          '${_getTimeGreeting()}, $firstName',
-                          style: GoogleFonts.outfit(
-                            fontSize: 26,
-                            fontWeight: FontWeight.w800,
-                            color: const Color(0xFF10213E),
-                            letterSpacing: -0.5,
-                          ),
-                        ),
-                        const SizedBox(height: 3),
+                        const Icon(Icons.calendar_today_outlined, size: 13.5, color: Color(0xFF64748B)),
+                        const SizedBox(width: 6),
                         Text(
                           todayFormatted,
                           style: GoogleFonts.inter(
-                            fontSize: 14,
+                            fontSize: 13.5,
                             color: const Color(0xFF64748B),
                             fontWeight: FontWeight.w500,
                           ),
                         ),
                       ],
-                    ),
-                    GestureDetector(
-                      onTap: _showProfileDialog,
-                      child: Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: const Color(0xFF10213E), width: 1.5),
-                        ),
-                        child: ClipOval(
-                          child: Image.network(
-                            'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300',
-                            fit: BoxFit.cover,
-                            errorBuilder: (ctx, err, stack) => Container(
-                              color: const Color(0xFF10213E),
-                              child: Center(
-                                child: Text(
-                                  firstName.isNotEmpty ? firstName[0] : 'S',
-                                  style: GoogleFonts.outfit(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
                     ),
                   ],
                 ).animate().fadeIn(duration: 250.ms),

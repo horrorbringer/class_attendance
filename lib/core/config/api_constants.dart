@@ -45,6 +45,7 @@ class ApiConstants {
 
   // Teacher
   static const String teacherTodayClasses = '/teacher/classes/today/';
+  static const String teacherClassrooms = '/teacher/classrooms/';
   static const String teacherSessions = '/teacher/sessions/';
   static String sessionRoster(int sessionId) => '/teacher/sessions/$sessionId/roster/';
   static String sessionLiveFeed(int sessionId) => '/teacher/sessions/$sessionId/live-feed/';

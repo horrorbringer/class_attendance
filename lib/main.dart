@@ -115,7 +115,11 @@ class _AuthGateState extends ConsumerState<AuthGate> {
         serverOffline: _serverOffline,
         onFinished: () {
           if (mounted) {
-            setState(() => _splashFinished = true);
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                setState(() => _splashFinished = true);
+              }
+            });
           }
         },
       );

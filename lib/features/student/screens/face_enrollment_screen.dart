@@ -619,72 +619,465 @@ class _FaceEnrollmentScreenState extends ConsumerState<FaceEnrollmentScreen>
     return Scaffold(
       backgroundColor: const Color(0xFF0B111E), // Executive Obsidian Biometric Lab Background
       body: SafeArea(
-        child: Column(
-          children: [
-            // 1. Top HUD Bar
-            Padding(
-              padding: const EdgeInsets.fromLTRB(18, 10, 18, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isCompact = constraints.maxHeight < 740;
+            final viewfinderOuterSize = isCompact ? 220.0 : 260.0;
+            final viewfinderInnerSize = isCompact ? 176.0 : 212.0;
+
+            return SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: IntrinsicHeight(
+                  child: Column(
                     children: [
-                      // Back Button
-                      GestureDetector(
-                        onTap: () => Navigator.pop(context),
-                        child: Container(
-                          width: 38,
-                          height: 38,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF161F30),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0xFF26354D)),
-                          ),
-                          child: const Icon(
-                            Icons.arrow_back_ios_new_rounded,
-                            color: Colors.white,
-                            size: 15,
+                      // 1. Top HUD Bar
+                      Padding(
+                        padding: EdgeInsets.fromLTRB(18, isCompact ? 6 : 10, 18, 0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                // Back Button
+                                GestureDetector(
+                                  onTap: () => Navigator.pop(context),
+                                  child: Container(
+                                    width: 38,
+                                    height: 38,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF161F30),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(color: const Color(0xFF26354D)),
+                                    ),
+                                    child: const Icon(
+                                      Icons.arrow_back_ios_new_rounded,
+                                      color: Colors.white,
+                                      size: 15,
+                                    ),
+                                  ),
+                                ),
+
+                                // Hands-Free Auto-Capture Switcher Pill
+                                GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      _autoCaptureEnabled = !_autoCaptureEnabled;
+                                      _angleHoldProgress = 0.0;
+                                    });
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      color: _autoCaptureEnabled ? const Color(0xFF132238) : const Color(0xFF1E293B),
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(
+                                        color: _autoCaptureEnabled ? const Color(0xFF10B981) : const Color(0xFF475569),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Container(
+                                          width: 6,
+                                          height: 6,
+                                          decoration: BoxDecoration(
+                                            color: _autoCaptureEnabled ? const Color(0xFF10B981) : const Color(0xFF94A3B8),
+                                            shape: BoxShape.circle,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 7),
+                                        Text(
+                                          _autoCaptureEnabled ? 'AI AUTO-CAPTURE: ACTIVE' : 'MANUAL SHUTTER',
+                                          style: GoogleFonts.jetBrainsMono(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                            color: _autoCaptureEnabled ? const Color(0xFF6EE7B7) : const Color(0xFF94A3B8),
+                                            letterSpacing: 0.5,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+
+                                // Gallery picker fallback
+                                GestureDetector(
+                                  onTap: () => _captureWithPicker(ImageSource.gallery),
+                                  child: Container(
+                                    width: 38,
+                                    height: 38,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF161F30),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(color: const Color(0xFF26354D)),
+                                    ),
+                                    child: const Icon(
+                                      Icons.photo_library_outlined,
+                                      color: Color(0xFF94A3B8),
+                                      size: 18,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+
+                            SizedBox(height: isCompact ? 10 : 16),
+
+                            // Header Titles & Live Telemetry
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Face Biometrics',
+                                      style: GoogleFonts.outfit(
+                                        fontSize: isCompact ? 21 : 24,
+                                        fontWeight: FontWeight.w800,
+                                        color: Colors.white,
+                                        letterSpacing: -0.5,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 3),
+                                    Text(
+                                      widget.studentName != null
+                                          ? 'Enrolling: ${widget.studentName} [ID: ${widget.studentId ?? ''}]'
+                                          : 'Autonomous head pose tracking',
+                                      style: GoogleFonts.inter(
+                                        fontSize: isCompact ? 11.5 : 12.5,
+                                        color: const Color(0xFF64748B),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+
+                                // Live Euler Angle Telemetry Badge
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                  decoration: BoxDecoration(
+                                    color: isAngleMatched && _isFaceDetected
+                                        ? const Color(0xFF064E3B)
+                                        : const Color(0xFF1E293B),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: isAngleMatched && _isFaceDetected
+                                          ? const Color(0xFF10B981)
+                                          : const Color(0xFF334155),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        isAngleMatched ? Icons.check_circle_rounded : Icons.explore_outlined,
+                                        size: 13,
+                                        color: isAngleMatched ? const Color(0xFF10B981) : const Color(0xFF38BDF8),
+                                      ),
+                                      const SizedBox(width: 5),
+                                      Text(
+                                        _isFaceDetected
+                                            ? 'YAW: ${_currentYaw >= 0 ? '+' : ''}${_currentYaw.toStringAsFixed(1)}°'
+                                            : _activeAngle.yawText,
+                                        style: GoogleFonts.jetBrainsMono(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                          color: isAngleMatched ? const Color(0xFF10B981) : const Color(0xFF38BDF8),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+
+                            SizedBox(height: isCompact ? 10 : 14),
+
+                            // 3-Segment Linear Step Progress
+                            Row(
+                              children: BiometricAngle.values.map((angle) {
+                                final isCaptured = _capturedFaces[angle] != null;
+                                final isCurrent = angle == _activeAngle;
+
+                                return Expanded(
+                                  child: Container(
+                                    height: 3.5,
+                                    margin: const EdgeInsets.symmetric(horizontal: 2),
+                                    decoration: BoxDecoration(
+                                      color: isCaptured
+                                          ? const Color(0xFF10B981)
+                                          : isCurrent
+                                              ? const Color(0xFF2563EB)
+                                              : const Color(0xFF1E293B),
+                                      borderRadius: BorderRadius.circular(2),
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const Spacer(flex: 1),
+
+                      // 2. High-Tech Biometric HUD Viewfinder with LIVE FRONT CAMERA & ANGLE LOCK
+                      Center(
+                        child: SizedBox(
+                          width: viewfinderOuterSize,
+                          height: viewfinderOuterSize,
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              // Outer Radial Ring & Radar Mesh
+                              CustomPaint(
+                                size: Size(viewfinderOuterSize, viewfinderOuterSize),
+                                painter: _BiometricRadarPainter(
+                                  progress: _scannerAnim.value,
+                                  isDone: isDone,
+                                  isAngleLocked: isAngleMatched && _isFaceDetected,
+                                  holdProgress: _angleHoldProgress,
+                                  activeAngle: _activeAngle,
+                                ),
+                              ),
+
+                              // Central Circular Viewport Container
+                              Container(
+                                width: viewfinderInnerSize,
+                                height: viewfinderInnerSize,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: const Color(0xFF070B14),
+                                  border: Border.all(
+                                    color: isDone
+                                        ? const Color(0xFF10B981)
+                                        : isAngleMatched && _isFaceDetected
+                                            ? const Color(0xFF10B981)
+                                            : const Color(0xFF2563EB),
+                                    width: isAngleMatched && _isFaceDetected ? 3 : 2,
+                                  ),
+                                ),
+                                child: ClipOval(
+                                  child: currentPhoto != null
+                                      ? Stack(
+                                          fit: StackFit.expand,
+                                          children: [
+                                            // Captured Photo Image
+                                            Image.file(
+                                              File(currentPhoto.path),
+                                              fit: BoxFit.cover,
+                                            ),
+                                            // Vector Grid Overlay on captured image
+                                            CustomPaint(
+                                              painter: _BiometricLandmarksPainter(),
+                                            ),
+                                            // Status Badge
+                                            Positioned(
+                                              bottom: 14,
+                                              left: 0,
+                                              right: 0,
+                                              child: Center(
+                                                child: Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                                  decoration: BoxDecoration(
+                                                    color: const Color(0xFF10B981),
+                                                    borderRadius: BorderRadius.circular(12),
+                                                    boxShadow: [
+                                                      BoxShadow(
+                                                        color: Colors.black.withValues(alpha: 0.4),
+                                                        blurRadius: 6,
+                                                      ),
+                                                    ],
+                                                  ),
+                                                  child: Row(
+                                                    mainAxisSize: MainAxisSize.min,
+                                                    children: [
+                                                      const Icon(Icons.check_rounded, color: Colors.white, size: 13),
+                                                      const SizedBox(width: 4),
+                                                      Text(
+                                                        'EMBEDDINGS EXTRACTED',
+                                                        style: GoogleFonts.jetBrainsMono(
+                                                          fontSize: 9.5,
+                                                          fontWeight: FontWeight.bold,
+                                                          color: Colors.white,
+                                                          letterSpacing: 0.5,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        )
+                                      : Stack(
+                                          alignment: Alignment.center,
+                                          fit: StackFit.expand,
+                                          children: [
+                                            // LIVE FRONT CAMERA FEED
+                                            if (_isCameraInitialized &&
+                                                _cameraController != null &&
+                                                _cameraController!.value.isInitialized)
+                                              FittedBox(
+                                                fit: BoxFit.cover,
+                                                child: SizedBox(
+                                                  width: _cameraController!.value.previewSize?.height ?? viewfinderInnerSize,
+                                                  height: _cameraController!.value.previewSize?.width ?? viewfinderInnerSize,
+                                                  child: CameraPreview(_cameraController!),
+                                                ),
+                                              )
+                                            else if (_isCameraInitializing)
+                                              Container(
+                                                color: const Color(0xFF0F172A),
+                                                child: const Center(
+                                                  child: CircularProgressIndicator(
+                                                    strokeWidth: 2,
+                                                    color: Color(0xFF38BDF8),
+                                                  ),
+                                                ),
+                                              )
+                                            else
+                                              // High-Precision Geometric Face Wireframe Fallback
+                                              Container(
+                                                color: const Color(0xFF070B14),
+                                                child: CustomPaint(
+                                                  size: Size(viewfinderInnerSize, viewfinderInnerSize),
+                                                  painter: _BiometricFaceWireframePainter(
+                                                    angle: _activeAngle,
+                                                    currentYaw: _currentYaw,
+                                                    isLocked: isAngleMatched,
+                                                    animValue: _scannerAnim.value,
+                                                  ),
+                                                ),
+                                              ),
+
+                                            // Semi-transparent Biometric Facial Reticle HUD on top of live camera
+                                            CustomPaint(
+                                              size: Size(viewfinderInnerSize, viewfinderInnerSize),
+                                              painter: _BiometricFaceWireframePainter(
+                                                angle: _activeAngle,
+                                                currentYaw: _currentYaw,
+                                                isLocked: isAngleMatched,
+                                                animValue: _scannerAnim.value,
+                                              ),
+                                            ),
+
+                                            // Real-time Angle Auto-Lock HUD Notification
+                                            if (isAngleMatched && _isFaceDetected)
+                                              Positioned(
+                                                top: 14,
+                                                child: Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                                  decoration: BoxDecoration(
+                                                    color: const Color(0xFF10B981).withValues(alpha: 0.9),
+                                                    borderRadius: BorderRadius.circular(12),
+                                                  ),
+                                                  child: Row(
+                                                    mainAxisSize: MainAxisSize.min,
+                                                    children: [
+                                                      const Icon(Icons.lock_rounded, size: 12, color: Colors.white),
+                                                      const SizedBox(width: 4),
+                                                      Text(
+                                                        'HOLD STILL (${(_angleHoldProgress * 100).toInt()}%)',
+                                                        style: GoogleFonts.jetBrainsMono(
+                                                          fontSize: 10,
+                                                          fontWeight: FontWeight.bold,
+                                                          color: Colors.white,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
+
+                                            // Directional Guidance Hint Badge
+                                            if (!isAngleMatched && _isFaceDetected)
+                                              Positioned(
+                                                bottom: 12,
+                                                child: Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                                                  decoration: BoxDecoration(
+                                                    color: const Color(0xFF0F172A).withValues(alpha: 0.85),
+                                                    borderRadius: BorderRadius.circular(6),
+                                                    border: Border.all(color: const Color(0xFF38BDF8), width: 0.8),
+                                                  ),
+                                                  child: Row(
+                                                    mainAxisSize: MainAxisSize.min,
+                                                    children: [
+                                                      Icon(
+                                                        _activeAngle == BiometricAngle.left
+                                                            ? Icons.turn_left_rounded
+                                                            : _activeAngle == BiometricAngle.right
+                                                                ? Icons.turn_right_rounded
+                                                                : Icons.filter_center_focus_rounded,
+                                                        size: 14,
+                                                        color: const Color(0xFF38BDF8),
+                                                      ),
+                                                      const SizedBox(width: 4),
+                                                      Text(
+                                                        _activeAngle == BiometricAngle.left
+                                                            ? 'TURN HEAD LEFT'
+                                                            : _activeAngle == BiometricAngle.right
+                                                                ? 'TURN HEAD RIGHT'
+                                                                : 'CENTER FACE',
+                                                        style: GoogleFonts.jetBrainsMono(
+                                                          fontSize: 9.5,
+                                                          fontWeight: FontWeight.bold,
+                                                          color: const Color(0xFF38BDF8),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
+                                          ],
+                                        ),
+                                ),
+                              ),
+
+                              // Precision HUD Reticles
+                              Positioned(top: 8, left: 8, child: _buildHUDTargetMarker()),
+                              Positioned(top: 8, right: 8, child: _buildHUDTargetMarker()),
+                              Positioned(bottom: 8, left: 8, child: _buildHUDTargetMarker()),
+                              Positioned(bottom: 8, right: 8, child: _buildHUDTargetMarker()),
+                            ],
                           ),
                         ),
                       ),
 
-                      // Hands-Free Auto-Capture Switcher Pill
-                      GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _autoCaptureEnabled = !_autoCaptureEnabled;
-                            _angleHoldProgress = 0.0;
-                          });
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: _autoCaptureEnabled ? const Color(0xFF132238) : const Color(0xFF1E293B),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: _autoCaptureEnabled ? const Color(0xFF10B981) : const Color(0xFF475569),
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
+                      SizedBox(height: isCompact ? 10 : 16),
+
+                      // 3. Instruction Panel
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 26),
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 200),
+                          child: Column(
+                            key: ValueKey(_activeAngle),
                             children: [
-                              Container(
-                                width: 6,
-                                height: 6,
-                                decoration: BoxDecoration(
-                                  color: _autoCaptureEnabled ? const Color(0xFF10B981) : const Color(0xFF94A3B8),
-                                  shape: BoxShape.circle,
+                              Text(
+                                _activeAngle.title,
+                                textAlign: TextAlign.center,
+                                style: GoogleFonts.outfit(
+                                  fontSize: isCompact ? 15.5 : 17,
+                                  fontWeight: FontWeight.w700,
+                                  color: isAngleMatched && _isFaceDetected
+                                      ? const Color(0xFF34D399)
+                                      : Colors.white,
                                 ),
                               ),
-                              const SizedBox(width: 7),
+                              const SizedBox(height: 4),
                               Text(
-                                _autoCaptureEnabled ? 'AI AUTO-CAPTURE: ACTIVE' : 'MANUAL SHUTTER',
-                                style: GoogleFonts.jetBrainsMono(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                  color: _autoCaptureEnabled ? const Color(0xFF6EE7B7) : const Color(0xFF94A3B8),
-                                  letterSpacing: 0.5,
+                                _activeAngle.subtitle,
+                                textAlign: TextAlign.center,
+                                style: GoogleFonts.inter(
+                                  fontSize: isCompact ? 11.5 : 12.5,
+                                  color: const Color(0xFF94A3B8),
+                                  height: 1.3,
                                 ),
                               ),
                             ],
@@ -692,616 +1085,238 @@ class _FaceEnrollmentScreenState extends ConsumerState<FaceEnrollmentScreen>
                         ),
                       ),
 
-                      // Gallery picker fallback
-                      GestureDetector(
-                        onTap: () => _captureWithPicker(ImageSource.gallery),
-                        child: Container(
-                          width: 38,
-                          height: 38,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF161F30),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0xFF26354D)),
-                          ),
-                          child: const Icon(
-                            Icons.photo_library_outlined,
-                            color: Color(0xFF94A3B8),
-                            size: 18,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                      const Spacer(flex: 1),
 
-                  const SizedBox(height: 16),
-
-                  // Header Titles & Live Telemetry
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Face Biometrics',
-                            style: GoogleFonts.outfit(
-                              fontSize: 24,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.white,
-                              letterSpacing: -0.5,
-                            ),
-                          ),
-                          const SizedBox(height: 3),
-                          Text(
-                            widget.studentName != null
-                                ? 'Enrolling: ${widget.studentName} [ID: ${widget.studentId ?? ''}]'
-                                : 'Autonomous head pose tracking',
-                            style: GoogleFonts.inter(
-                              fontSize: 12.5,
-                              color: const Color(0xFF64748B),
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      // Live Euler Angle Telemetry Badge
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: isAngleMatched && _isFaceDetected
-                              ? const Color(0xFF064E3B)
-                              : const Color(0xFF1E293B),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: isAngleMatched && _isFaceDetected
-                                ? const Color(0xFF10B981)
-                                : const Color(0xFF334155),
-                          ),
-                        ),
+                      // 4. 3 Angle Selector Cards
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 18),
                         child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              isAngleMatched ? Icons.check_circle_rounded : Icons.explore_outlined,
-                              size: 13,
-                              color: isAngleMatched ? const Color(0xFF10B981) : const Color(0xFF38BDF8),
-                            ),
-                            const SizedBox(width: 5),
-                            Text(
-                              _isFaceDetected
-                                  ? 'YAW: ${_currentYaw >= 0 ? '+' : ''}${_currentYaw.toStringAsFixed(1)}°'
-                                  : _activeAngle.yawText,
-                              style: GoogleFonts.jetBrainsMono(
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                color: isAngleMatched ? const Color(0xFF10B981) : const Color(0xFF38BDF8),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
+                          children: BiometricAngle.values.map((angle) {
+                            final isSelected = angle == _activeAngle;
+                            final photo = _capturedFaces[angle];
+                            final hasPhoto = photo != null;
 
-                  const SizedBox(height: 14),
-
-                  // 3-Segment Linear Step Progress
-                  Row(
-                    children: BiometricAngle.values.map((angle) {
-                      final isCaptured = _capturedFaces[angle] != null;
-                      final isCurrent = angle == _activeAngle;
-
-                      return Expanded(
-                        child: Container(
-                          height: 3.5,
-                          margin: const EdgeInsets.symmetric(horizontal: 2),
-                          decoration: BoxDecoration(
-                            color: isCaptured
-                                ? const Color(0xFF10B981)
-                                : isCurrent
-                                    ? const Color(0xFF2563EB)
-                                    : const Color(0xFF1E293B),
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ],
-              ),
-            ),
-
-            const Spacer(flex: 1),
-
-            // 2. High-Tech Biometric HUD Viewfinder with LIVE FRONT CAMERA & ANGLE LOCK
-            Center(
-              child: SizedBox(
-                width: 270,
-                height: 270,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    // Outer Radial Ring & Radar Mesh
-                    CustomPaint(
-                      size: const Size(270, 270),
-                      painter: _BiometricRadarPainter(
-                        progress: _scannerAnim.value,
-                        isDone: isDone,
-                        isAngleLocked: isAngleMatched && _isFaceDetected,
-                        holdProgress: _angleHoldProgress,
-                        activeAngle: _activeAngle,
-                      ),
-                    ),
-
-                    // Central Circular Viewport Container
-                    Container(
-                      width: 220,
-                      height: 220,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: const Color(0xFF070B14),
-                        border: Border.all(
-                          color: isDone
-                              ? const Color(0xFF10B981)
-                              : isAngleMatched && _isFaceDetected
-                                  ? const Color(0xFF10B981)
-                                  : const Color(0xFF2563EB),
-                          width: isAngleMatched && _isFaceDetected ? 3 : 2,
-                        ),
-                      ),
-                      child: ClipOval(
-                        child: currentPhoto != null
-                            ? Stack(
-                                fit: StackFit.expand,
-                                children: [
-                                  // Captured Photo Image
-                                  Image.file(
-                                    File(currentPhoto.path),
-                                    fit: BoxFit.cover,
+                            return Expanded(
+                              child: GestureDetector(
+                                onTap: () => setState(() {
+                                  _activeAngle = angle;
+                                  _angleHoldProgress = 0.0;
+                                }),
+                                child: Container(
+                                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                                  padding: EdgeInsets.symmetric(vertical: isCompact ? 8 : 11, horizontal: 6),
+                                  decoration: BoxDecoration(
+                                    color: isSelected
+                                        ? const Color(0xFF131D2E)
+                                        : const Color(0xFF0F172A),
+                                    borderRadius: BorderRadius.circular(13),
+                                    border: Border.all(
+                                      color: hasPhoto
+                                          ? const Color(0xFF10B981)
+                                          : isSelected
+                                              ? const Color(0xFF2563EB)
+                                              : const Color(0xFF1E293B),
+                                      width: isSelected || hasPhoto ? 1.5 : 1.0,
+                                    ),
                                   ),
-                                  // Vector Grid Overlay on captured image
-                                  CustomPaint(
-                                    painter: _BiometricLandmarksPainter(),
-                                  ),
-                                  // Status Badge
-                                  Positioned(
-                                    bottom: 14,
-                                    left: 0,
-                                    right: 0,
-                                    child: Center(
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  child: Column(
+                                    children: [
+                                      // Circular Preview Thumbnail or Technical Compass Icon
+                                      Container(
+                                        width: isCompact ? 36 : 42,
+                                        height: isCompact ? 36 : 42,
                                         decoration: BoxDecoration(
-                                          color: const Color(0xFF10B981),
-                                          borderRadius: BorderRadius.circular(12),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.black.withValues(alpha: 0.4),
-                                              blurRadius: 6,
-                                            ),
-                                          ],
+                                          shape: BoxShape.circle,
+                                          color: const Color(0xFF090D16),
+                                          border: Border.all(
+                                            color: hasPhoto
+                                                ? const Color(0xFF10B981)
+                                                : isSelected
+                                                    ? const Color(0xFF38BDF8)
+                                                    : const Color(0xFF334155),
+                                            width: 1,
+                                          ),
                                         ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            const Icon(Icons.check_rounded, color: Colors.white, size: 13),
-                                            const SizedBox(width: 4),
-                                            Text(
-                                              'EMBEDDINGS EXTRACTED',
-                                              style: GoogleFonts.jetBrainsMono(
-                                                fontSize: 9.5,
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.white,
-                                                letterSpacing: 0.5,
+                                        child: ClipOval(
+                                          child: hasPhoto
+                                              ? Image.file(
+                                                  File(photo.path),
+                                                  fit: BoxFit.cover,
+                                                  width: isCompact ? 36 : 42,
+                                                  height: isCompact ? 36 : 42,
+                                                )
+                                              : Center(
+                                                  child: _buildAngleMeshIcon(angle),
+                                                ),
+                                        ),
+                                      ),
+
+                                      SizedBox(height: isCompact ? 5 : 7),
+
+                                      // Angle Name
+                                      Text(
+                                        angle.label,
+                                        style: GoogleFonts.inter(
+                                          fontSize: isCompact ? 10.5 : 11.5,
+                                          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                                          color: isSelected ? Colors.white : const Color(0xFF94A3B8),
+                                        ),
+                                      ),
+
+                                      const SizedBox(height: 2),
+
+                                      // Status Tag
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Text(
+                                            hasPhoto ? 'CAPTURED' : angle.yawText,
+                                            style: GoogleFonts.jetBrainsMono(
+                                              fontSize: isCompact ? 8.5 : 9,
+                                              fontWeight: FontWeight.bold,
+                                              color: hasPhoto
+                                                  ? const Color(0xFF10B981)
+                                                  : isSelected
+                                                      ? const Color(0xFF38BDF8)
+                                                      : const Color(0xFF475569),
+                                            ),
+                                          ),
+                                          if (hasPhoto) ...[
+                                            const SizedBox(width: 3),
+                                            GestureDetector(
+                                              onTap: () => _retakeAngle(angle),
+                                              child: const Icon(
+                                                Icons.close_rounded,
+                                                size: 11,
+                                                color: Color(0xFF94A3B8),
                                               ),
                                             ),
                                           ],
-                                        ),
+                                        ],
                                       ),
-                                    ),
+                                    ],
                                   ),
-                                ],
-                              )
-                            : Stack(
-                                alignment: Alignment.center,
-                                fit: StackFit.expand,
-                                children: [
-                                  // LIVE FRONT CAMERA FEED
-                                  if (_isCameraInitialized &&
-                                      _cameraController != null &&
-                                      _cameraController!.value.isInitialized)
-                                    FittedBox(
-                                      fit: BoxFit.cover,
-                                      child: SizedBox(
-                                        width: _cameraController!.value.previewSize?.height ?? 220,
-                                        height: _cameraController!.value.previewSize?.width ?? 220,
-                                        child: CameraPreview(_cameraController!),
-                                      ),
-                                    )
-                                  else if (_isCameraInitializing)
-                                    Container(
-                                      color: const Color(0xFF0F172A),
-                                      child: const Center(
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          color: Color(0xFF38BDF8),
-                                        ),
-                                      ),
-                                    )
-                                  else
-                                    // High-Precision Geometric Face Wireframe Fallback
-                                    Container(
-                                      color: const Color(0xFF070B14),
-                                      child: CustomPaint(
-                                        size: const Size(220, 220),
-                                        painter: _BiometricFaceWireframePainter(
-                                          angle: _activeAngle,
-                                          currentYaw: _currentYaw,
-                                          isLocked: isAngleMatched,
-                                          animValue: _scannerAnim.value,
-                                        ),
-                                      ),
-                                    ),
-
-                                  // Semi-transparent Biometric Facial Reticle HUD on top of live camera
-                                  CustomPaint(
-                                    size: const Size(220, 220),
-                                    painter: _BiometricFaceWireframePainter(
-                                      angle: _activeAngle,
-                                      currentYaw: _currentYaw,
-                                      isLocked: isAngleMatched,
-                                      animValue: _scannerAnim.value,
-                                    ),
-                                  ),
-
-                                  // Real-time Angle Auto-Lock HUD Notification
-                                  if (isAngleMatched && _isFaceDetected)
-                                    Positioned(
-                                      top: 20,
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFF10B981).withValues(alpha: 0.9),
-                                          borderRadius: BorderRadius.circular(12),
-                                        ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            const Icon(Icons.lock_rounded, size: 12, color: Colors.white),
-                                            const SizedBox(width: 4),
-                                            Text(
-                                              'HOLD STILL (${(_angleHoldProgress * 100).toInt()}%)',
-                                              style: GoogleFonts.jetBrainsMono(
-                                                fontSize: 10,
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.white,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-
-                                  // Directional Guidance Hint Badge
-                                  if (!isAngleMatched && _isFaceDetected)
-                                    Positioned(
-                                      bottom: 18,
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFF0F172A).withValues(alpha: 0.85),
-                                          borderRadius: BorderRadius.circular(6),
-                                          border: Border.all(color: const Color(0xFF38BDF8), width: 0.8),
-                                        ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Icon(
-                                              _activeAngle == BiometricAngle.left
-                                                  ? Icons.turn_left_rounded
-                                                  : _activeAngle == BiometricAngle.right
-                                                      ? Icons.turn_right_rounded
-                                                      : Icons.filter_center_focus_rounded,
-                                              size: 14,
-                                              color: const Color(0xFF38BDF8),
-                                            ),
-                                            const SizedBox(width: 4),
-                                            Text(
-                                              _activeAngle == BiometricAngle.left
-                                                  ? 'TURN HEAD LEFT'
-                                                  : _activeAngle == BiometricAngle.right
-                                                      ? 'TURN HEAD RIGHT'
-                                                      : 'CENTER FACE',
-                                              style: GoogleFonts.jetBrainsMono(
-                                                fontSize: 9.5,
-                                                fontWeight: FontWeight.bold,
-                                                color: const Color(0xFF38BDF8),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                ],
-                              ),
-                      ),
-                    ),
-
-                    // Precision HUD Reticles
-                    Positioned(top: 10, left: 10, child: _buildHUDTargetMarker()),
-                    Positioned(top: 10, right: 10, child: _buildHUDTargetMarker()),
-                    Positioned(bottom: 10, left: 10, child: _buildHUDTargetMarker()),
-                    Positioned(bottom: 10, right: 10, child: _buildHUDTargetMarker()),
-                  ],
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            // 3. Instruction Panel
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 26),
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 200),
-                child: Column(
-                  key: ValueKey(_activeAngle),
-                  children: [
-                    Text(
-                      _activeAngle.title,
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.outfit(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w700,
-                        color: isAngleMatched && _isFaceDetected
-                            ? const Color(0xFF34D399)
-                            : Colors.white,
-                      ),
-                    ),
-                    const SizedBox(height: 5),
-                    Text(
-                      _activeAngle.subtitle,
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.inter(
-                        fontSize: 12.5,
-                        color: const Color(0xFF94A3B8),
-                        height: 1.35,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            const Spacer(flex: 1),
-
-            // 4. 3 Angle Selector Cards
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                children: BiometricAngle.values.map((angle) {
-                  final isSelected = angle == _activeAngle;
-                  final photo = _capturedFaces[angle];
-                  final hasPhoto = photo != null;
-
-                  return Expanded(
-                    child: GestureDetector(
-                      onTap: () => setState(() {
-                        _activeAngle = angle;
-                        _angleHoldProgress = 0.0;
-                      }),
-                      child: Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 4),
-                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? const Color(0xFF131D2E)
-                              : const Color(0xFF0F172A),
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(
-                            color: hasPhoto
-                                ? const Color(0xFF10B981)
-                                : isSelected
-                                    ? const Color(0xFF2563EB)
-                                    : const Color(0xFF1E293B),
-                            width: isSelected || hasPhoto ? 1.5 : 1.0,
-                          ),
-                        ),
-                        child: Column(
-                          children: [
-                            // Circular Preview Thumbnail or Technical Compass Icon
-                            Container(
-                              width: 44,
-                              height: 44,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: const Color(0xFF090D16),
-                                border: Border.all(
-                                  color: hasPhoto
-                                      ? const Color(0xFF10B981)
-                                      : isSelected
-                                          ? const Color(0xFF38BDF8)
-                                          : const Color(0xFF334155),
-                                  width: 1,
                                 ),
                               ),
-                              child: ClipOval(
-                                child: hasPhoto
-                                    ? Image.file(
-                                        File(photo.path),
-                                        fit: BoxFit.cover,
-                                        width: 44,
-                                        height: 44,
-                                      )
-                                    : Center(
-                                        child: _buildAngleMeshIcon(angle),
-                                      ),
-                              ),
-                            ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
 
-                            const SizedBox(height: 8),
+                      SizedBox(height: isCompact ? 10 : 14),
 
-                            // Angle Name
-                            Text(
-                              angle.label,
-                              style: GoogleFonts.inter(
-                                fontSize: 11.5,
-                                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                                color: isSelected ? Colors.white : const Color(0xFF94A3B8),
-                              ),
-                            ),
-
-                            const SizedBox(height: 3),
-
-                            // Status Tag
+                      // 5. Biometric Shutter & Upload Control
+                      Padding(
+                        padding: EdgeInsets.fromLTRB(20, 0, 20, isCompact ? 10 : 16),
+                        child: Column(
+                          children: [
                             Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Text(
-                                  hasPhoto ? 'CAPTURED' : angle.yawText,
-                                  style: GoogleFonts.jetBrainsMono(
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.bold,
-                                    color: hasPhoto
-                                        ? const Color(0xFF10B981)
-                                        : isSelected
-                                            ? const Color(0xFF38BDF8)
-                                            : const Color(0xFF475569),
+                                // Camera Shutter Button (Manual Override)
+                                GestureDetector(
+                                  onTap: _isCapturing ? null : _onShutterPressed,
+                                  child: Container(
+                                    width: isCompact ? 64 : 72,
+                                    height: isCompact ? 64 : 72,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: isDone ? const Color(0xFF10B981) : const Color(0xFF38BDF8),
+                                        width: 2.5,
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: (isDone ? const Color(0xFF10B981) : const Color(0xFF2563EB))
+                                              .withValues(alpha: 0.35),
+                                          blurRadius: 18,
+                                        ),
+                                      ],
+                                    ),
+                                    child: Center(
+                                      child: Container(
+                                        width: isCompact ? 50 : 56,
+                                        height: isCompact ? 50 : 56,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: isDone ? const Color(0xFF10B981) : Colors.white,
+                                        ),
+                                        child: _isCapturing
+                                            ? const Center(
+                                                child: SizedBox(
+                                                  width: 22,
+                                                  height: 22,
+                                                  child: CircularProgressIndicator(
+                                                    strokeWidth: 2.2,
+                                                    color: Color(0xFF0F172A),
+                                                  ),
+                                                ),
+                                              )
+                                            : Icon(
+                                                isDone ? Icons.refresh_rounded : Icons.camera_alt_rounded,
+                                                color: isDone ? Colors.white : const Color(0xFF0F172A),
+                                                size: isCompact ? 23 : 26,
+                                              ),
+                                      ),
+                                    ),
                                   ),
                                 ),
-                                if (hasPhoto) ...[
-                                  const SizedBox(width: 3),
-                                  GestureDetector(
-                                    onTap: () => _retakeAngle(angle),
-                                    child: const Icon(
-                                      Icons.close_rounded,
-                                      size: 11,
-                                      color: Color(0xFF94A3B8),
-                                    ),
-                                  ),
-                                ],
                               ],
                             ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-            ),
 
-            const SizedBox(height: 18),
-
-            // 5. Biometric Shutter & Upload Control
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      // Camera Shutter Button (Manual Override)
-                      GestureDetector(
-                        onTap: _isCapturing ? null : _onShutterPressed,
-                        child: Container(
-                          width: 74,
-                          height: 74,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: isDone ? const Color(0xFF10B981) : const Color(0xFF38BDF8),
-                              width: 2.5,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: (isDone ? const Color(0xFF10B981) : const Color(0xFF2563EB))
-                                    .withValues(alpha: 0.35),
-                                blurRadius: 20,
+                            // Submit Enrollment Action
+                            if (_completedCount > 0) ...[
+                              SizedBox(height: isCompact ? 10 : 12),
+                              SizedBox(
+                                width: double.infinity,
+                                height: isCompact ? 44 : 48,
+                                child: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF2563EB),
+                                    foregroundColor: Colors.white,
+                                    elevation: 0,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  ),
+                                  onPressed: _isUploading ? null : _submitEnrollment,
+                                  child: _isUploading
+                                      ? const SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2.2,
+                                            color: Colors.white,
+                                          ),
+                                        )
+                                      : Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            const Icon(Icons.hub_outlined, size: 18),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              'Register $_completedCount Face Template${_completedCount == 1 ? '' : 's'}',
+                                              style: GoogleFonts.inter(
+                                                fontSize: isCompact ? 13.5 : 14.5,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                ),
                               ),
                             ],
-                          ),
-                          child: Center(
-                            child: Container(
-                              width: 58,
-                              height: 58,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: isDone ? const Color(0xFF10B981) : Colors.white,
-                              ),
-                              child: _isCapturing
-                                  ? const Center(
-                                      child: SizedBox(
-                                        width: 24,
-                                        height: 24,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2.5,
-                                          color: Color(0xFF0F172A),
-                                        ),
-                                      ),
-                                    )
-                                  : Icon(
-                                      isDone ? Icons.refresh_rounded : Icons.camera_alt_rounded,
-                                      color: isDone ? Colors.white : const Color(0xFF0F172A),
-                                      size: 26,
-                                    ),
-                            ),
-                          ),
+                          ],
                         ),
                       ),
                     ],
                   ),
-
-                  // Submit Enrollment Action
-                  if (_completedCount > 0) ...[
-                    const SizedBox(height: 14),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 48,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF2563EB),
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                        onPressed: _isUploading ? null : _submitEnrollment,
-                        child: _isUploading
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2.2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(Icons.hub_outlined, size: 18),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'Register $_completedCount Face Template${_completedCount == 1 ? '' : 's'}',
-                                    style: GoogleFonts.inter(
-                                      fontSize: 14.5,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                      ),
-                    ),
-                  ],
-                ],
+                ),
               ),
-            ),
-          ],
+            );
+          },
         ),
       ),
     );
   }
-
   Widget _buildAngleMeshIcon(BiometricAngle angle) {
     switch (angle) {
       case BiometricAngle.straight:

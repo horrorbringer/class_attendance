@@ -4,6 +4,7 @@ import '../../../core/config/api_constants.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_error_handler.dart';
 import '../../attendance/models/attendance_models.dart';
+import '../../auth/models/auth_models.dart';
 
 abstract class TeacherRepository {
   Future<List<TeacherClassSession>> getTodayClasses();
@@ -23,6 +24,8 @@ abstract class TeacherRepository {
   Future<void> reopenSession(int sessionId);
   Future<void> cancelSession(int sessionId);
   Future<String> exportCsv(int classId, {String? startDate, String? endDate});
+  Future<List<ClassRoom>> getClassrooms();
+  Future<ClassRoom> createClassroom(String name);
 }
 
 class TeacherRepositoryImpl implements TeacherRepository {
@@ -115,6 +118,35 @@ class TeacherRepositoryImpl implements TeacherRepository {
   Future<void> cancelSession(int sessionId) async {
     try {
       await _dio.post(ApiConstants.teacherCancelSession(sessionId));
+    } on DioException catch (e) {
+      throw Exception(ApiErrorHandler.getErrorMessage(e));
+    }
+  }
+
+  @override
+  Future<List<ClassRoom>> getClassrooms() async {
+    try {
+      final response = await _dio.get(ApiConstants.teacherClassrooms);
+      if (response.data is List) {
+        final list = response.data as List<dynamic>;
+        return list
+            .map((e) => ClassRoom.fromJson(e as Map<String, dynamic>))
+            .toList();
+      }
+      return [];
+    } on DioException catch (e) {
+      throw Exception(ApiErrorHandler.getErrorMessage(e));
+    }
+  }
+
+  @override
+  Future<ClassRoom> createClassroom(String name) async {
+    try {
+      final response = await _dio.post(
+        ApiConstants.teacherClassrooms,
+        data: {'name': name},
+      );
+      return ClassRoom.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {
       throw Exception(ApiErrorHandler.getErrorMessage(e));
     }
