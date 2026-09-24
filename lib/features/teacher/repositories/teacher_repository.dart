@@ -26,6 +26,9 @@ abstract class TeacherRepository {
   Future<String> exportCsv(int classId, {String? startDate, String? endDate});
   Future<List<ClassRoom>> getClassrooms();
   Future<ClassRoom> createClassroom(String name);
+  Future<List<ClassroomEnrolledStudent>> getClassroomStudents(int classroomId);
+  Future<void> enrollStudentToClassroom(int classroomId, String studentId);
+  Future<void> unenrollStudentFromClassroom(int classroomId, String studentId);
 }
 
 class TeacherRepositoryImpl implements TeacherRepository {
@@ -147,6 +150,51 @@ class TeacherRepositoryImpl implements TeacherRepository {
         data: {'name': name},
       );
       return ClassRoom.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw Exception(ApiErrorHandler.getErrorMessage(e));
+    }
+  }
+
+  @override
+  Future<List<ClassroomEnrolledStudent>> getClassroomStudents(int classroomId) async {
+    try {
+      final response = await _dio.get(ApiConstants.teacherClassroomStudents(classroomId));
+      if (response.data is List) {
+        final list = response.data as List<dynamic>;
+        return list
+            .map((e) => ClassroomEnrolledStudent.fromJson(e as Map<String, dynamic>))
+            .toList();
+      } else if (response.data is Map && response.data['students'] is List) {
+        final list = response.data['students'] as List<dynamic>;
+        return list
+            .map((e) => ClassroomEnrolledStudent.fromJson(e as Map<String, dynamic>))
+            .toList();
+      }
+      return [];
+    } on DioException catch (e) {
+      throw Exception(ApiErrorHandler.getErrorMessage(e));
+    }
+  }
+
+  @override
+  Future<void> enrollStudentToClassroom(int classroomId, String studentId) async {
+    try {
+      await _dio.post(
+        ApiConstants.teacherClassroomStudents(classroomId),
+        data: {'student_id': studentId},
+      );
+    } on DioException catch (e) {
+      throw Exception(ApiErrorHandler.getErrorMessage(e));
+    }
+  }
+
+  @override
+  Future<void> unenrollStudentFromClassroom(int classroomId, String studentId) async {
+    try {
+      await _dio.delete(
+        ApiConstants.teacherClassroomStudents(classroomId),
+        data: {'student_id': studentId},
+      );
     } on DioException catch (e) {
       throw Exception(ApiErrorHandler.getErrorMessage(e));
     }

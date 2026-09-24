@@ -4,8 +4,19 @@ import '../../../core/config/api_constants.dart';
 import '../../../core/network/api_client.dart';
 import '../../attendance/models/attendance_models.dart';
 
+class StudentScheduleResult {
+  final List<StudentScheduleSession> sessions;
+  final List<EnrolledClassroom> classrooms;
+
+  StudentScheduleResult({
+    required this.sessions,
+    required this.classrooms,
+  });
+}
+
 abstract class StudentRepository {
   Future<List<StudentScheduleSession>> getTodaySchedule();
+  Future<StudentScheduleResult> getTodayScheduleWithClassrooms();
   Future<StudentAttendanceReport> getStudentReport(int studentId);
   Future<PaginatedAttendanceResponse> getAttendanceHistory({
     String? status,
@@ -28,14 +39,37 @@ class StudentRepositoryImpl implements StudentRepository {
 
   @override
   Future<List<StudentScheduleSession>> getTodaySchedule() async {
+    final result = await getTodayScheduleWithClassrooms();
+    return result.sessions;
+  }
+
+  @override
+  Future<StudentScheduleResult> getTodayScheduleWithClassrooms() async {
     final response = await _dio.get(ApiConstants.studentScheduleToday);
+    List<StudentScheduleSession> sessions = [];
+    List<EnrolledClassroom> classrooms = [];
+
     if (response.data is List) {
       final list = response.data as List<dynamic>;
-      return list
+      sessions = list
           .map((e) => StudentScheduleSession.fromJson(e as Map<String, dynamic>))
           .toList();
+    } else if (response.data is Map) {
+      final map = response.data as Map<String, dynamic>;
+      final rawSessions = map['sessions'] ?? map['schedule'] ?? map['results'];
+      if (rawSessions is List) {
+        sessions = rawSessions
+            .map((e) => StudentScheduleSession.fromJson(e as Map<String, dynamic>))
+            .toList();
+      }
+      final rawClassrooms = map['classrooms'];
+      if (rawClassrooms is List) {
+        classrooms = rawClassrooms
+            .map((e) => EnrolledClassroom.fromJson(e as Map<String, dynamic>))
+            .toList();
+      }
     }
-    return [];
+    return StudentScheduleResult(sessions: sessions, classrooms: classrooms);
   }
 
   @override

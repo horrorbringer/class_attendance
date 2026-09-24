@@ -144,12 +144,71 @@ class TeacherClassSession {
   }
 }
 
+class EnrolledClassroom {
+  final int id;
+  final String name;
+  final String room;
+  final String teacher;
+
+  EnrolledClassroom({
+    required this.id,
+    required this.name,
+    this.room = '',
+    this.teacher = '',
+  });
+
+  factory EnrolledClassroom.fromJson(Map<String, dynamic> json) {
+    return EnrolledClassroom(
+      id: json['id'] as int? ?? 0,
+      name: json['name'] as String? ?? json['classroom_name']?.toString() ?? '',
+      room: json['room'] as String? ?? json['room_number']?.toString() ?? '',
+      teacher: json['teacher'] is Map
+          ? (json['teacher']['full_name'] ?? json['teacher']['name'] ?? '').toString()
+          : (json['teacher']?.toString() ?? ''),
+    );
+  }
+}
+
+class ClassroomEnrolledStudent {
+  final int id;
+  final String studentId;
+  final String studentName;
+  final String? email;
+  final bool isActive;
+  final String? guardianPhone;
+  final String? guardianTelegramId;
+
+  ClassroomEnrolledStudent({
+    required this.id,
+    required this.studentId,
+    required this.studentName,
+    this.email,
+    this.isActive = true,
+    this.guardianPhone,
+    this.guardianTelegramId,
+  });
+
+  factory ClassroomEnrolledStudent.fromJson(Map<String, dynamic> json) {
+    return ClassroomEnrolledStudent(
+      id: json['id'] as int? ?? json['student_pk'] as int? ?? 0,
+      studentId: json['student_id'] as String? ?? '',
+      studentName: json['student_name'] as String? ?? json['name'] as String? ?? '',
+      email: json['email'] as String?,
+      isActive: json['is_active'] as bool? ?? true,
+      guardianPhone: json['guardian_phone'] as String? ?? json['guardian_contact'] as String?,
+      guardianTelegramId: json['guardian_telegram_id'] as String?,
+    );
+  }
+}
+
 class RosterStudent {
   final int studentPk;
   final String studentId;
   final String studentName;
   final bool isActive;
   final String guardianContact;
+  final String? guardianPhone;
+  final String? guardianTelegramId;
   String attendanceStatus; // 'present', 'late', 'absent', 'unmarked'
   String? method;
   String? checkedInAt;
@@ -162,6 +221,8 @@ class RosterStudent {
     required this.studentName,
     required this.isActive,
     required this.guardianContact,
+    this.guardianPhone,
+    this.guardianTelegramId,
     required this.attendanceStatus,
     this.method,
     this.checkedInAt,
@@ -176,6 +237,8 @@ class RosterStudent {
       studentName: json['student_name'] as String? ?? '',
       isActive: json['is_active'] as bool? ?? true,
       guardianContact: json['guardian_contact'] as String? ?? '',
+      guardianPhone: json['guardian_phone'] as String? ?? json['guardian_contact'] as String?,
+      guardianTelegramId: json['guardian_telegram_id'] as String?,
       attendanceStatus: json['attendance_status'] as String? ?? 'unmarked',
       method: json['method'] as String?,
       checkedInAt: json['checked_in_at'] as String?,
