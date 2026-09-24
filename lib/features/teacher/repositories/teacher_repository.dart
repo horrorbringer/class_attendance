@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/config/api_constants.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/network/api_error_handler.dart';
 import '../../attendance/models/attendance_models.dart';
 
 abstract class TeacherRepository {
@@ -103,12 +104,20 @@ class TeacherRepositoryImpl implements TeacherRepository {
 
   @override
   Future<void> reopenSession(int sessionId) async {
-    await _dio.post(ApiConstants.sessionReopen(sessionId));
+    try {
+      await _dio.post(ApiConstants.teacherReopenSession(sessionId));
+    } on DioException catch (e) {
+      throw Exception(ApiErrorHandler.getErrorMessage(e));
+    }
   }
 
   @override
   Future<void> cancelSession(int sessionId) async {
-    await _dio.post(ApiConstants.sessionCancel(sessionId));
+    try {
+      await _dio.post(ApiConstants.teacherCancelSession(sessionId));
+    } on DioException catch (e) {
+      throw Exception(ApiErrorHandler.getErrorMessage(e));
+    }
   }
 
   @override

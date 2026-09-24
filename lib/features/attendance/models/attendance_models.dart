@@ -8,6 +8,7 @@ class StudentScheduleSession {
   final String endTime;
   final bool isQrActive;
   final bool isCheckedIn;
+  final bool isCancelled;
   final String? myStatus;
   final String? myMethod;
   final String? checkedInAt;
@@ -20,6 +21,7 @@ class StudentScheduleSession {
     required this.endTime,
     required this.isQrActive,
     required this.isCheckedIn,
+    this.isCancelled = false,
     this.myStatus,
     this.myMethod,
     this.checkedInAt,
@@ -34,6 +36,7 @@ class StudentScheduleSession {
       endTime: json['end_time'] as String? ?? '',
       isQrActive: json['is_qr_active'] as bool? ?? false,
       isCheckedIn: json['is_checked_in'] as bool? ?? false,
+      isCancelled: json['is_cancelled'] as bool? ?? false,
       myStatus: json['my_status'] as String?,
       myMethod: json['my_method'] as String?,
       checkedInAt: json['checked_in_at'] as String?,

@@ -103,6 +103,68 @@ class ApiErrorHandler {
               icon: Icons.person_off_rounded,
               color: Colors.red,
             );
+          case 'CLASSROOM_OVERLAP_CONFLICT':
+            return ApiError(
+              title: "Classroom Conflict",
+              message: message.isNotEmpty && message != "An error occurred"
+                  ? message
+                  : "Another active class session is already scheduled in this room during this time.",
+              code: code,
+              icon: Icons.meeting_room_outlined,
+              color: Colors.deepOrange,
+            );
+          case 'TEACHER_SCHEDULE_CONFLICT':
+            return ApiError(
+              title: "Schedule Conflict",
+              message: message.isNotEmpty && message != "An error occurred"
+                  ? message
+                  : "You are already scheduled in another classroom during this time window.",
+              code: code,
+              icon: Icons.event_busy_rounded,
+              color: Colors.deepOrange,
+            );
+          case 'INVALID_TIME_RANGE':
+            return ApiError(
+              title: "Invalid Class Time",
+              message: message.isNotEmpty && message != "An error occurred"
+                  ? message
+                  : "Session end time must be after the start time.",
+              code: code,
+              icon: Icons.schedule_rounded,
+              color: Colors.orange,
+            );
+          case 'INVALID_QR':
+            return ApiError(
+              title: "Invalid QR Code",
+              message: "Invalid QR code. Please scan the official classroom QR.",
+              code: code,
+              icon: Icons.qr_code_2_rounded,
+              color: Colors.orange,
+            );
+          case 'REOPEN_WINDOW_EXPIRED':
+            return ApiError(
+              title: "Reopen Window Expired",
+              message: "Cannot reopen a session that ended more than 30 minutes ago.",
+              code: code,
+              icon: Icons.timer_off_rounded,
+              color: Colors.grey.shade700,
+            );
+          case 'STUDENT_INACTIVE':
+            return ApiError(
+              title: "Account Inactive",
+              message: "Your student account is inactive or suspended. Please contact administration.",
+              code: code,
+              icon: Icons.person_off_rounded,
+              color: Colors.redAccent,
+            );
+          case 'UNAUTHORIZED':
+            return ApiError(
+              title: "Unauthorized Access",
+              message: "You do not have permission to perform this action.",
+              code: code,
+              icon: Icons.gpp_bad_rounded,
+              color: Colors.red,
+            );
           default:
             return ApiError(
               title: "Check-in Notice",
@@ -157,5 +219,9 @@ class ApiErrorHandler {
 
   static String getMessage(dynamic error) {
     return parse(error).message;
+  }
+
+  static String getErrorMessage(dynamic error) {
+    return getMessage(error);
   }
 }

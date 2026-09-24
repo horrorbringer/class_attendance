@@ -109,7 +109,9 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
         final sessions = await studentRepo.getTodaySchedule();
         for (final s in sessions) {
           String status = 'upcoming';
-          if (s.isCheckedIn) {
+          if (s.isCancelled) {
+            status = 'cancelled';
+          } else if (s.isCheckedIn) {
             final st = s.myStatus?.toLowerCase() ?? '';
             status = st == 'late' ? 'late' : 'present';
           } else if (s.myStatus?.toLowerCase() == 'absent') {
@@ -407,7 +409,15 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
   void _onClassCardTapped(DashboardClassItem item) {
     HapticFeedback.lightImpact();
 
-    if (item.status == 'absent') {
+    if (item.status == 'cancelled') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${item.courseName} was cancelled by your instructor. Attendance check-in is not required.'),
+          backgroundColor: const Color(0xFF10213E),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } else if (item.status == 'absent') {
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -1023,6 +1033,11 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
         pillBg = const Color(0xFFFFE4E6);
         pillTextColor = const Color(0xFFE11D48);
         statusLabel = 'Absent';
+        break;
+      case 'cancelled':
+        pillBg = const Color(0xFFFEE2E2);
+        pillTextColor = const Color(0xFFDC2626);
+        statusLabel = 'Cancelled';
         break;
       default:
         pillBg = const Color(0xFFF1F5F9);
