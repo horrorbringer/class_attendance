@@ -82,7 +82,8 @@ class NotificationItem {
 }
 
 class NotificationsScreen extends ConsumerStatefulWidget {
-  const NotificationsScreen({super.key});
+  final bool isEmbedded;
+  const NotificationsScreen({super.key, this.isEmbedded = false});
 
   @override
   ConsumerState<NotificationsScreen> createState() => _NotificationsScreenState();
@@ -614,6 +615,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: ModernAppBar(
+        automaticallyImplyLeading: !widget.isEmbedded,
         title: 'Notifications & Alerts',
         subtitle: _unreadCount > 0 ? '$_unreadCount unread updates' : 'All updates viewed',
         actions: [
@@ -780,7 +782,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       ),
 
       // Bottom Navigation Bar matching Mockup 09 with "Alerts" active
-      bottomNavigationBar: Container(
+      bottomNavigationBar: widget.isEmbedded ? null : Container(
         decoration: const BoxDecoration(
           color: Colors.white,
           border: Border(top: BorderSide(color: Color(0xFFE2E8F0), width: 1)),

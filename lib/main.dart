@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,6 +13,20 @@ import 'features/teacher/screens/teacher_home_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Edge-to-edge system chrome configuration to prevent ugly dark navigation bars on real devices
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.dark,
+      statusBarBrightness: Brightness.light,
+      systemNavigationBarColor: Colors.transparent,
+      systemNavigationBarDividerColor: Colors.transparent,
+      systemNavigationBarIconBrightness: Brightness.dark,
+    ),
+  );
+
   runApp(
     const ProviderScope(
       child: SmartAttendanceApp(),
@@ -53,7 +68,16 @@ class SmartAttendanceApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light,
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarDividerColor: Colors.transparent,
+        systemNavigationBarIconBrightness: Brightness.dark,
+      ),
+      child: MaterialApp(
       navigatorKey: appNavigatorKey,
       title: 'Smart Attendance',
       debugShowCheckedModeBanner: false,
@@ -62,6 +86,7 @@ class SmartAttendanceApp extends StatelessWidget {
       themeMode: ThemeMode.light,
       scrollBehavior: const AppScrollBehavior(),
       home: const AuthGate(),
+      ),
     );
   }
 }

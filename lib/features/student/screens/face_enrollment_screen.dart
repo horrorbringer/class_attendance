@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
@@ -616,7 +617,16 @@ class _FaceEnrollmentScreenState extends ConsumerState<FaceEnrollmentScreen>
     final isAngleMatched = _currentYaw >= _activeAngle.targetMinYaw &&
         _currentYaw <= _activeAngle.targetMaxYaw;
 
-    return Scaffold(
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+        systemNavigationBarColor: Color(0xFF0B111E),
+        systemNavigationBarIconBrightness: Brightness.light,
+        systemNavigationBarDividerColor: Colors.transparent,
+      ),
+      child: Scaffold(
       backgroundColor: const Color(0xFF0B111E), // Executive Obsidian Biometric Lab Background
       body: SafeArea(
         child: LayoutBuilder(
@@ -823,7 +833,7 @@ class _FaceEnrollmentScreenState extends ConsumerState<FaceEnrollmentScreen>
                         ),
                       ),
 
-                      const Spacer(flex: 1),
+                      SizedBox(height: isCompact ? 10 : 18),
 
                       // 2. High-Tech Biometric HUD Viewfinder with LIVE FRONT CAMERA & ANGLE LOCK
                       Center(
@@ -1085,7 +1095,7 @@ class _FaceEnrollmentScreenState extends ConsumerState<FaceEnrollmentScreen>
                         ),
                       ),
 
-                      const Spacer(flex: 1),
+                      SizedBox(height: isCompact ? 10 : 18),
 
                       // 4. 3 Angle Selector Cards
                       Padding(
@@ -1315,8 +1325,10 @@ class _FaceEnrollmentScreenState extends ConsumerState<FaceEnrollmentScreen>
           },
         ),
       ),
+    ),
     );
   }
+
   Widget _buildAngleMeshIcon(BiometricAngle angle) {
     switch (angle) {
       case BiometricAngle.straight:

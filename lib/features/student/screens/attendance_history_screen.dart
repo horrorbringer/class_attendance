@@ -11,7 +11,8 @@ import 'qr_scanner_screen.dart';
 import '../../../core/widgets/modern_app_bar.dart';
 
 class AttendanceHistoryScreen extends ConsumerStatefulWidget {
-  const AttendanceHistoryScreen({super.key});
+  final bool isEmbedded;
+  const AttendanceHistoryScreen({super.key, this.isEmbedded = false});
 
   @override
   ConsumerState<AttendanceHistoryScreen> createState() => _AttendanceHistoryScreenState();
@@ -151,8 +152,9 @@ class _AttendanceHistoryScreenState extends ConsumerState<AttendanceHistoryScree
     final monthTitle = DateFormat('MMMM yyyy').format(_focusedMonth);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F9FD),
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: ModernAppBar(
+        automaticallyImplyLeading: !widget.isEmbedded,
         title: 'Attendance History',
         subtitle: 'Academic Term: Fall 2026',
         actions: [
@@ -400,7 +402,7 @@ class _AttendanceHistoryScreenState extends ConsumerState<AttendanceHistoryScree
       ),
 
       // Bottom Navigation Bar with History Tab Active
-      bottomNavigationBar: Container(
+      bottomNavigationBar: widget.isEmbedded ? null : Container(
         decoration: const BoxDecoration(
           color: Colors.white,
           border: Border(top: BorderSide(color: Color(0xFFE5EEF8), width: 1)),

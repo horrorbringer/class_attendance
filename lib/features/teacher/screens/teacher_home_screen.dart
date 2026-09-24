@@ -24,6 +24,7 @@ class TeacherHomeScreen extends ConsumerStatefulWidget {
 }
 
 class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen> {
+  int _currentTabIndex = 0;
   List<TeacherClassSession> _sessions = [];
   bool _isLoading = true;
 
@@ -81,8 +82,132 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen> {
     final authState = ref.watch(authProvider);
     final teacherName = authState.session?.displayName ?? 'Dr. Emily Okonkwo';
 
+    return PopScope(
+      canPop: _currentTabIndex == 0,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop && _currentTabIndex != 0) {
+          setState(() => _currentTabIndex = 0);
+        }
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF8FAFC),
+        body: IndexedStack(
+          index: _currentTabIndex,
+          children: [
+            _buildHomeTab(teacherName),
+            const TeacherClassesScreen(isEmbedded: true),
+            const TeacherReportsScreen(isEmbedded: true),
+            const TeacherProfileScreen(isEmbedded: true),
+          ],
+        ),
+        bottomNavigationBar: _buildUnifiedBottomBar(),
+      ),
+    );
+  }
+
+  Widget _buildUnifiedBottomBar() {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(top: BorderSide(color: Color(0xFFE2E8F0), width: 1)),
+        boxShadow: [
+          BoxShadow(
+            color: Color(0x0610213E),
+            blurRadius: 8,
+            offset: Offset(0, -2),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          height: 64,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildBottomNavItem(
+                index: 0,
+                icon: Icons.home_outlined,
+                activeIcon: Icons.home_rounded,
+                label: 'Home',
+              ),
+              _buildBottomNavItem(
+                index: 1,
+                icon: Icons.school_outlined,
+                activeIcon: Icons.school_rounded,
+                label: 'Classes',
+              ),
+              _buildBottomNavItem(
+                index: 2,
+                icon: Icons.insert_chart_outlined_rounded,
+                activeIcon: Icons.insert_chart_rounded,
+                label: 'Reports',
+              ),
+              _buildBottomNavItem(
+                index: 3,
+                icon: Icons.person_outline_rounded,
+                activeIcon: Icons.person_rounded,
+                label: 'Profile',
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBottomNavItem({
+    required int index,
+    required IconData icon,
+    required IconData activeIcon,
+    required String label,
+  }) {
+    final isSelected = _currentTabIndex == index;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          HapticFeedback.selectionClick();
+          setState(() => _currentTabIndex = index);
+        },
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                decoration: BoxDecoration(
+                  color: isSelected ? const Color(0xFFEFF6FF) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(
+                  isSelected ? activeIcon : icon,
+                  size: 20,
+                  color: isSelected ? const Color(0xFF2563EB) : const Color(0xFF64748B),
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                label,
+                style: GoogleFonts.inter(
+                  fontSize: 10.5,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                  color: isSelected ? const Color(0xFF10213E) : const Color(0xFF64748B),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHomeTab(String teacherName) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F9FD),
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(69),
         child: ClipRect(
@@ -111,10 +236,8 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen> {
                 children: [
                   GestureDetector(
                     onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const TeacherProfileScreen()),
-                      );
+                      HapticFeedback.selectionClick();
+                      setState(() => _currentTabIndex = 3);
                     },
                     child: Stack(
                       children: [
@@ -333,65 +456,6 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen> {
         ),
       ),
 
-      // Bottom Navigation Bar with Home (index 0) active
-      bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          border: Border(top: BorderSide(color: Color(0xFFE5EEF8), width: 1)),
-        ),
-        child: BottomNavigationBar(
-          currentIndex: 0, // Home is active
-          onTap: (index) {
-            if (index == 1) {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const TeacherClassesScreen()),
-              );
-            } else if (index == 2) {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const TeacherReportsScreen()),
-              );
-            } else if (index == 3) {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const TeacherProfileScreen()),
-              );
-            }
-          },
-          backgroundColor: Colors.white,
-          type: BottomNavigationBarType.fixed,
-          selectedItemColor: const Color(0xFF10213E),
-          unselectedItemColor: const Color(0xFF8C9BAE),
-          selectedLabelStyle: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold),
-          unselectedLabelStyle: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w500),
-          items: [
-            BottomNavigationBarItem(
-              icon: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE8F0FE),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: const Icon(Icons.home_rounded, color: Color(0xFF10213E), size: 20),
-              ),
-              label: 'Home',
-            ),
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.school_outlined),
-              label: 'Classes',
-            ),
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.calendar_month_outlined),
-              label: 'Reports',
-            ),
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline_rounded),
-              label: 'Profile',
-            ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -956,10 +1020,8 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen> {
                 icon: Icons.school_outlined,
                 color: const Color(0xFF0F172A),
                 onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const TeacherClassesScreen()),
-                  );
+                  HapticFeedback.selectionClick();
+                  setState(() => _currentTabIndex = 1);
                 },
               ),
             ),
@@ -970,10 +1032,8 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen> {
                 icon: Icons.calendar_month_outlined,
                 color: const Color(0xFF0D9488),
                 onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const TeacherReportsScreen()),
-                  );
+                  HapticFeedback.selectionClick();
+                  setState(() => _currentTabIndex = 2);
                 },
               ),
             ),
@@ -984,10 +1044,8 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen> {
                 icon: Icons.manage_accounts_outlined,
                 color: const Color(0xFF475569),
                 onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const TeacherProfileScreen()),
-                  );
+                  HapticFeedback.selectionClick();
+                  setState(() => _currentTabIndex = 3);
                 },
               ),
             ),
@@ -1070,10 +1128,8 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen> {
             ),
             GestureDetector(
               onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const TeacherClassesScreen()),
-                );
+                HapticFeedback.selectionClick();
+                setState(() => _currentTabIndex = 1);
               },
               child: Text(
                 'View All →',

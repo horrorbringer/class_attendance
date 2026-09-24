@@ -11,7 +11,8 @@ import 'teacher_profile_screen.dart';
 import '../../../core/widgets/modern_app_bar.dart';
 
 class TeacherReportsScreen extends ConsumerStatefulWidget {
-  const TeacherReportsScreen({super.key});
+  final bool isEmbedded;
+  const TeacherReportsScreen({super.key, this.isEmbedded = false});
 
   @override
   ConsumerState<TeacherReportsScreen> createState() => _TeacherReportsScreenState();
@@ -278,8 +279,9 @@ class _TeacherReportsScreenState extends ConsumerState<TeacherReportsScreen> {
     final List<Map<String, dynamic>> days = List<Map<String, dynamic>>.from(week['days']);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F9FD),
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: ModernAppBar(
+        automaticallyImplyLeading: !widget.isEmbedded,
         title: 'Analytics & Reports',
         subtitle: 'Classroom Metrics • $teacherName',
         actions: [
@@ -563,7 +565,7 @@ class _TeacherReportsScreenState extends ConsumerState<TeacherReportsScreen> {
       ),
 
       // Bottom Navigation Bar with 4 tabs matching teacher-reports.png
-      bottomNavigationBar: Container(
+      bottomNavigationBar: widget.isEmbedded ? null : Container(
         decoration: const BoxDecoration(
           color: Colors.white,
           border: Border(top: BorderSide(color: Color(0xFFE5EEF8), width: 1)),

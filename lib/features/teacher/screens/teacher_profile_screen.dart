@@ -14,7 +14,8 @@ import 'teacher_reports_screen.dart';
 import '../../../core/widgets/modern_app_bar.dart';
 
 class TeacherProfileScreen extends ConsumerStatefulWidget {
-  const TeacherProfileScreen({super.key});
+  final bool isEmbedded;
+  const TeacherProfileScreen({super.key, this.isEmbedded = false});
 
   @override
   ConsumerState<TeacherProfileScreen> createState() => _TeacherProfileScreenState();
@@ -600,8 +601,9 @@ class _TeacherProfileScreenState extends ConsumerState<TeacherProfileScreen> {
             : 'd.henderson@beaconacademy.edu');
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: ModernAppBar(
+        automaticallyImplyLeading: !widget.isEmbedded,
         title: 'Instructor Profile',
         subtitle: 'Faculty Credentials & Security',
         actions: [
@@ -941,7 +943,7 @@ class _TeacherProfileScreenState extends ConsumerState<TeacherProfileScreen> {
       ),
 
       // 4-Tab Teacher Bottom Bar matching teacher-profile.png (Profile active at index 3)
-      bottomNavigationBar: Container(
+      bottomNavigationBar: widget.isEmbedded ? null : Container(
         decoration: const BoxDecoration(
           color: Colors.white,
           border: Border(top: BorderSide(color: Color(0xFFE5EEF8), width: 1)),

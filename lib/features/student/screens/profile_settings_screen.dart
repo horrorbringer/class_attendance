@@ -16,7 +16,8 @@ import '../../../core/storage/secure_storage.dart';
 import '../../../core/widgets/modern_app_bar.dart';
 
 class ProfileSettingsScreen extends ConsumerStatefulWidget {
-  const ProfileSettingsScreen({super.key});
+  final bool isEmbedded;
+  const ProfileSettingsScreen({super.key, this.isEmbedded = false});
 
   @override
   ConsumerState<ProfileSettingsScreen> createState() => _ProfileSettingsScreenState();
@@ -662,6 +663,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: ModernAppBar(
+        automaticallyImplyLeading: !widget.isEmbedded,
         title: 'Profile & Settings',
         subtitle: 'Student Identity & Biometrics',
         actions: [
@@ -1046,7 +1048,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
       ),
 
       // Persistent 5-Tab Bottom Navigation Bar with Profile Active (index 4)
-      bottomNavigationBar: Container(
+      bottomNavigationBar: widget.isEmbedded ? null : Container(
         decoration: const BoxDecoration(
           color: Colors.white,
           border: Border(top: BorderSide(color: Color(0xFFE2E8F0), width: 1)),

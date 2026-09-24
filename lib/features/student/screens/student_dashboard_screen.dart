@@ -1,3 +1,4 @@
+import '../../auth/models/auth_models.dart';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -259,25 +260,10 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
 
   void _onBottomNavTapped(int index) {
     HapticFeedback.selectionClick();
-    if (index == 0) {
-      setState(() => _selectedTabIndex = 0);
-    } else if (index == 1) {
+    if (index == 1) {
       _openQrScanner();
-    } else if (index == 2) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const AttendanceHistoryScreen()),
-      ).then((_) => setState(() => _selectedTabIndex = 0));
-    } else if (index == 3) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const NotificationsScreen()),
-      ).then((_) => setState(() => _selectedTabIndex = 0));
-    } else if (index == 4) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const ProfileSettingsScreen()),
-      ).then((_) => setState(() => _selectedTabIndex = 0));
+    } else {
+      setState(() => _selectedTabIndex = index);
     }
   }
 
@@ -546,6 +532,152 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
     final presentCount = _classes.where((s) => s.status == 'present' || s.status == 'late').length;
     final pendingCount = _classes.where((s) => s.status == 'upcoming').length;
 
+    return PopScope(
+      canPop: _selectedTabIndex == 0,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop && _selectedTabIndex != 0) {
+          setState(() => _selectedTabIndex = 0);
+        }
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF8FAFC),
+        body: IndexedStack(
+          index: _selectedTabIndex,
+          children: [
+            _buildHomeTab(profile, fullName, firstName, todayFormatted, totalClasses, presentCount, pendingCount),
+            const SizedBox.shrink(),
+            const AttendanceHistoryScreen(isEmbedded: true),
+            const NotificationsScreen(isEmbedded: true),
+            const ProfileSettingsScreen(isEmbedded: true),
+          ],
+        ),
+        bottomNavigationBar: _buildUnifiedStudentBottomBar(),
+      ),
+    );
+  }
+
+  Widget _buildUnifiedStudentBottomBar() {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(top: BorderSide(color: Color(0xFFE2E8F0), width: 1)),
+        boxShadow: [
+          BoxShadow(
+            color: Color(0x0610213E),
+            blurRadius: 8,
+            offset: Offset(0, -2),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          height: 64,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildBottomNavItem(
+                index: 0,
+                icon: Icons.home_outlined,
+                activeIcon: Icons.home_rounded,
+                label: 'Home',
+              ),
+              _buildBottomNavItem(
+                index: 1,
+                icon: Icons.qr_code_scanner_rounded,
+                activeIcon: Icons.qr_code_scanner_rounded,
+                label: 'Check-in',
+                isHighlight: true,
+              ),
+              _buildBottomNavItem(
+                index: 2,
+                icon: Icons.calendar_today_outlined,
+                activeIcon: Icons.calendar_today_rounded,
+                label: 'History',
+              ),
+              _buildBottomNavItem(
+                index: 3,
+                icon: Icons.notifications_none_rounded,
+                activeIcon: Icons.notifications_rounded,
+                label: 'Alerts',
+              ),
+              _buildBottomNavItem(
+                index: 4,
+                icon: Icons.person_outline_rounded,
+                activeIcon: Icons.person_rounded,
+                label: 'Profile',
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBottomNavItem({
+    required int index,
+    required IconData icon,
+    required IconData activeIcon,
+    required String label,
+    bool isHighlight = false,
+  }) {
+    final isSelected = _selectedTabIndex == index;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _onBottomNavTapped(index),
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                decoration: BoxDecoration(
+                  color: isHighlight
+                      ? const Color(0xFF10213E)
+                      : isSelected
+                          ? const Color(0xFFEFF6FF)
+                          : Colors.transparent,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(
+                  isSelected ? activeIcon : icon,
+                  size: 20,
+                  color: isHighlight
+                      ? Colors.white
+                      : isSelected
+                          ? const Color(0xFF2563EB)
+                          : const Color(0xFF64748B),
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                label,
+                style: GoogleFonts.inter(
+                  fontSize: 10,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                  color: isSelected ? const Color(0xFF10213E) : const Color(0xFF64748B),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHomeTab(
+    StudentProfile? profile,
+    String fullName,
+    String firstName,
+    String todayFormatted,
+    int totalClasses,
+    int presentCount,
+    int pendingCount,
+  ) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: PreferredSize(
@@ -576,10 +708,8 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
                 children: [
                   GestureDetector(
                     onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const ProfileSettingsScreen()),
-                      );
+                      HapticFeedback.selectionClick();
+                      setState(() => _selectedTabIndex = 4);
                     },
                     child: Stack(
                       children: [
@@ -689,10 +819,8 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
                     icon: Icons.notifications_none_rounded,
                     tooltip: 'Notifications & Alerts',
                     onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const NotificationsScreen()),
-                      ).then((_) => _loadDashboardData());
+                      HapticFeedback.selectionClick();
+                      setState(() => _selectedTabIndex = 3);
                     },
                   ),
                 ],
@@ -835,10 +963,7 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
                     GestureDetector(
                       onTap: () {
                         HapticFeedback.selectionClick();
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const AttendanceHistoryScreen()),
-                        );
+                        setState(() => _selectedTabIndex = 2);
                       },
                       child: Text(
                         'View Calendar',
@@ -927,48 +1052,6 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
         ),
       ),
 
-      // Persistent 5-Tab Bottom Navigation Bar with Home Active (index 0)
-      bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          border: Border(top: BorderSide(color: Color(0xFFE2E8F0), width: 1)),
-        ),
-        child: BottomNavigationBar(
-          currentIndex: _selectedTabIndex,
-          onTap: _onBottomNavTapped,
-          backgroundColor: Colors.white,
-          type: BottomNavigationBarType.fixed,
-          selectedItemColor: const Color(0xFF10213E),
-          unselectedItemColor: const Color(0xFF8C9BAE),
-          selectedLabelStyle: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold),
-          unselectedLabelStyle: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w500),
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined),
-              activeIcon: Icon(Icons.home_rounded),
-              label: 'Home',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.qr_code_scanner_rounded),
-              label: 'Check-in',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.calendar_today_rounded),
-              label: 'History',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.notifications_none_rounded),
-              activeIcon: Icon(Icons.notifications_rounded),
-              label: 'Alerts',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline_rounded),
-              activeIcon: Icon(Icons.person_rounded),
-              label: 'Profile',
-            ),
-          ],
-        ),
-      ),
     );
   }
 

@@ -15,7 +15,8 @@ import 'teacher_enrollment_sheet.dart';
 import '../../../core/widgets/modern_app_bar.dart';
 
 class TeacherClassesScreen extends ConsumerStatefulWidget {
-  const TeacherClassesScreen({super.key});
+  final bool isEmbedded;
+  const TeacherClassesScreen({super.key, this.isEmbedded = false});
 
   @override
   ConsumerState<TeacherClassesScreen> createState() => _TeacherClassesScreenState();
@@ -75,8 +76,9 @@ class _TeacherClassesScreenState extends ConsumerState<TeacherClassesScreen> {
     final todayFormatted = DateFormat('MMM d, yyyy').format(DateTime.now());
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F9FD),
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: ModernAppBar(
+        automaticallyImplyLeading: !widget.isEmbedded,
         title: 'Class Sessions',
         subtitle: 'Schedule & Rosters • $teacherName',
         actions: [
@@ -368,7 +370,7 @@ class _TeacherClassesScreenState extends ConsumerState<TeacherClassesScreen> {
         ),
       ),
       // 4-Tab Teacher Bottom Bar with Classes (Index 1) active
-      bottomNavigationBar: Container(
+      bottomNavigationBar: widget.isEmbedded ? null : Container(
         decoration: const BoxDecoration(
           color: Colors.white,
           border: Border(top: BorderSide(color: Color(0xFFE5EEF8), width: 1)),
