@@ -11,6 +11,7 @@ import 'teacher_home_screen.dart';
 import 'teacher_profile_screen.dart';
 import 'teacher_reports_screen.dart';
 import 'teacher_session_detail_screen.dart';
+import '../../../core/widgets/modern_app_bar.dart';
 
 class TeacherClassesScreen extends ConsumerStatefulWidget {
   const TeacherClassesScreen({super.key});
@@ -113,7 +114,27 @@ class _TeacherClassesScreenState extends ConsumerState<TeacherClassesScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7F9FD),
+      appBar: ModernAppBar(
+        title: 'Class Sessions',
+        subtitle: 'Schedule & Rosters • $teacherName',
+        actions: [
+          ModernAppBarAction(
+            icon: Icons.add_rounded,
+            tooltip: 'Create New Session',
+            iconColor: Colors.white,
+            backgroundColor: const Color(0xFF10213E),
+            onPressed: _openCreateSessionSheet,
+          ),
+          const SizedBox(width: 8),
+          ModernAppBarAction(
+            icon: Icons.refresh_rounded,
+            tooltip: 'Refresh Classes',
+            onPressed: _fetchTodayClasses,
+          ),
+        ],
+      ),
       body: SafeArea(
+        top: false,
         child: RefreshIndicator(
           onRefresh: _fetchTodayClasses,
           color: const Color(0xFF1B2A4A),
@@ -123,81 +144,6 @@ class _TeacherClassesScreenState extends ConsumerState<TeacherClassesScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Top Header Row matching teacher-class-list.png
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    GestureDetector(
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const TeacherProfileScreen()),
-                      ),
-                      child: Row(
-                        children: [
-                          const CircleAvatar(
-                            radius: 26,
-                            backgroundImage: NetworkImage(
-                              'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200',
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                teacherName,
-                                style: GoogleFonts.outfit(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w800,
-                                  color: const Color(0xFF10213E),
-                                ),
-                              ),
-                              Text(
-                                'Senior Science Instructor',
-                                style: GoogleFonts.inter(
-                                  fontSize: 13,
-                                  color: const Color(0xFF64748B),
-                                  fontWeight: FontWeight.w400,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    // Right Info / Security Shield Button
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: const Color(0xFFE2E8F0)),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Color(0x03000000),
-                            blurRadius: 2,
-                            offset: Offset(0, 1),
-                          ),
-                        ],
-                      ),
-                      child: IconButton(
-                        icon: const Icon(Icons.shield_outlined, color: Color(0xFF10213E), size: 20),
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Classroom network security & beacon telemetry active.'),
-                              behavior: SnackBarBehavior.floating,
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                ).animate().fadeIn(duration: 250.ms),
-
-                const SizedBox(height: 20),
 
                 // Hero Stats Card matching teacher-class-list.png
                 Container(

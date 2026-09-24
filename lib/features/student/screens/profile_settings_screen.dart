@@ -11,6 +11,7 @@ import 'attendance_history_screen.dart';
 import 'face_enrollment_screen.dart';
 import 'notifications_screen.dart';
 import 'qr_scanner_screen.dart';
+import '../../../core/widgets/modern_app_bar.dart';
 
 class ProfileSettingsScreen extends ConsumerStatefulWidget {
   const ProfileSettingsScreen({super.key});
@@ -557,7 +558,19 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
+      appBar: ModernAppBar(
+        title: 'Profile & Settings',
+        subtitle: 'Student Identity & Biometrics',
+        actions: [
+          ModernAppBarAction(
+            icon: Icons.badge_outlined,
+            tooltip: 'Digital Student Pass',
+            onPressed: () => _showDigitalIdModal(fullName, studentId, section),
+          ),
+        ],
+      ),
       body: SafeArea(
+        top: false,
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(vertical: 20),
           child: Column(

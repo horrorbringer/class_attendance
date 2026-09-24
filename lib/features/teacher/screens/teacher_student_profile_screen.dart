@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../attendance/models/attendance_models.dart';
 import '../../student/repositories/student_repository.dart';
+import '../../../core/widgets/modern_app_bar.dart';
 
 class TeacherStudentProfileScreen extends ConsumerStatefulWidget {
   final int? studentPk;
@@ -73,52 +74,47 @@ class _TeacherStudentProfileScreenState extends ConsumerState<TeacherStudentProf
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF7F9FD),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFFF7F9FD),
-        elevation: 0,
-        leading: GestureDetector(
-          onTap: () => Navigator.pop(context),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(width: 14),
-              const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFF10213E), size: 16),
-              const SizedBox(width: 4),
-              Text(
-                'Roster',
-                style: GoogleFonts.inter(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: const Color(0xFF10213E),
-                ),
-              ),
-            ],
-          ),
-        ),
-        leadingWidth: 100,
+      appBar: ModernAppBar(
+        title: 'Student Profile',
+        subtitle: 'Academic Records & Attendance',
         actions: [
-          TextButton(
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Editing student academic records...'),
-                  behavior: SnackBarBehavior.floating,
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Editing student academic records...'),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                },
+                borderRadius: BorderRadius.circular(10),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEFF6FF),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFFDBEAFE)),
+                  ),
+                  child: Text(
+                    'Edit Profile',
+                    style: GoogleFonts.inter(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF2563EB),
+                    ),
+                  ),
                 ),
-              );
-            },
-            child: Text(
-              'Edit Profile',
-              style: GoogleFonts.inter(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: const Color(0xFF2563EB),
               ),
             ),
           ),
-          const SizedBox(width: 10),
         ],
       ),
       body: SafeArea(
+        top: false,
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
           child: Column(

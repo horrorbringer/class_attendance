@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import '../repositories/teacher_repository.dart';
 import '../../attendance/models/attendance_models.dart';
 import '../../auth/controllers/auth_controller.dart';
@@ -67,7 +68,205 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7F9FD),
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(68),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: const Border(
+              bottom: BorderSide(color: Color(0xFFE2E8F0), width: 1.0),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF10213E).withValues(alpha: 0.04),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: SafeArea(
+            bottom: false,
+            child: Container(
+              height: 68,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const TeacherProfileScreen()),
+                      );
+                    },
+                    child: Stack(
+                      children: [
+                        CircleAvatar(
+                          radius: 22,
+                          backgroundColor: const Color(0xFF1B2A4A),
+                          child: Text(
+                            teacherName.isNotEmpty ? teacherName[0].toUpperCase() : 'T',
+                            style: GoogleFonts.outfit(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: Container(
+                            width: 12,
+                            height: 12,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF10B981),
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 2),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                teacherName,
+                                style: GoogleFonts.outfit(
+                                  fontSize: 16.5,
+                                  fontWeight: FontWeight.w800,
+                                  color: const Color(0xFF10213E),
+                                  letterSpacing: -0.2,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFEFF6FF),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                'FACULTY',
+                                style: GoogleFonts.inter(
+                                  fontSize: 9.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFF2563EB),
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 2),
+                        Row(
+                          children: [
+                            Container(
+                              width: 6,
+                              height: 6,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFF10B981),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 5),
+                            Text(
+                              'Active & Syncing Live',
+                              style: GoogleFonts.inter(
+                                fontSize: 11.5,
+                                color: const Color(0xFF64748B),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // "+ New Class" fast action button
+                  ElevatedButton.icon(
+                    onPressed: _openCreateSession,
+                    icon: const Icon(Icons.add_rounded, size: 16),
+                    label: Text(
+                      'New Class',
+                      style: GoogleFonts.inter(fontSize: 12.5, fontWeight: FontWeight.w600),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF10213E),
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  // More options popup
+                  PopupMenuButton<String>(
+                    tooltip: 'Options',
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    onSelected: (val) {
+                      if (val == 'profile') {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const TeacherProfileScreen()),
+                        );
+                      } else if (val == 'logout') {
+                        _showLogoutConfirmation();
+                      }
+                    },
+                    child: Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: const Icon(Icons.more_vert_rounded, color: Color(0xFF10213E), size: 19),
+                    ),
+                    itemBuilder: (ctx) => [
+                      PopupMenuItem(
+                        value: 'profile',
+                        child: Row(
+                          children: [
+                            const Icon(Icons.person_outline_rounded, size: 18, color: Color(0xFF10213E)),
+                            const SizedBox(width: 10),
+                            Text('Profile & Settings', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500)),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuDivider(),
+                      PopupMenuItem(
+                        value: 'logout',
+                        child: Row(
+                          children: [
+                            const Icon(Icons.logout_rounded, size: 18, color: Color(0xFFDC2626)),
+                            const SizedBox(width: 10),
+                            Text('Log Out', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: const Color(0xFFDC2626))),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
       body: SafeArea(
+        top: false,
         child: RefreshIndicator(
           onRefresh: _fetchTodayClasses,
           color: const Color(0xFF1B2A4A),
@@ -77,10 +276,10 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 1. Header with Teacher Profile & Quick Action
-                _buildHeader(teacherName),
+                // 1. Welcome Greeting Banner
+                _buildWelcomeBanner(teacherName),
 
-                const SizedBox(height: 20),
+                const SizedBox(height: 18),
 
                 // 2. Active "Live Attendance" Session Hero Card
                 _buildLiveSessionHeroCard(),
@@ -212,180 +411,34 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen> {
     );
   }
 
-  Widget _buildHeader(String teacherName) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  Widget _buildWelcomeBanner(String teacherName) {
+    final firstName = teacherName.split(' ').first;
+    final todayFormatted = DateFormat('EEEE, MMM d, yyyy').format(DateTime.now());
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const TeacherProfileScreen()),
-              );
-            },
-            child: Row(
-              children: [
-                Stack(
-                  children: [
-                    CircleAvatar(
-                      radius: 26,
-                      backgroundColor: const Color(0xFF1B2A4A),
-                      child: Text(
-                        teacherName.isNotEmpty ? teacherName[0].toUpperCase() : 'T',
-                        style: GoogleFonts.outfit(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: Container(
-                        width: 13,
-                        height: 13,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF10B981),
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 2),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '${_getTimeGreeting()} 👋',
-                        style: GoogleFonts.inter(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          color: const Color(0xFF64748B),
-                        ),
-                      ),
-                      Text(
-                        teacherName,
-                        style: GoogleFonts.outfit(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w800,
-                          color: const Color(0xFF10213E),
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      Text(
-                        'Senior Science Instructor • Grade 11',
-                        style: GoogleFonts.inter(
-                          fontSize: 12,
-                          color: const Color(0xFF94A3B8),
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+        Text(
+          '${_getTimeGreeting()}, $firstName 👋',
+          style: GoogleFonts.outfit(
+            fontSize: 24,
+            fontWeight: FontWeight.w800,
+            color: const Color(0xFF10213E),
+            letterSpacing: -0.5,
           ),
         ),
-        const SizedBox(width: 10),
+        const SizedBox(height: 3),
         Row(
-          mainAxisSize: MainAxisSize.min,
           children: [
-            // Alert Notification Icon
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x03000000),
-                    blurRadius: 2,
-                    offset: Offset(0, 1),
-                  ),
-                ],
+            const Icon(Icons.calendar_today_outlined, size: 13.5, color: Color(0xFF64748B)),
+            const SizedBox(width: 6),
+            Text(
+              todayFormatted,
+              style: GoogleFonts.inter(
+                fontSize: 13.5,
+                color: const Color(0xFF64748B),
+                fontWeight: FontWeight.w500,
               ),
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  const Icon(Icons.notifications_none_rounded, color: Color(0xFF10213E), size: 20),
-                  Positioned(
-                    top: 10,
-                    right: 10,
-                    child: Container(
-                      width: 7,
-                      height: 7,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFEF4444),
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            // Profile & Logout Menu Button
-            PopupMenuButton<String>(
-              tooltip: 'Teacher Options',
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-              onSelected: (val) {
-                if (val == 'profile') {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const TeacherProfileScreen()),
-                  );
-                } else if (val == 'logout') {
-                  _showLogoutConfirmation();
-                }
-              },
-              child: Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x03000000),
-                      blurRadius: 2,
-                      offset: Offset(0, 1),
-                    ),
-                  ],
-                ),
-                child: const Icon(Icons.more_vert_rounded, color: Color(0xFF10213E), size: 20),
-              ),
-              itemBuilder: (ctx) => [
-                PopupMenuItem(
-                  value: 'profile',
-                  child: Row(
-                    children: [
-                      const Icon(Icons.person_outline_rounded, size: 18, color: Color(0xFF10213E)),
-                      const SizedBox(width: 10),
-                      Text('Profile & Settings', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500)),
-                    ],
-                  ),
-                ),
-                const PopupMenuDivider(),
-                PopupMenuItem(
-                  value: 'logout',
-                  child: Row(
-                    children: [
-                      const Icon(Icons.logout_rounded, size: 18, color: Color(0xFFDC2626)),
-                      const SizedBox(width: 10),
-                      Text('Log Out', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: const Color(0xFFDC2626))),
-                    ],
-                  ),
-                ),
-              ],
             ),
           ],
         ),

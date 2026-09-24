@@ -8,6 +8,7 @@ import 'package:screen_brightness/screen_brightness.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import '../repositories/teacher_repository.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/modern_app_bar.dart';
 import '../../attendance/models/attendance_models.dart';
 
 class TeacherDynamicQrScreen extends ConsumerStatefulWidget {
@@ -170,11 +171,13 @@ class _TeacherDynamicQrScreenState extends ConsumerState<TeacherDynamicQrScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('${widget.classRoomName} QR'),
+      backgroundColor: const Color(0xFFF7F9FD),
+      appBar: ModernAppBar(
+        title: '${widget.classRoomName} QR',
+        subtitle: 'Rotating Beacon Token',
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded),
+          ModernAppBarAction(
+            icon: Icons.refresh_rounded,
             tooltip: 'Refresh Token Now',
             onPressed: () {
               if (_isDemoMode) {
@@ -184,8 +187,9 @@ class _TeacherDynamicQrScreenState extends ConsumerState<TeacherDynamicQrScreen>
               }
             },
           ),
-          IconButton(
-            icon: const Icon(Icons.copy_rounded),
+          const SizedBox(width: 8),
+          ModernAppBarAction(
+            icon: Icons.copy_rounded,
             tooltip: 'Copy Token',
             onPressed: _copyToken,
           ),

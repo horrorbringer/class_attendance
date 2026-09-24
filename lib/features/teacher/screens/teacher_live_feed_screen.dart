@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../repositories/teacher_repository.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/modern_app_bar.dart';
 import '../../attendance/models/attendance_models.dart';
 import 'teacher_dynamic_qr_screen.dart';
 
@@ -200,11 +202,13 @@ class _TeacherLiveFeedScreenState extends ConsumerState<TeacherLiveFeedScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('${widget.classRoomName} Live'),
+      backgroundColor: const Color(0xFFF7F9FD),
+      appBar: ModernAppBar(
+        title: '${widget.classRoomName} Live',
+        subtitle: 'Real-time Verification Stream',
         actions: [
-          IconButton(
-            icon: const Icon(Icons.qr_code_rounded),
+          ModernAppBarAction(
+            icon: Icons.qr_code_rounded,
             tooltip: 'Show Dynamic QR',
             onPressed: () {
               Navigator.push(
@@ -218,18 +222,23 @@ class _TeacherLiveFeedScreenState extends ConsumerState<TeacherLiveFeedScreen>
               );
             },
           ),
-          if (!_isSessionEnded)
-            IconButton(
-              icon: const Icon(Icons.stop_circle_outlined, color: AppTheme.absent),
+          if (!_isSessionEnded) ...[
+            const SizedBox(width: 8),
+            ModernAppBarAction(
+              icon: Icons.stop_circle_outlined,
+              iconColor: const Color(0xFFDC2626),
               tooltip: 'End Class Session',
               onPressed: _endSession,
             ),
+          ],
         ],
         bottom: TabBar(
           controller: _tabController,
-          indicatorColor: AppTheme.primary,
-          labelColor: AppTheme.primary,
-          unselectedLabelColor: AppTheme.textMuted,
+          indicatorColor: const Color(0xFF10213E),
+          labelColor: const Color(0xFF10213E),
+          labelStyle: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 13),
+          unselectedLabelColor: const Color(0xFF64748B),
+          unselectedLabelStyle: GoogleFonts.inter(fontWeight: FontWeight.w500, fontSize: 13),
           tabs: const [
             Tab(text: 'Live Feed & Ticker'),
             Tab(text: 'Classroom Roster'),

@@ -9,6 +9,7 @@ import 'attendance_history_screen.dart';
 import 'face_enrollment_screen.dart';
 import 'profile_settings_screen.dart';
 import 'qr_scanner_screen.dart';
+import '../../../core/widgets/modern_app_bar.dart';
 
 enum AlertCategory { all, absences, late, system }
 
@@ -658,7 +659,48 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
+      appBar: ModernAppBar(
+        title: 'Notifications & Alerts',
+        subtitle: _unreadCount > 0 ? '$_unreadCount unread updates' : 'All updates viewed',
+        actions: [
+          if (_unreadCount > 0)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: _markAllAsRead,
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEFF6FF),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFDBEAFE)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.done_all_rounded, size: 14, color: Color(0xFF2563EB)),
+                        const SizedBox(width: 5),
+                        Text(
+                          'Mark Read',
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF2563EB),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
       body: SafeArea(
+        top: false,
         child: RefreshIndicator(
           onRefresh: _fetchAlerts,
           color: const Color(0xFF10213E),
@@ -671,55 +713,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const SizedBox(height: 18),
-
-                    // Header row matching Mockup 09
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Text(
-                            'Notifications',
-                            style: GoogleFonts.outfit(
-                              fontSize: 26,
-                              fontWeight: FontWeight.w800,
-                              color: const Color(0xFF10213E),
-                              letterSpacing: -0.5,
-                            ),
-                          ),
-                          if (_unreadCount > 0)
-                            GestureDetector(
-                              onTap: _markAllAsRead,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFEFF6FF),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(Icons.done_all_rounded, size: 14, color: Color(0xFF2563EB)),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      'Mark all read',
-                                      style: GoogleFonts.inter(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                        color: const Color(0xFF2563EB),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 16),
 
                     // Filter Pills matching Mockup 09: All, Absences, Late, System
                     Padding(

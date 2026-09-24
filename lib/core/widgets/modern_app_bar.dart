@@ -134,7 +134,7 @@ class ModernAppBar extends StatelessWidget implements PreferredSizeWidget {
                 ],
               ),
             ),
-            if (bottom != null) bottom!,
+            ?bottom,
           ],
         ),
       ),

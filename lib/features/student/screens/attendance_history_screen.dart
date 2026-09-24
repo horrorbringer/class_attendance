@@ -8,6 +8,7 @@ import '../../attendance/models/attendance_models.dart';
 import 'notifications_screen.dart';
 import 'profile_settings_screen.dart';
 import 'qr_scanner_screen.dart';
+import '../../../core/widgets/modern_app_bar.dart';
 
 class AttendanceHistoryScreen extends ConsumerStatefulWidget {
   const AttendanceHistoryScreen({super.key});
@@ -148,7 +149,19 @@ class _AttendanceHistoryScreenState extends ConsumerState<AttendanceHistoryScree
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7F9FD),
+      appBar: ModernAppBar(
+        title: 'Attendance History',
+        subtitle: 'Academic Term: Fall 2026',
+        actions: [
+          ModernAppBarAction(
+            icon: Icons.refresh_rounded,
+            tooltip: 'Refresh Records',
+            onPressed: _fetchHistory,
+          ),
+        ],
+      ),
       body: SafeArea(
+        top: false,
         child: RefreshIndicator(
           onRefresh: _fetchHistory,
           color: const Color(0xFF1A3258),
@@ -156,69 +169,10 @@ class _AttendanceHistoryScreenState extends ConsumerState<AttendanceHistoryScree
             physics: const AlwaysScrollableScrollPhysics(
               parent: ClampingScrollPhysics(),
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Top App Bar / Back row
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    GestureDetector(
-                      onTap: () => Navigator.pop(context),
-                      child: Container(
-                        width: 38,
-                        height: 38,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: const Color(0xFFE2E8F0)),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Color(0x03000000),
-                              blurRadius: 2,
-                              offset: Offset(0, 1),
-                            ),
-                          ],
-                        ),
-                        child: const Icon(
-                          Icons.arrow_back_ios_new_rounded,
-                          size: 16,
-                          color: Color(0xFF10213E),
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.refresh_rounded, color: Color(0xFF1A3258)),
-                      tooltip: 'Refresh',
-                      onPressed: _fetchHistory,
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 14),
-
-                // Title: Attendance History matching docs/ui/08 — Attendance History.png
-                Text(
-                  'Attendance History',
-                  style: GoogleFonts.outfit(
-                    fontSize: 26,
-                    fontWeight: FontWeight.w800,
-                    color: const Color(0xFF10213E),
-                    letterSpacing: -0.5,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  'Academic Term: Fall 2026',
-                  style: GoogleFonts.inter(
-                    fontSize: 13.5,
-                    color: const Color(0xFF5C6E84),
-                    fontWeight: FontWeight.w400,
-                  ),
-                ),
-
-                const SizedBox(height: 20),
 
                 // Calendar Card matching docs/ui/08 — Attendance History.png
                 Container(

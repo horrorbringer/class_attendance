@@ -7,6 +7,7 @@ import '../../auth/controllers/auth_controller.dart';
 import 'teacher_classes_screen.dart';
 import 'teacher_home_screen.dart';
 import 'teacher_reports_screen.dart';
+import '../../../core/widgets/modern_app_bar.dart';
 
 class TeacherProfileScreen extends ConsumerStatefulWidget {
   const TeacherProfileScreen({super.key});
@@ -489,7 +490,20 @@ class _TeacherProfileScreenState extends ConsumerState<TeacherProfileScreen> {
 
     return Scaffold(
       backgroundColor: Colors.white,
+      appBar: ModernAppBar(
+        title: 'Instructor Profile',
+        subtitle: 'Faculty Credentials & Security',
+        actions: [
+          ModernAppBarAction(
+            icon: Icons.logout_rounded,
+            tooltip: 'Log Out',
+            iconColor: const Color(0xFFDC2626),
+            onPressed: () => _showLogoutConfirmation(),
+          ),
+        ],
+      ),
       body: SafeArea(
+        top: false,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(
             parent: ClampingScrollPhysics(),
@@ -497,35 +511,6 @@ class _TeacherProfileScreenState extends ConsumerState<TeacherProfileScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header Section matching docs/teacher/teacher-profile.png
-              Padding(
-                padding: const EdgeInsets.only(left: 20, right: 20, top: 20, bottom: 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'My Profile',
-                      style: GoogleFonts.outfit(
-                        fontSize: 26,
-                        fontWeight: FontWeight.w800,
-                        color: const Color(0xFF1B2A4A),
-                        letterSpacing: -0.4,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Account details & classroom parameters',
-                      style: GoogleFonts.inter(
-                        fontSize: 13.5,
-                        color: const Color(0xFF64748B),
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const Divider(height: 1, thickness: 1, color: Color(0xFFE2E8F0)),
 
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),

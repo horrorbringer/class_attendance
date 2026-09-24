@@ -7,6 +7,7 @@ import '../../auth/controllers/auth_controller.dart';
 import 'teacher_classes_screen.dart';
 import 'teacher_home_screen.dart';
 import 'teacher_profile_screen.dart';
+import '../../../core/widgets/modern_app_bar.dart';
 
 class TeacherReportsScreen extends ConsumerStatefulWidget {
   const TeacherReportsScreen({super.key});
@@ -230,52 +231,30 @@ class _TeacherReportsScreenState extends ConsumerState<TeacherReportsScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7F9FD),
+      appBar: ModernAppBar(
+        title: 'Analytics & Reports',
+        subtitle: 'Classroom Metrics • $teacherName',
+        actions: [
+          ModernAppBarAction(
+            icon: Icons.file_download_outlined,
+            tooltip: 'Export CSV Report',
+            onPressed: () => _showExportOptionsSheet(),
+          ),
+          const SizedBox(width: 8),
+          ModernAppBarAction(
+            icon: Icons.refresh_rounded,
+            tooltip: 'Refresh Reports',
+            onPressed: () => setState(() {}),
+          ),
+        ],
+      ),
       body: SafeArea(
+        top: false,
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Top Profile Header matching teacher-reports.png
-              Row(
-                children: [
-                  CircleAvatar(
-                    radius: 28,
-                    backgroundColor: const Color(0xFF1B2A4A),
-                    child: Text(
-                      teacherName.isNotEmpty ? teacherName[0].toUpperCase() : 'T',
-                      style: GoogleFonts.outfit(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Analytics & Trends',
-                        style: GoogleFonts.outfit(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w800,
-                          color: const Color(0xFF10213E),
-                        ),
-                      ),
-                      Text(
-                        'Grade 11 Academic Year',
-                        style: GoogleFonts.inter(
-                          fontSize: 13,
-                          color: const Color(0xFF64748B),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ).animate().fadeIn(duration: 250.ms),
-
-              const SizedBox(height: 20),
 
               // October 2026 Week Strip Container
               Container(
