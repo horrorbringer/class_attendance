@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:screen_brightness/screen_brightness.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 import '../repositories/teacher_repository.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../attendance/models/attendance_models.dart';
@@ -33,6 +35,7 @@ class _TeacherDynamicQrScreenState extends ConsumerState<TeacherDynamicQrScreen>
   @override
   void initState() {
     super.initState();
+    _setupScreenPerformance();
     _fetchDynamicQr();
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted || _qrData == null || _isLoading) return;
@@ -48,9 +51,20 @@ class _TeacherDynamicQrScreenState extends ConsumerState<TeacherDynamicQrScreen>
     });
   }
 
+  Future<void> _setupScreenPerformance() async {
+    try {
+      await WakelockPlus.enable();
+      await ScreenBrightness().setApplicationScreenBrightness(1.0);
+    } catch (_) {}
+  }
+
   @override
   void dispose() {
     _countdownTimer?.cancel();
+    try {
+      WakelockPlus.disable();
+      ScreenBrightness().resetApplicationScreenBrightness();
+    } catch (_) {}
     super.dispose();
   }
 

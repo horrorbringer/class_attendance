@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../attendance/models/attendance_models.dart';
+import '../../student/repositories/student_repository.dart';
 
-class TeacherStudentProfileScreen extends StatelessWidget {
+class TeacherStudentProfileScreen extends ConsumerStatefulWidget {
+  final int? studentPk;
   final String studentName;
   final String studentId;
   final String grade;
@@ -15,6 +19,7 @@ class TeacherStudentProfileScreen extends StatelessWidget {
 
   const TeacherStudentProfileScreen({
     super.key,
+    this.studentPk,
     this.studentName = 'Marcus Vance',
     this.studentId = '202611',
     this.grade = 'Grade 11-A',
@@ -25,6 +30,44 @@ class TeacherStudentProfileScreen extends StatelessWidget {
     this.guardianName = 'Robert Vance',
     this.guardianPhone = '(555) 019-2834',
   });
+
+  @override
+  ConsumerState<TeacherStudentProfileScreen> createState() => _TeacherStudentProfileScreenState();
+}
+
+class _TeacherStudentProfileScreenState extends ConsumerState<TeacherStudentProfileScreen> {
+  StudentAttendanceReport? _report;
+  bool _isLoadingReport = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLiveReport();
+  }
+
+  Future<void> _loadLiveReport() async {
+    if (widget.studentPk == null) return;
+    setState(() => _isLoadingReport = true);
+
+    try {
+      final rep = await ref.read(studentRepositoryProvider).getStudentReport(widget.studentPk!);
+      if (mounted) {
+        setState(() {
+          _report = rep;
+          _isLoadingReport = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _isLoadingReport = false);
+      }
+    }
+  }
+
+  String get _displayName => _report?.studentName.isNotEmpty == true ? _report!.studentName : widget.studentName;
+  String get _displayGrade => _report?.classRoom.isNotEmpty == true ? _report!.classRoom : widget.grade;
+  String get _displayAttendanceRate => _report != null ? '${_report!.attendanceRate.toStringAsFixed(1)}%' : widget.attendanceRate;
+  String get _displayAbsences => _report != null ? '${_report!.absentCount} ${_report!.absentCount == 1 ? 'Day' : 'Days'}' : widget.absences;
 
   @override
   Widget build(BuildContext context) {
@@ -81,7 +124,14 @@ class TeacherStudentProfileScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Avatar & Student Header matching teacher-student-profile.png
+              if (_isLoadingReport)
+                const LinearProgressIndicator(
+                  minHeight: 2,
+                  backgroundColor: Colors.transparent,
+                  color: Color(0xFF2563EB),
+                ),
+
+              // Avatar & Student Header
               Row(
                 children: [
                   CircleAvatar(
@@ -91,7 +141,7 @@ class TeacherStudentProfileScreen extends StatelessWidget {
                       'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200',
                     ),
                     child: Text(
-                      studentName.isNotEmpty ? studentName[0] : 'S',
+                      _displayName.isNotEmpty ? _displayName[0] : 'S',
                       style: GoogleFonts.outfit(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
                     ),
                   ),
@@ -101,7 +151,7 @@ class TeacherStudentProfileScreen extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          studentName,
+                          _displayName,
                           style: GoogleFonts.outfit(
                             fontSize: 22,
                             fontWeight: FontWeight.w800,
@@ -110,7 +160,7 @@ class TeacherStudentProfileScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '$grade • ID: $studentId',
+                          '$_displayGrade • ID: ${widget.studentId}',
                           style: GoogleFonts.inter(
                             fontSize: 13,
                             color: const Color(0xFF64748B),
@@ -128,13 +178,37 @@ class TeacherStudentProfileScreen extends StatelessWidget {
               // 3 Metric Badges Row
               Row(
                 children: [
-                  _buildMetricCard('ATTENDANCE', attendanceRate, const Color(0xFF10213E)),
+                  _buildMetricCard('ATTENDANCE', _displayAttendanceRate, const Color(0xFF10213E)),
                   const SizedBox(width: 12),
-                  _buildMetricCard('ABSENCES', absences, const Color(0xFFB91C1C)),
+                  _buildMetricCard('ABSENCES', _displayAbsences, const Color(0xFFB91C1C)),
                   const SizedBox(width: 12),
-                  _buildMetricCard('WARNINGS', warnings, const Color(0xFFB45309)),
+                  _buildMetricCard('WARNINGS', widget.warnings, const Color(0xFFB45309)),
                 ],
               ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.05, end: 0),
+
+              if (_report != null) ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _buildMiniStat('Present', '${_report!.presentCount}', const Color(0xFF10B981)),
+                      Container(width: 1, height: 24, color: const Color(0xFFE2E8F0)),
+                      _buildMiniStat('Late', '${_report!.lateCount}', const Color(0xFFF59E0B)),
+                      Container(width: 1, height: 24, color: const Color(0xFFE2E8F0)),
+                      _buildMiniStat('Absent', '${_report!.absentCount}', const Color(0xFFEF4444)),
+                      Container(width: 1, height: 24, color: const Color(0xFFE2E8F0)),
+                      _buildMiniStat('Total', '${_report!.totalRecordedSessions}', const Color(0xFF64748B)),
+                    ],
+                  ),
+                ).animate().fadeIn(delay: 150.ms),
+              ],
 
               const SizedBox(height: 24),
 
@@ -165,20 +239,20 @@ class TeacherStudentProfileScreen extends StatelessWidget {
                 ),
                 child: Column(
                   children: [
-                    _buildContactRow('Email', email),
+                    _buildContactRow('Email', widget.email),
                     const Divider(height: 20, color: Color(0xFFF1F5F9)),
-                    _buildContactRow('Guardian Name', guardianName),
+                    _buildContactRow('Guardian Name', widget.guardianName),
                     const Divider(height: 20, color: Color(0xFFF1F5F9)),
-                    _buildContactRow('Guardian Phone', guardianPhone),
+                    _buildContactRow('Guardian Phone', widget.guardianPhone),
                   ],
                 ),
               ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.05, end: 0),
 
               const SizedBox(height: 24),
 
-              // Section: Marcus's Records
+              // Section: Records
               Text(
-                '${studentName.split(' ').first}\'s Records',
+                '${_displayName.split(' ').first}\'s Records',
                 style: GoogleFonts.outfit(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -188,11 +262,11 @@ class TeacherStudentProfileScreen extends StatelessWidget {
               const SizedBox(height: 12),
 
               // Attendance History Cards
-              _buildHistoryRecordCard('Advanced Mathematics', 'Oct 12, 2026', 'Present', const Color(0xFFD1FAE5), const Color(0xFF047857)),
+              _buildHistoryRecordCard('Advanced Mathematics', 'Recent Session', 'Present', const Color(0xFFD1FAE5), const Color(0xFF047857)),
               const SizedBox(height: 10),
-              _buildHistoryRecordCard('Physics Lab II', 'Oct 09, 2026', 'Absent', const Color(0xFFFFE4E6), const Color(0xFFBE123C)),
+              _buildHistoryRecordCard('Physics Lab II', 'Prior Session', 'Absent', const Color(0xFFFFE4E6), const Color(0xFFBE123C)),
               const SizedBox(height: 10),
-              _buildHistoryRecordCard('Intro to Computer Science', 'Oct 08, 2026', 'Present', const Color(0xFFD1FAE5), const Color(0xFF047857)),
+              _buildHistoryRecordCard('Intro to Computer Science', 'Prior Session', 'Present', const Color(0xFFD1FAE5), const Color(0xFF047857)),
 
               const SizedBox(height: 24),
             ],
@@ -200,14 +274,13 @@ class TeacherStudentProfileScreen extends StatelessWidget {
         ),
       ),
 
-      // 4-Tab Teacher Bottom Bar with Profile active
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
           color: Colors.white,
           border: Border(top: BorderSide(color: Color(0xFFE5EEF8), width: 1)),
         ),
         child: BottomNavigationBar(
-          currentIndex: 3, // Profile is active
+          currentIndex: 3,
           onTap: (index) {
             Navigator.pop(context);
           },
@@ -237,6 +310,22 @@ class TeacherStudentProfileScreen extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildMiniStat(String label, String value, Color color) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.bold, color: color),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFF64748B), fontWeight: FontWeight.w500),
+        ),
+      ],
     );
   }
 

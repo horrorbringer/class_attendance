@@ -1,8 +1,10 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../core/network/api_error_handler.dart';
 import '../../attendance/models/attendance_models.dart';
 import '../repositories/teacher_repository.dart';
 import 'teacher_dynamic_qr_screen.dart';
@@ -186,7 +188,11 @@ class _TeacherSessionDetailScreenState extends ConsumerState<TeacherSessionDetai
   }
 
   Future<void> _toggleStudentStatus(RosterStudentItem student, bool isChecked) async {
+    final oldStatus = student.status;
     final newStatus = isChecked ? 'present' : 'absent';
+    if (oldStatus == newStatus) return;
+
+    HapticFeedback.lightImpact();
     setState(() {
       student.status = newStatus;
     });
@@ -197,28 +203,59 @@ class _TeacherSessionDetailScreenState extends ConsumerState<TeacherSessionDetai
           recordId: student.recordId!,
           status: newStatus,
         );
-      } catch (_) {}
+      } catch (e) {
+        if (mounted) {
+          setState(() {
+            student.status = oldStatus;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to update status: ${ApiErrorHandler.getMessage(e)}'),
+              backgroundColor: const Color(0xFFEF4444),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
     }
   }
 
   Future<void> _cycleStudentStatus(RosterStudentItem student) async {
+    final oldStatus = student.status;
+    String nextStatus;
+    if (oldStatus == 'present') {
+      nextStatus = 'late';
+    } else if (oldStatus == 'late') {
+      nextStatus = 'absent';
+    } else {
+      nextStatus = 'present';
+    }
+
+    HapticFeedback.lightImpact();
     setState(() {
-      if (student.status == 'present') {
-        student.status = 'late';
-      } else if (student.status == 'late') {
-        student.status = 'absent';
-      } else {
-        student.status = 'present';
-      }
+      student.status = nextStatus;
     });
 
     if (student.recordId != null) {
       try {
         await ref.read(teacherRepositoryProvider).overrideAttendance(
           recordId: student.recordId!,
-          status: student.status,
+          status: nextStatus,
         );
-      } catch (_) {}
+      } catch (e) {
+        if (mounted) {
+          setState(() {
+            student.status = oldStatus;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to update status: ${ApiErrorHandler.getMessage(e)}'),
+              backgroundColor: const Color(0xFFEF4444),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
     }
   }
 
@@ -596,6 +633,7 @@ class _TeacherSessionDetailScreenState extends ConsumerState<TeacherSessionDetai
                               context,
                               MaterialPageRoute(
                                 builder: (_) => TeacherStudentProfileScreen(
+                                  studentPk: int.tryParse(student.id),
                                   studentName: student.name,
                                   studentId: student.studentId,
                                   email: student.email,
