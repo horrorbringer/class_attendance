@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-import '../../../core/config/api_constants.dart';
-import '../../../core/network/api_client.dart';
+import '../../attendance/models/attendance_models.dart';
+import '../repositories/teacher_repository.dart';
 import 'teacher_dynamic_qr_screen.dart';
 
 /// Class selection option
@@ -189,14 +189,14 @@ class _TeacherCreateSessionSheetState extends ConsumerState<TeacherCreateSession
     final startTimeStr = _formatTimeOfDay(_startTime);
     final endTimeStr = _formatTimeOfDay(_endTime);
 
-    final payload = {
-      'class_room': _selectedClassId,
-      'date': dateStr,
-      'start_time': startTimeStr,
-      'end_time': endTimeStr,
-      'auto_generate_qr': _autoGenerateQr,
-      'qr_expiry_minutes': _qrExpiryMinutes,
-    };
+    final request = CreateSessionRequest(
+      classRoom: _selectedClassId,
+      date: dateStr,
+      startTime: startTimeStr,
+      endTime: endTimeStr,
+      autoGenerateQr: _autoGenerateQr,
+      qrExpiryMinutes: _qrExpiryMinutes,
+    );
 
     final selectedClass = _classes.firstWhere(
       (c) => c.id == _selectedClassId,
@@ -204,15 +204,9 @@ class _TeacherCreateSessionSheetState extends ConsumerState<TeacherCreateSession
     );
 
     try {
-      final dio = ref.read(dioProvider);
-      final response = await dio.post(
-        ApiConstants.teacherSessions,
-        data: payload,
-      );
-
-      final data = response.data;
-      final int newSessionId = (data is Map && data['id'] is int)
-          ? data['id'] as int
+      final createdSession = await ref.read(teacherRepositoryProvider).createSession(request);
+      final int newSessionId = createdSession.id > 0
+          ? createdSession.id
           : (DateTime.now().millisecondsSinceEpoch ~/ 1000);
 
       if (mounted) {

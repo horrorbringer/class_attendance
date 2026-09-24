@@ -4,8 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import '../../../core/config/api_constants.dart';
-import '../../../core/network/api_client.dart';
+import '../repositories/teacher_repository.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../attendance/models/attendance_models.dart';
 
@@ -85,9 +84,7 @@ class _TeacherDynamicQrScreenState extends ConsumerState<TeacherDynamicQrScreen>
       });
     }
     try {
-      final dio = ref.read(dioProvider);
-      final response = await dio.get(ApiConstants.sessionDynamicQr(widget.sessionId));
-      final data = DynamicQrData.fromJson(response.data as Map<String, dynamic>);
+      final data = await ref.read(teacherRepositoryProvider).getDynamicQr(widget.sessionId);
 
       if (mounted) {
         setState(() {

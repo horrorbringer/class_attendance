@@ -2,8 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import '../../../core/config/api_constants.dart';
-import '../../../core/network/api_client.dart';
+import '../repositories/teacher_repository.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../attendance/models/attendance_models.dart';
 import 'teacher_dynamic_qr_screen.dart';
@@ -77,11 +76,10 @@ class _TeacherLiveFeedScreenState extends ConsumerState<TeacherLiveFeedScreen>
 
   Future<void> _fetchLiveFeed() async {
     try {
-      final dio = ref.read(dioProvider);
-      final res = await dio.get(ApiConstants.sessionLiveFeed(widget.sessionId));
+      final feed = await ref.read(teacherRepositoryProvider).getSessionLiveFeed(widget.sessionId);
       if (mounted) {
         setState(() {
-          _feedData = LiveFeedData.fromJson(res.data as Map<String, dynamic>);
+          _feedData = feed;
           _isSessionEnded = _feedData!.isEnded;
         });
       }
@@ -91,15 +89,11 @@ class _TeacherLiveFeedScreenState extends ConsumerState<TeacherLiveFeedScreen>
   Future<void> _fetchRoster() async {
     setState(() => _isLoadingRoster = true);
     try {
-      final dio = ref.read(dioProvider);
-      final res = await dio.get(ApiConstants.sessionRoster(widget.sessionId));
-      final rosterJson = res.data['roster'] as List<dynamic>? ?? [];
+      final rosterRes = await ref.read(teacherRepositoryProvider).getSessionRoster(widget.sessionId);
 
       if (mounted) {
         setState(() {
-          _rosterList = rosterJson
-              .map((e) => RosterStudent.fromJson(e as Map<String, dynamic>))
-              .toList();
+          _rosterList = rosterRes.roster;
           _isLoadingRoster = false;
         });
       }
@@ -112,23 +106,21 @@ class _TeacherLiveFeedScreenState extends ConsumerState<TeacherLiveFeedScreen>
 
   Future<void> _overrideStudentStatus(RosterStudent student, String newStatus) async {
     try {
-      final dio = ref.read(dioProvider);
+      final teacherRepo = ref.read(teacherRepositoryProvider);
 
       if (student.recordId != null) {
         // Direct PATCH override
-        await dio.patch(
-          ApiConstants.teacherAttendanceOverride(student.recordId!),
-          data: {'status': newStatus},
+        await teacherRepo.overrideAttendance(
+          recordId: student.recordId!,
+          status: newStatus,
         );
       } else {
         // Bulk override endpoint
-        await dio.post(
-          ApiConstants.sessionBulkAttendance(widget.sessionId),
-          data: {
-            'records': [
-              {'student_id': student.studentId, 'status': newStatus}
-            ]
-          },
+        await teacherRepo.submitBulkAttendance(
+          sessionId: widget.sessionId,
+          records: [
+            BulkAttendanceItem(studentId: student.studentId, status: newStatus),
+          ],
         );
       }
 
@@ -181,8 +173,7 @@ class _TeacherLiveFeedScreenState extends ConsumerState<TeacherLiveFeedScreen>
     if (confirm != true) return;
 
     try {
-      final dio = ref.read(dioProvider);
-      await dio.post(ApiConstants.sessionEnd(widget.sessionId));
+      await ref.read(teacherRepositoryProvider).endSession(widget.sessionId);
 
       setState(() => _isSessionEnded = true);
       _fetchLiveFeed();

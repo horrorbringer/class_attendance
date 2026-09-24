@@ -3,8 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-import '../../../core/config/api_constants.dart';
-import '../../../core/network/api_client.dart';
+import '../repositories/student_repository.dart';
 import '../../attendance/models/attendance_models.dart';
 import 'notifications_screen.dart';
 import 'profile_settings_screen.dart';
@@ -54,38 +53,15 @@ class _AttendanceHistoryScreenState extends ConsumerState<AttendanceHistoryScree
     }
 
     try {
-      final dio = ref.read(dioProvider);
-
-      // Build query params with pagination + optional status filter
-      final Map<String, dynamic> queryParams = {
-        'limit': _pageSize,
-        'offset': loadMore ? _offset : 0,
-      };
-      if (_statusFilter != null) {
-        queryParams['status'] = _statusFilter;
-      }
-
-      final response = await dio.get(
-        ApiConstants.attendanceHistory,
-        queryParameters: queryParams,
+      final studentRepo = ref.read(studentRepositoryProvider);
+      final paginatedRes = await studentRepo.getAttendanceHistory(
+        status: _statusFilter,
+        limit: _pageSize,
+        offset: loadMore ? _offset : 0,
       );
 
-      // API returns paginated response: { count, next, previous, results }
-      List<dynamic> list;
-      if (response.data is Map && response.data['results'] != null) {
-        list = response.data['results'] as List<dynamic>;
-        final count = response.data['count'] as int? ?? 0;
-        _hasMore = (_offset + _pageSize) < count;
-      } else if (response.data is List) {
-        // Fallback for non-paginated response
-        list = response.data as List<dynamic>;
-        _hasMore = false;
-      } else {
-        list = [];
-        _hasMore = false;
-      }
-
-      final newRecords = list.map((e) => AttendanceRecord.fromJson(e as Map<String, dynamic>)).toList();
+      final newRecords = paginatedRes.results;
+      _hasMore = (_offset + _pageSize) < paginatedRes.count;
 
       setState(() {
         if (loadMore) {

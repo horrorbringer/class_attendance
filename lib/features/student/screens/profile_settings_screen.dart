@@ -5,8 +5,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import '../../../core/config/api_constants.dart';
-import '../../../core/network/api_client.dart';
+import '../../auth/repositories/auth_repository.dart';
 import '../../auth/controllers/auth_controller.dart';
 import 'attendance_history_screen.dart';
 import 'face_enrollment_screen.dart';
@@ -444,14 +443,10 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                               });
 
                               try {
-                                final dio = ref.read(dioProvider);
-                                await dio.post(
-                                  ApiConstants.changePassword,
-                                  data: {
-                                    'old_password': oldP,
-                                    'new_password': newP,
-                                    'confirm_password': confP,
-                                  },
+                                await ref.read(authRepositoryProvider).changePassword(
+                                  oldPassword: oldP,
+                                  newPassword: newP,
+                                  confirmPassword: confP,
                                 );
 
                                 if (context.mounted) {

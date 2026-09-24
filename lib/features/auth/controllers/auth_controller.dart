@@ -1,11 +1,11 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/config/api_constants.dart';
 import '../../../core/config/app_navigator.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../models/auth_models.dart';
+import '../repositories/auth_repository.dart';
 
 class AuthState {
   final bool isLoading;
@@ -42,11 +42,11 @@ class AuthState {
 }
 
 class AuthNotifier extends Notifier<AuthState> {
-  late Dio _dio;
+  late AuthRepository _authRepository;
 
   @override
   AuthState build() {
-    _dio = ref.watch(dioProvider);
+    _authRepository = ref.watch(authRepositoryProvider);
 
     // Wire up 401 Unauthorized handler so expired tokens
     // trigger a full state reset → AuthGate routes to LoginScreen
@@ -98,16 +98,7 @@ class AuthNotifier extends Notifier<AuthState> {
     state = state.copyWith(isLoading: true, clearError: true);
 
     try {
-      final response = await _dio.post(
-        ApiConstants.login,
-        data: {
-          'username': username.trim(),
-          'password': password.trim(),
-        },
-      );
-
-      final data = response.data as Map<String, dynamic>;
-      final session = UserSession.fromJson(data);
+      final session = await _authRepository.login(username, password);
 
       await StorageService.saveSession(
         token: session.token,
@@ -150,8 +141,7 @@ class AuthNotifier extends Notifier<AuthState> {
 
   Future<void> fetchStudentProfile() async {
     try {
-      final response = await _dio.get(ApiConstants.studentProfile);
-      final profile = StudentProfile.fromJson(response.data as Map<String, dynamic>);
+      final profile = await _authRepository.getStudentProfile();
       state = state.copyWith(studentProfile: profile);
     } catch (_) {
       // Profile fetch can fail silently or retry
@@ -160,7 +150,7 @@ class AuthNotifier extends Notifier<AuthState> {
 
   Future<void> logout() async {
     try {
-      await _dio.post(ApiConstants.logout);
+      await _authRepository.logout();
     } catch (_) {
       // Ignore network errors on logout
     } finally {

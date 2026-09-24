@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../../core/config/api_constants.dart';
-import '../../../core/network/api_client.dart';
+import '../repositories/teacher_repository.dart';
 import '../../auth/controllers/auth_controller.dart';
 import 'teacher_classes_screen.dart';
 import 'teacher_home_screen.dart';
@@ -75,8 +74,7 @@ class _TeacherReportsScreenState extends ConsumerState<TeacherReportsScreen> {
 
     try {
       if (isCsv) {
-        final dio = ref.read(dioProvider);
-        await dio.get(ApiConstants.exportCsv(classId));
+        await ref.read(teacherRepositoryProvider).exportCsv(classId);
       } else {
         // Simulate PDF rendering delay
         await Future.delayed(const Duration(milliseconds: 900));

@@ -1,9 +1,8 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'core/config/api_constants.dart';
 import 'core/config/app_navigator.dart';
-import 'core/network/api_client.dart';
+import 'core/network/system_repository.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/controllers/auth_controller.dart';
 import 'features/auth/screens/login_screen.dart';
@@ -84,12 +83,10 @@ class _AuthGateState extends ConsumerState<AuthGate> {
     _checkServerHealth();
   }
 
-  /// Ping GET /api/health/ during splash to verify backend connectivity
   Future<void> _checkServerHealth() async {
     try {
-      final dio = ref.read(dioProvider);
-      await dio.get(ApiConstants.health);
-      if (mounted) setState(() => _serverOffline = false);
+      final health = await ref.read(systemRepositoryProvider).checkHealth();
+      if (mounted) setState(() => _serverOffline = !health.isHealthy);
     } catch (_) {
       if (mounted) setState(() => _serverOffline = true);
     }

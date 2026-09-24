@@ -10,8 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:image_picker/image_picker.dart';
-import '../../../core/config/api_constants.dart';
-import '../../../core/network/api_client.dart';
+import '../repositories/student_repository.dart';
 import '../../auth/controllers/auth_controller.dart';
 
 enum BiometricAngle {
@@ -454,35 +453,18 @@ class _FaceEnrollmentScreenState extends ConsumerState<FaceEnrollmentScreen>
     setState(() => _isUploading = true);
 
     try {
-      final dio = ref.read(dioProvider);
-      final formData = FormData();
-
-      // student_id: string (optional if logged in as student; required if teacher/admin is enrolling)
+      final studentRepo = ref.read(studentRepositoryProvider);
       final targetStudentId = widget.studentId ?? ref.read(authProvider).studentProfile?.studentId;
-      if (targetStudentId != null && targetStudentId.isNotEmpty) {
-        formData.fields.add(MapEntry('student_id', targetStudentId));
-      }
 
-      // images: file(s) [supports 1 to 5 image uploads]
-      for (int i = 0; i < photos.length; i++) {
-        final file = photos[i];
-        formData.files.add(
-          MapEntry(
-            'images',
-            await MultipartFile.fromFile(
-              file.path,
-              filename: 'face_${i + 1}_${DateTime.now().millisecondsSinceEpoch}.jpg',
-            ),
-          ),
-        );
-      }
+      final enrollRes = await studentRepo.enrollFace(
+        imagePaths: photos.map((p) => p.path).toList(),
+        studentId: targetStudentId,
+      );
 
-      final response = await dio.post(ApiConstants.faceEnroll, data: formData);
-      final data = response.data is Map ? (response.data as Map) : <dynamic, dynamic>{};
-      final msg = data['message'] ?? 'Biometric facial templates successfully generated.';
-      final dynamic enrolledCount = data['enrolled_count'] ?? photos.length;
-      final dynamic totalTemplates = data['total_templates'] ?? enrolledCount;
-      final dynamic errors = data['errors'];
+      final msg = enrollRes.message;
+      final dynamic enrolledCount = enrollRes.enrolledCount;
+      final dynamic totalTemplates = enrollRes.totalTemplates;
+      final dynamic errors = enrollRes.errors;
 
       if (widget.studentId == null) {
         await ref.read(authProvider.notifier).fetchStudentProfile();

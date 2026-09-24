@@ -2,8 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../../core/config/api_constants.dart';
-import '../../../core/network/api_client.dart';
+import '../../auth/repositories/auth_repository.dart';
 import '../../auth/controllers/auth_controller.dart';
 import 'teacher_classes_screen.dart';
 import 'teacher_home_screen.dart';
@@ -202,13 +201,9 @@ class _TeacherProfileScreenState extends ConsumerState<TeacherProfileScreen> {
                         });
 
                         try {
-                          final dio = ref.read(dioProvider);
-                          await dio.post(
-                            ApiConstants.changePassword,
-                            data: {
-                              'old_password': oldCtrl.text,
-                              'new_password': newCtrl.text,
-                            },
+                          await ref.read(authRepositoryProvider).changePassword(
+                            oldPassword: oldCtrl.text,
+                            newPassword: newCtrl.text,
                           );
 
                           if (ctx.mounted) {

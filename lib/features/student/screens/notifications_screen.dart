@@ -3,8 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../../core/config/api_constants.dart';
-import '../../../core/network/api_client.dart';
+import '../repositories/student_repository.dart';
 import 'absence_alert_detail_screen.dart';
 import 'attendance_history_screen.dart';
 import 'face_enrollment_screen.dart';
@@ -151,67 +150,60 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final dio = ref.read(dioProvider);
+      final studentRepo = ref.read(studentRepositoryProvider);
       final List<NotificationItem> fetched = [];
       final Set<String> seenIds = {};
 
       // 1. Fetch dedicated alerts from GET /api/alerts/mine/
       try {
-        final alertsRes = await dio.get(ApiConstants.studentAlerts);
-        if (alertsRes.data is List) {
-          final alertsList = alertsRes.data as List<dynamic>;
-          for (final raw in alertsList) {
-            final m = raw as Map<String, dynamic>;
-            final alertId = 'alert_${m['id']}';
-            final sessionName = m['session_name']?.toString() ?? 'Class Session';
-            final sessionDate = m['session_date']?.toString() ?? '';
-            final channel = m['channel']?.toString() ?? '';
-            final sentAt = m['sent_at']?.toString() ?? 'Recent';
-            final status = m['status']?.toString() ?? '';
-            final errorMsg = m['error_message']?.toString() ?? '';
+        final alertsList = await studentRepo.getAlerts();
+        for (final m in alertsList) {
+          final alertId = 'alert_${m.id}';
+          final sessionName = m.sessionName.isNotEmpty ? m.sessionName : 'Class Session';
+          final sessionDate = m.sessionDate;
+          final channel = m.channel;
+          final sentAt = m.sentAt;
+          final status = m.status;
+          final errorMsg = m.errorMessage;
 
-            seenIds.add(alertId);
+          seenIds.add(alertId);
 
-            String channelLabel = channel == 'telegram' ? 'Telegram' : (channel == 'email' ? 'Email' : 'System');
-            String failureInfo = status == 'sent'
-                ? 'Guardian notified via $channelLabel'
-                : (errorMsg.isNotEmpty ? 'Delivery pending: $errorMsg' : 'Alert pending delivery');
+          String channelLabel = channel == 'telegram' ? 'Telegram' : (channel == 'email' ? 'Email' : 'System');
+          String failureInfo = status == 'sent'
+              ? 'Guardian notified via $channelLabel'
+              : (errorMsg.isNotEmpty ? 'Delivery pending: $errorMsg' : 'Alert pending delivery');
 
-            fetched.add(
-              NotificationItem(
-                id: alertId,
-                title: 'Absence Alert',
-                subtitle: 'You were marked absent in $sessionName',
-                timestamp: sentAt,
-                category: AlertCategory.absences,
-                hasLeftAccent: true,
-                isUnread: true,
-                courseName: sessionName,
-                date: sessionDate.isNotEmpty ? sessionDate : 'Scheduled Class Session',
-                scheduleTime: 'Class Session',
-                location: 'Assigned Campus Room',
-                professor: 'Class Faculty Instructor',
-                failureReason: failureInfo,
-                guardianAlertTime: sentAt,
-              ),
-            );
-          }
+          fetched.add(
+            NotificationItem(
+              id: alertId,
+              title: 'Absence Alert',
+              subtitle: 'You were marked absent in $sessionName',
+              timestamp: sentAt,
+              category: AlertCategory.absences,
+              hasLeftAccent: true,
+              isUnread: true,
+              courseName: sessionName,
+              date: sessionDate.isNotEmpty ? sessionDate : 'Scheduled Class Session',
+              scheduleTime: 'Class Session',
+              location: 'Assigned Campus Room',
+              professor: 'Class Faculty Instructor',
+              failureReason: failureInfo,
+              guardianAlertTime: sentAt,
+            ),
+          );
         }
       } catch (_) {}
 
       // 2. Also check attendance history for any absent/late records not covered by alerts
       try {
-        final historyRes = await dio.get(ApiConstants.attendanceHistory);
-        if (historyRes.data is List) {
-          final list = historyRes.data as List<dynamic>;
-          for (final raw in list) {
-            final m = raw as Map<String, dynamic>;
-            final status = (m['status'] ?? '').toString().toLowerCase();
-            final className = m['class_room_name'] ?? m['classroom_name'] ?? 'Classroom Session';
-            final checkedInAt = m['checked_in_at']?.toString() ?? 'Recent';
-            final recordId = 'live_${status}_${m['id']}';
+        final historyRes = await studentRepo.getAttendanceHistory(limit: 50);
+        for (final rec in historyRes.results) {
+          final status = rec.status.toLowerCase();
+          final className = rec.classRoomName.isNotEmpty ? rec.classRoomName : 'Classroom Session';
+          final checkedInAt = rec.checkedInAt.isNotEmpty ? rec.checkedInAt : 'Recent';
+          final recordId = 'live_${status}_${rec.id}';
 
-            if (seenIds.contains(recordId)) continue;
+          if (seenIds.contains(recordId)) continue;
 
             if (status == 'absent') {
               seenIds.add(recordId);
@@ -254,7 +246,6 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
               );
             }
           }
-        }
       } catch (_) {}
 
       // 3. Append default system update card if we have real alerts

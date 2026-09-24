@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../../core/config/api_constants.dart';
-import '../../../core/network/api_client.dart';
+import '../repositories/teacher_repository.dart';
 import '../../attendance/models/attendance_models.dart';
 import '../../auth/controllers/auth_controller.dart';
 import 'teacher_classes_screen.dart';
@@ -33,15 +32,10 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen> {
 
   Future<void> _fetchTodayClasses() async {
     try {
-      final dio = ref.read(dioProvider);
-      final response = await dio.get(ApiConstants.teacherTodayClasses);
-      final list = response.data as List<dynamic>;
-
+      final sessions = await ref.read(teacherRepositoryProvider).getTodayClasses();
       if (mounted) {
         setState(() {
-          _sessions = list
-              .map((e) => TeacherClassSession.fromJson(e as Map<String, dynamic>))
-              .toList();
+          _sessions = sessions;
           _isLoading = false;
         });
       }

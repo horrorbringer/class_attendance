@@ -3,10 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../../core/config/api_constants.dart';
-import '../../../core/network/api_client.dart';
 import '../../attendance/models/attendance_models.dart';
-import '../../attendance/services/attendance_service.dart';
+import '../repositories/teacher_repository.dart';
 import 'teacher_dynamic_qr_screen.dart';
 import 'teacher_live_feed_screen.dart';
 import 'teacher_student_profile_screen.dart';
@@ -149,25 +147,20 @@ class _TeacherSessionDetailScreenState extends ConsumerState<TeacherSessionDetai
 
   Future<void> _fetchLiveRoster() async {
     try {
-      final dio = ref.read(dioProvider);
-      final res = await dio.get(ApiConstants.sessionRoster(widget.sessionId));
-      if (res.data is Map && res.data['students'] is List) {
-        final rawList = res.data['students'] as List<dynamic>;
-        if (rawList.isNotEmpty && mounted) {
-          setState(() {
-            _students = rawList.map((e) {
-              final m = e as Map<String, dynamic>;
-              return RosterStudentItem(
-                id: m['id']?.toString() ?? UniqueKey().toString(),
-                name: m['student_name'] ?? m['name'] ?? 'Student',
-                studentId: m['student_id'] ?? '202600',
-                status: (m['status'] ?? 'present').toString().toLowerCase(),
-                email: '${(m['student_name'] ?? 'student').toString().toLowerCase().replaceAll(' ', '.')}@school.edu',
-                recordId: m['record_id'] as int?,
-              );
-            }).toList();
-          });
-        }
+      final rosterRes = await ref.read(teacherRepositoryProvider).getSessionRoster(widget.sessionId);
+      if (rosterRes.roster.isNotEmpty && mounted) {
+        setState(() {
+          _students = rosterRes.roster.map((s) {
+            return RosterStudentItem(
+              id: s.studentPk > 0 ? s.studentPk.toString() : UniqueKey().toString(),
+              name: s.studentName,
+              studentId: s.studentId,
+              status: s.attendanceStatus,
+              email: '${s.studentName.toLowerCase().replaceAll(' ', '.')}@school.edu',
+              recordId: s.recordId,
+            );
+          }).toList();
+        });
       }
     } catch (_) {}
   }
@@ -200,10 +193,9 @@ class _TeacherSessionDetailScreenState extends ConsumerState<TeacherSessionDetai
 
     if (student.recordId != null) {
       try {
-        final dio = ref.read(dioProvider);
-        await dio.patch(
-          ApiConstants.teacherAttendanceOverride(student.recordId!),
-          data: {'status': newStatus},
+        await ref.read(teacherRepositoryProvider).overrideAttendance(
+          recordId: student.recordId!,
+          status: newStatus,
         );
       } catch (_) {}
     }
@@ -222,10 +214,9 @@ class _TeacherSessionDetailScreenState extends ConsumerState<TeacherSessionDetai
 
     if (student.recordId != null) {
       try {
-        final dio = ref.read(dioProvider);
-        await dio.patch(
-          ApiConstants.teacherAttendanceOverride(student.recordId!),
-          data: {'status': student.status},
+        await ref.read(teacherRepositoryProvider).overrideAttendance(
+          recordId: student.recordId!,
+          status: student.status,
         );
       } catch (_) {}
     }
@@ -284,8 +275,7 @@ class _TeacherSessionDetailScreenState extends ConsumerState<TeacherSessionDetai
 
   Future<void> _executeBulkAttendance(List<BulkAttendanceItem> records, String successMsg) async {
     try {
-      final attendanceService = ref.read(attendanceServiceProvider);
-      final res = await attendanceService.submitBulkAttendance(
+      final res = await ref.read(teacherRepositoryProvider).submitBulkAttendance(
         sessionId: widget.sessionId,
         records: records,
       );
@@ -399,14 +389,14 @@ class _TeacherSessionDetailScreenState extends ConsumerState<TeacherSessionDetai
                   status: s.status,
                 )).toList();
                 
-                final service = ref.read(attendanceServiceProvider);
+                final repo = ref.read(teacherRepositoryProvider);
                 if (bulkRecords.isNotEmpty) {
-                  await service.submitBulkAttendance(
+                  await repo.submitBulkAttendance(
                     sessionId: widget.sessionId,
                     records: bulkRecords,
                   );
                 }
-                await service.endSession(widget.sessionId);
+                await repo.endSession(widget.sessionId);
               } catch (_) {}
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(

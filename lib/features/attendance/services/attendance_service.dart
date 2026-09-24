@@ -1,18 +1,16 @@
-import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/config/api_constants.dart';
-import '../../../core/network/api_client.dart';
+import '../../teacher/repositories/teacher_repository.dart';
 import '../models/attendance_models.dart';
 
 final attendanceServiceProvider = Provider<AttendanceService>((ref) {
-  final dio = ref.watch(dioProvider);
-  return AttendanceService(dio);
+  final teacherRepo = ref.watch(teacherRepositoryProvider);
+  return AttendanceService(teacherRepo);
 });
 
 class AttendanceService {
-  final Dio _dio;
+  final TeacherRepository _teacherRepository;
 
-  AttendanceService(this._dio);
+  AttendanceService(this._teacherRepository);
 
   /// Flow 5: Teacher Bulk Attendance Override
   /// `POST /api/teacher/sessions/<session_id>/attendance/bulk/`
@@ -20,13 +18,10 @@ class AttendanceService {
     required int sessionId,
     required List<BulkAttendanceItem> records,
   }) async {
-    final response = await _dio.post(
-      ApiConstants.sessionBulkAttendance(sessionId),
-      data: {
-        'records': records.map((e) => e.toJson()).toList(),
-      },
+    return _teacherRepository.submitBulkAttendance(
+      sessionId: sessionId,
+      records: records,
     );
-    return BulkAttendanceResponse.fromJson(response.data as Map<String, dynamic>);
   }
 
   /// Flow 4: Teacher 1-Click Manual Override
@@ -35,15 +30,15 @@ class AttendanceService {
     required int recordId,
     required String status,
   }) async {
-    await _dio.patch(
-      ApiConstants.teacherAttendanceOverride(recordId),
-      data: {'status': status},
+    return _teacherRepository.overrideAttendance(
+      recordId: recordId,
+      status: status,
     );
   }
 
   /// Conclude session
   /// `POST /api/teacher/sessions/<session_id>/end/`
   Future<void> endSession(int sessionId) async {
-    await _dio.post(ApiConstants.sessionEnd(sessionId));
+    return _teacherRepository.endSession(sessionId);
   }
 }

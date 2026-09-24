@@ -4,9 +4,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-import '../../../core/config/api_constants.dart';
-import '../../../core/network/api_client.dart';
-import '../../attendance/models/attendance_models.dart';
+import '../repositories/student_repository.dart';
 import '../../auth/controllers/auth_controller.dart';
 import 'absence_alert_detail_screen.dart';
 import 'attendance_history_screen.dart';
@@ -102,37 +100,33 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
     setState(() => _isLoading = true);
 
     try {
-      final dio = ref.read(dioProvider);
+      final studentRepo = ref.read(studentRepositoryProvider);
       await ref.read(authProvider.notifier).fetchStudentProfile();
 
       // Fetch today's schedule
       List<DashboardClassItem> fetchedClasses = [];
       try {
-        final schedResponse = await dio.get(ApiConstants.studentScheduleToday);
-        if (schedResponse.data is List) {
-          final schedList = schedResponse.data as List<dynamic>;
-          for (final e in schedList) {
-            final s = StudentScheduleSession.fromJson(e as Map<String, dynamic>);
-            String status = 'upcoming';
-            if (s.isCheckedIn) {
-              final st = s.myStatus?.toLowerCase() ?? '';
-              status = st == 'late' ? 'late' : 'present';
-            } else if (s.myStatus?.toLowerCase() == 'absent') {
-              status = 'absent';
-            }
-
-            fetchedClasses.add(
-              DashboardClassItem(
-                courseName: s.classRoom.isNotEmpty ? s.classRoom : 'Lecture Session',
-                status: status,
-                time: s.startTime.isNotEmpty ? s.startTime : '09:00 AM',
-                location: 'Room 204',
-                professor: 'Faculty Instructor',
-                checkedInAt: s.checkedInAt,
-                method: s.myMethod,
-              ),
-            );
+        final sessions = await studentRepo.getTodaySchedule();
+        for (final s in sessions) {
+          String status = 'upcoming';
+          if (s.isCheckedIn) {
+            final st = s.myStatus?.toLowerCase() ?? '';
+            status = st == 'late' ? 'late' : 'present';
+          } else if (s.myStatus?.toLowerCase() == 'absent') {
+            status = 'absent';
           }
+
+          fetchedClasses.add(
+            DashboardClassItem(
+              courseName: s.classRoom.isNotEmpty ? s.classRoom : 'Lecture Session',
+              status: status,
+              time: s.startTime.isNotEmpty ? s.startTime : '09:00 AM',
+              location: 'Room 204',
+              professor: 'Faculty Instructor',
+              checkedInAt: s.checkedInAt,
+              method: s.myMethod,
+            ),
+          );
         }
       } catch (_) {}
 
@@ -140,15 +134,14 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
       final profile = ref.read(authProvider).studentProfile;
       if (profile != null) {
         try {
-          final reportRes = await dio.get(ApiConstants.studentReport(profile.id));
-          final reportData = reportRes.data as Map<String, dynamic>;
+          final report = await studentRepo.getStudentReport(profile.id);
           if (mounted) {
             setState(() {
-              _attendanceRate = (reportData['attendance_rate'] as num?)?.toDouble() ?? 0;
-              _reportPresent = reportData['present_count'] as int? ?? 0;
-              _reportLate = reportData['late_count'] as int? ?? 0;
-              _reportAbsent = reportData['absent_count'] as int? ?? 0;
-              _totalSessions = reportData['total_recorded_sessions'] as int? ?? 0;
+              _attendanceRate = report.attendanceRate;
+              _reportPresent = report.presentCount;
+              _reportLate = report.lateCount;
+              _reportAbsent = report.absentCount;
+              _totalSessions = report.totalRecordedSessions;
               _hasReportData = true;
             });
           }

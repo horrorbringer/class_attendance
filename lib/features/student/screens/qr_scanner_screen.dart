@@ -10,8 +10,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-import '../../../core/config/api_constants.dart';
-import '../../../core/network/api_client.dart';
+import '../repositories/student_repository.dart';
 import '../../auth/controllers/auth_controller.dart';
 
 enum CheckinMode { qr, face }
@@ -209,21 +208,15 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
     });
 
     try {
-      final dio = ref.read(dioProvider);
-      final response = await dio.post(
-        ApiConstants.checkinQr,
-        data: {'qr_token': token},
-      );
-
-      final data = response.data as Map<String, dynamic>;
-      final record = data['record'] as Map<String, dynamic>?;
+      final studentRepo = ref.read(studentRepositoryProvider);
+      final checkinRes = await studentRepo.checkinQr(token);
 
       if (mounted) {
         _safeSetState(() {
           _isProcessing = false;
           _isSuccess = true;
-          _successRecord = record ?? data;
-          _successMessage = data['message'] ?? 'Checked in successfully!';
+          _successRecord = checkinRes.record ?? {'message': checkinRes.message};
+          _successMessage = checkinRes.message;
         });
       }
     } on DioException catch (e) {
@@ -315,28 +308,15 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
     });
 
     try {
-      final dio = ref.read(dioProvider);
-      final formData = FormData.fromMap({
-        'image': await MultipartFile.fromFile(
-          photoPath,
-          filename: 'face_checkin_${DateTime.now().millisecondsSinceEpoch}.jpg',
-        ),
-      });
-
-      final response = await dio.post(
-        ApiConstants.checkinFace,
-        data: formData,
-      );
-
-      final data = response.data as Map<String, dynamic>;
-      final record = data['record'] as Map<String, dynamic>?;
+      final studentRepo = ref.read(studentRepositoryProvider);
+      final checkinRes = await studentRepo.checkinFace(photoPath);
 
       if (mounted) {
         _safeSetState(() {
           _isProcessing = false;
           _isSuccess = true;
-          _successRecord = record ?? data;
-          _successMessage = data['message'] ?? 'Face verified & checked in!';
+          _successRecord = checkinRes.record ?? {'message': checkinRes.message};
+          _successMessage = checkinRes.message;
         });
       }
     } on DioException catch (e) {
