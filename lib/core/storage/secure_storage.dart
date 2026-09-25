@@ -8,6 +8,7 @@ class StorageService {
   static const _userIdKey = 'user_id';
   static const _usernameKey = 'username';
   static const _fullNameKey = 'user_full_name';
+  static const _emailKey = 'user_email';
 
   static Future<void> saveSession({
     required String token,
@@ -15,6 +16,7 @@ class StorageService {
     required int userId,
     required String username,
     String? fullName,
+    String? email,
   }) async {
     await _storage.write(key: _tokenKey, value: token);
     final prefs = await SharedPreferences.getInstance();
@@ -23,6 +25,9 @@ class StorageService {
     await prefs.setString(_usernameKey, username);
     if (fullName != null) {
       await prefs.setString(_fullNameKey, fullName);
+    }
+    if (email != null && email.isNotEmpty) {
+      await prefs.setString(_emailKey, email);
     }
   }
 
@@ -43,6 +48,11 @@ class StorageService {
   static Future<String?> getFullName() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_fullNameKey);
+  }
+
+  static Future<String?> getEmail() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_emailKey);
   }
 
   static Future<int?> getUserId() async {

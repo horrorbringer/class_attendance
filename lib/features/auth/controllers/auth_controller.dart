@@ -69,6 +69,7 @@ class AuthNotifier extends Notifier<AuthState> {
     final userId = await StorageService.getUserId();
     final username = await StorageService.getUsername();
     final fullName = await StorageService.getFullName();
+    final email = await StorageService.getEmail();
 
     if (token != null && token.isNotEmpty && role != null && userId != null && username != null) {
       final session = UserSession(
@@ -80,7 +81,7 @@ class AuthNotifier extends Notifier<AuthState> {
             ? StudentSummary(id: userId, studentId: username, name: fullName ?? username)
             : null,
         teacher: role == 'teacher'
-            ? TeacherProfile(id: userId, name: fullName ?? username, email: '')
+            ? TeacherProfile(id: userId, name: fullName ?? username, email: email ?? '')
             : null,
       );
 
@@ -106,6 +107,7 @@ class AuthNotifier extends Notifier<AuthState> {
         userId: session.userId,
         username: session.username,
         fullName: session.displayName,
+        email: session.teacher?.email,
       );
 
       await StorageService.saveLastKnownCredentials(
