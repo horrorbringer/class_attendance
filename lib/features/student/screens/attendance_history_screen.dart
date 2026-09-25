@@ -263,14 +263,20 @@ class _AttendanceHistoryScreenState extends ConsumerState<AttendanceHistoryScree
                       const SizedBox(height: 10),
 
                       // Single Unified Interactive Filter Row (Status & Legend)
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          _buildFilterChip('All', null),
-                          _buildFilterChip('Present', 'present', dotColor: const Color(0xFF10B981)),
-                          _buildFilterChip('Late', 'late', dotColor: const Color(0xFFF59E0B)),
-                          _buildFilterChip('Absent', 'absent', dotColor: const Color(0xFFEF4444)),
-                        ],
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            _buildFilterChip('All', null),
+                            const SizedBox(width: 6),
+                            _buildFilterChip('Present', 'present', dotColor: const Color(0xFF10B981)),
+                            const SizedBox(width: 6),
+                            _buildFilterChip('Late', 'late', dotColor: const Color(0xFFF59E0B)),
+                            const SizedBox(width: 6),
+                            _buildFilterChip('Absent', 'absent', dotColor: const Color(0xFFEF4444)),
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -501,7 +507,7 @@ class _AttendanceHistoryScreenState extends ConsumerState<AttendanceHistoryScree
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
           color: chipBg,
           borderRadius: BorderRadius.circular(16),
@@ -522,7 +528,7 @@ class _AttendanceHistoryScreenState extends ConsumerState<AttendanceHistoryScree
                   shape: BoxShape.circle,
                 ),
               ),
-              const SizedBox(width: 6),
+              const SizedBox(width: 5),
             ],
             Text(
               label,

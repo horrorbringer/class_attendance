@@ -41,6 +41,7 @@ class TeacherSessionDetailScreen extends ConsumerStatefulWidget {
   final String className;
   final String scheduleTime;
   final String room;
+  final bool isEnded;
 
   const TeacherSessionDetailScreen({
     super.key,
@@ -48,6 +49,7 @@ class TeacherSessionDetailScreen extends ConsumerStatefulWidget {
     this.className = 'Physics Lab II',
     this.scheduleTime = '11:00 AM - 12:30 PM',
     this.room = 'Room 402 — Main Block',
+    this.isEnded = false,
   });
 
   @override
@@ -57,6 +59,7 @@ class TeacherSessionDetailScreen extends ConsumerStatefulWidget {
 class _TeacherSessionDetailScreenState extends ConsumerState<TeacherSessionDetailScreen> {
   List<RosterStudentItem> _students = [];
   bool _isLoadingRoster = true;
+  late bool _isEnded;
   String _searchQuery = '';
   String _selectedFilter = 'all'; // 'all', 'present', 'late', 'absent'
   final TextEditingController _searchController = TextEditingController();
@@ -64,6 +67,7 @@ class _TeacherSessionDetailScreenState extends ConsumerState<TeacherSessionDetai
   @override
   void initState() {
     super.initState();
+    _isEnded = widget.isEnded;
     _fetchLiveRoster();
   }
 
@@ -96,6 +100,16 @@ class _TeacherSessionDetailScreenState extends ConsumerState<TeacherSessionDetai
           _isLoadingRoster = false;
         });
       }
+
+      // Check live feed status to confirm if session is ended on backend
+      try {
+        final feed = await ref.read(teacherRepositoryProvider).getSessionLiveFeed(widget.sessionId);
+        if (mounted) {
+          setState(() {
+            _isEnded = feed.isEnded;
+          });
+        }
+      } catch (_) {}
     } catch (_) {
       if (mounted) setState(() => _isLoadingRoster = false);
     }
@@ -238,29 +252,7 @@ class _TeacherSessionDetailScreenState extends ConsumerState<TeacherSessionDetai
           .toList();
       successMsg = 'All roster attendance statuses synced via bulk update.';
     } else if (action == 'reopen_session') {
-      try {
-        await ref.read(teacherRepositoryProvider).reopenSession(widget.sessionId);
-        await _fetchLiveRoster();
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Session reopened successfully. Attendance check-in is active again.'),
-              backgroundColor: Color(0xFF059669),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(ApiErrorHandler.getMessage(e)),
-              backgroundColor: const Color(0xFFDC2626),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        }
-      }
+      await _reopenSession();
       return;
     } else if (action == 'cancel_session') {
       await _confirmCancelSession();
@@ -457,54 +449,43 @@ class _TeacherSessionDetailScreenState extends ConsumerState<TeacherSessionDetai
                   );
                 }
                 await repo.endSession(widget.sessionId);
-              } catch (_) {}
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    backgroundColor: const Color(0xFF10213E),
-                    behavior: SnackBarBehavior.floating,
-                    duration: const Duration(seconds: 8),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    content: const Row(
-                      children: [
-                        Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 20),
-                        SizedBox(width: 10),
-                        Expanded(
-                          child: Text('Session finalized. Tap Reopen if ended by mistake.'),
-                        ),
-                      ],
+                if (mounted) {
+                  setState(() {
+                    _isEnded = true;
+                  });
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      backgroundColor: const Color(0xFF10213E),
+                      behavior: SnackBarBehavior.floating,
+                      duration: const Duration(seconds: 8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      content: const Row(
+                        children: [
+                          Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 20),
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: Text('Session finalized. Attendance concluded.'),
+                          ),
+                        ],
+                      ),
+                      action: SnackBarAction(
+                        label: 'Reopen',
+                        textColor: const Color(0xFF60A5FA),
+                        onPressed: _reopenSession,
+                      ),
                     ),
-                    action: SnackBarAction(
-                      label: 'Reopen',
-                      textColor: const Color(0xFF60A5FA),
-                      onPressed: () async {
-                        try {
-                          await ref.read(teacherRepositoryProvider).reopenSession(widget.sessionId);
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Session reopened successfully. Attendance check-in is active again.'),
-                                backgroundColor: Color(0xFF059669),
-                                behavior: SnackBarBehavior.floating,
-                              ),
-                            );
-                          }
-                        } catch (e) {
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(ApiErrorHandler.getMessage(e)),
-                                backgroundColor: const Color(0xFFDC2626),
-                                behavior: SnackBarBehavior.floating,
-                              ),
-                            );
-                          }
-                        }
-                      },
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(ApiErrorHandler.getMessage(e)),
+                      backgroundColor: const Color(0xFFDC2626),
+                      behavior: SnackBarBehavior.floating,
                     ),
-                  ),
-                );
-                Navigator.pop(context);
+                  );
+                }
               }
             },
             style: ElevatedButton.styleFrom(
@@ -519,6 +500,35 @@ class _TeacherSessionDetailScreenState extends ConsumerState<TeacherSessionDetai
         ],
       ),
     );
+  }
+
+  Future<void> _reopenSession() async {
+    try {
+      await ref.read(teacherRepositoryProvider).reopenSession(widget.sessionId);
+      if (mounted) {
+        setState(() {
+          _isEnded = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Session reopened successfully. Attendance check-in is active again.'),
+            backgroundColor: Color(0xFF059669),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        _fetchLiveRoster();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(ApiErrorHandler.getMessage(e)),
+            backgroundColor: const Color(0xFFDC2626),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -546,14 +556,19 @@ class _TeacherSessionDetailScreenState extends ConsumerState<TeacherSessionDetai
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'Live Roster ($_totalCount)',
-                    style: GoogleFonts.outfit(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF10213E),
+                  Expanded(
+                    child: Text(
+                      'Live Roster ($_totalCount)',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.outfit(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF10213E),
+                      ),
                     ),
                   ),
+                  const SizedBox(width: 8),
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -753,6 +768,8 @@ class _TeacherSessionDetailScreenState extends ConsumerState<TeacherSessionDetai
                                     children: [
                                       Text(
                                         student.name,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
                                         style: GoogleFonts.inter(
                                           fontSize: 15,
                                           fontWeight: FontWeight.bold,
@@ -762,15 +779,19 @@ class _TeacherSessionDetailScreenState extends ConsumerState<TeacherSessionDetai
                                       const SizedBox(height: 3),
                                       Row(
                                         children: [
-                                          Text(
-                                            'ID: ${student.studentId}',
-                                            style: GoogleFonts.inter(
-                                              fontSize: 12.5,
-                                              color: const Color(0xFF94A3B8),
+                                          Flexible(
+                                            child: Text(
+                                              'ID: ${student.studentId}',
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: GoogleFonts.inter(
+                                                fontSize: 12.5,
+                                                color: const Color(0xFF94A3B8),
+                                              ),
                                             ),
                                           ),
                                           if (student.guardianPhone.isNotEmpty) ...[
-                                            const SizedBox(width: 8),
+                                            const SizedBox(width: 6),
                                             GestureDetector(
                                               onTap: () async {
                                                 final clean = student.guardianPhone.replaceAll(RegExp(r'[^\d+]'), '');
@@ -840,32 +861,86 @@ class _TeacherSessionDetailScreenState extends ConsumerState<TeacherSessionDetai
                     ),
             ),
 
-            // Bottom Crimson "End Session & Submit" Button matching mockup
+            // Bottom Action Bar: "End Session & Submit" when active, "Concluded & Finalized" when ended
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 10, 20, 16),
-              child: SizedBox(
-                width: double.infinity,
-                height: 54,
-                child: ElevatedButton(
-                  onPressed: _endSession,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF991B1B),
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+              child: _isEnded
+                  ? Row(
+                      children: [
+                        Expanded(
+                          child: Container(
+                            height: 52,
+                            padding: const EdgeInsets.symmetric(horizontal: 14),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF1F5F9),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: const Color(0xFFCBD5E1)),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.check_circle_outline_rounded, size: 18, color: Color(0xFF059669)),
+                                const SizedBox(width: 8),
+                                Flexible(
+                                  child: Text(
+                                    'Session Concluded • Attendance Finalized',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: GoogleFonts.inter(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: const Color(0xFF475569),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        ElevatedButton.icon(
+                          onPressed: _reopenSession,
+                          icon: const Icon(Icons.restart_alt_rounded, size: 17),
+                          label: const Text('Reopen'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF10213E),
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            textStyle: GoogleFonts.inter(
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    )
+                  : SizedBox(
+                      width: double.infinity,
+                      height: 54,
+                      child: ElevatedButton(
+                        onPressed: _endSession,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF991B1B),
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        child: Text(
+                          'End Session & Submit',
+                          style: GoogleFonts.inter(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.2,
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
-                  child: Text(
-                    'End Session & Submit',
-                    style: GoogleFonts.inter(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 0.2,
-                    ),
-                  ),
-                ),
-              ),
             ),
           ],
         ),
@@ -898,6 +973,7 @@ class _TeacherSessionDetailScreenState extends ConsumerState<TeacherSessionDetai
               GestureDetector(
                 onTap: () => Navigator.pop(context),
                 child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 16),
                     const SizedBox(width: 6),
@@ -912,97 +988,107 @@ class _TeacherSessionDetailScreenState extends ConsumerState<TeacherSessionDetai
                   ],
                 ),
               ),
-              Row(
-                children: [
-                  // Fast Launch QR
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => TeacherDynamicQrScreen(
-                            sessionId: widget.sessionId,
-                            classRoomName: widget.className,
+              const SizedBox(width: 8),
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerRight,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Fast Launch QR
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => TeacherDynamicQrScreen(
+                                sessionId: widget.sessionId,
+                                classRoomName: widget.className,
+                              ),
+                            ),
+                          );
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          margin: const EdgeInsets.only(right: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.qr_code_2_rounded, color: Colors.white, size: 15),
+                              SizedBox(width: 4),
+                              Text('QR', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                            ],
                           ),
                         ),
-                      );
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                      margin: const EdgeInsets.only(right: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(16),
                       ),
-                      child: const Row(
-                        children: [
-                          Icon(Icons.qr_code_2_rounded, color: Colors.white, size: 15),
-                          SizedBox(width: 4),
-                          Text('QR', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-                        ],
+                      // Fast Launch Live Feed
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => TeacherLiveFeedScreen(
+                                sessionId: widget.sessionId,
+                                classRoomName: widget.className,
+                              ),
+                            ),
+                          );
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          margin: const EdgeInsets.only(right: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.sensors_rounded, color: Colors.white, size: 15),
+                              SizedBox(width: 4),
+                              Text('Feed', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                        ),
                       ),
-                    ),
+                      // Beacon Live / Session Ended pill
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: _isEnded ? const Color(0xFF334155) : const Color(0xFF283F66),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 7,
+                              height: 7,
+                              decoration: BoxDecoration(
+                                color: _isEnded ? const Color(0xFF94A3B8) : const Color(0xFF38BDF8),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              _isEnded ? 'Session Ended' : 'Beacon Live',
+                              style: GoogleFonts.inter(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                  // Fast Launch Live Feed
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => TeacherLiveFeedScreen(
-                            sessionId: widget.sessionId,
-                            classRoomName: widget.className,
-                          ),
-                        ),
-                      );
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                      margin: const EdgeInsets.only(right: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: const Row(
-                        children: [
-                          Icon(Icons.sensors_rounded, color: Colors.white, size: 15),
-                          SizedBox(width: 4),
-                          Text('Feed', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-                        ],
-                      ),
-                    ),
-                  ),
-                  // Beacon Live pill
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF283F66),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 7,
-                          height: 7,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFF38BDF8),
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          'Beacon Live',
-                          style: GoogleFonts.inter(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+                ),
               ),
             ],
           ),
@@ -1176,12 +1262,15 @@ class _TeacherSessionDetailScreenState extends ConsumerState<TeacherSessionDetai
             ),
           ),
           const SizedBox(height: 4),
-          Text(
-            value,
-            style: GoogleFonts.inter(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: valueColor,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              value,
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: valueColor,
+              ),
             ),
           ),
         ],

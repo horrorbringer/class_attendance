@@ -414,45 +414,64 @@ class _TeacherCreateSessionSheetState extends ConsumerState<TeacherCreateSession
           : (DateTime.now().millisecondsSinceEpoch ~/ 1000);
 
       if (mounted) {
-        widget.onSessionCreated?.call();
-        Navigator.pop(context);
+        final navigator = Navigator.of(context);
+        final messenger = ScaffoldMessenger.of(context);
+        final className = selectedClass.name;
+        final autoQr = _autoGenerateQr;
 
-        // Show success snackbar with action to immediately launch dynamic QR
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 20),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    'Session created for ${selectedClass.name}',
-                    style: GoogleFonts.inter(fontWeight: FontWeight.w600),
-                  ),
-                ),
-              ],
+        widget.onSessionCreated?.call();
+        navigator.pop();
+
+        messenger.hideCurrentSnackBar();
+
+        if (autoQr) {
+          // Immediately navigate to dynamic QR screen for the newly created session
+          navigator.push(
+            MaterialPageRoute(
+              builder: (_) => TeacherDynamicQrScreen(
+                sessionId: newSessionId,
+                classRoomName: className,
+              ),
             ),
-            backgroundColor: const Color(0xFF10213E),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            duration: const Duration(seconds: 5),
-            action: SnackBarAction(
-              label: 'Launch QR',
-              textColor: const Color(0xFF38BDF8),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => TeacherDynamicQrScreen(
-                      sessionId: newSessionId,
-                      classRoomName: selectedClass.name,
+          );
+        } else {
+          // Show non-sticky success notification with functioning Launch QR action
+          messenger.showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Session created for $className',
+                      style: GoogleFonts.inter(fontWeight: FontWeight.w600),
                     ),
                   ),
-                );
-              },
+                ],
+              ),
+              backgroundColor: const Color(0xFF10213E),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              duration: const Duration(seconds: 3),
+              action: SnackBarAction(
+                label: 'Launch QR',
+                textColor: const Color(0xFF38BDF8),
+                onPressed: () {
+                  messenger.hideCurrentSnackBar();
+                  navigator.push(
+                    MaterialPageRoute(
+                      builder: (_) => TeacherDynamicQrScreen(
+                        sessionId: newSessionId,
+                        classRoomName: className,
+                      ),
+                    ),
+                  );
+                },
+              ),
             ),
-          ),
-        );
+          );
+        }
       }
     } on DioException catch (e) {
       final msg = e.response?.data?['error'] ??
@@ -513,27 +532,34 @@ class _TeacherCreateSessionSheetState extends ConsumerState<TeacherCreateSession
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Create Class Session',
-                        style: GoogleFonts.outfit(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w800,
-                          color: const Color(0xFF10213E),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Create Class Session',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.outfit(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w800,
+                            color: const Color(0xFF10213E),
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Start an on-demand session & live attendance',
-                        style: GoogleFonts.inter(
-                          fontSize: 13,
-                          color: const Color(0xFF64748B),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Start an on-demand session & live attendance',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.inter(
+                            fontSize: 13,
+                            color: const Color(0xFF64748B),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: 12),
                   Container(
                     width: 44,
                     height: 44,
@@ -711,15 +737,18 @@ class _TeacherCreateSessionSheetState extends ConsumerState<TeacherCreateSession
                     children: [
                       const Icon(Icons.calendar_month_rounded, color: Color(0xFF2563EB), size: 20),
                       const SizedBox(width: 10),
-                      Text(
-                        DateFormat('EEEE, MMMM d, yyyy').format(_selectedDate),
-                        style: GoogleFonts.inter(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: const Color(0xFF10213E),
+                      Expanded(
+                        child: Text(
+                          DateFormat('EEEE, MMMM d, yyyy').format(_selectedDate),
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.inter(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF10213E),
+                          ),
                         ),
                       ),
-                      const Spacer(),
+                      const SizedBox(width: 8),
                       const Icon(Icons.edit_calendar_outlined, size: 18, color: Color(0xFF94A3B8)),
                     ],
                   ),
@@ -837,39 +866,48 @@ class _TeacherCreateSessionSheetState extends ConsumerState<TeacherCreateSession
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(6),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFEFF6FF),
-                                borderRadius: BorderRadius.circular(8),
+                        Expanded(
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFEFF6FF),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Icon(Icons.qr_code_2_rounded, size: 18, color: Color(0xFF2563EB)),
                               ),
-                              child: const Icon(Icons.qr_code_2_rounded, size: 18, color: Color(0xFF2563EB)),
-                            ),
-                            const SizedBox(width: 10),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Auto-Generate Dynamic QR',
-                                  style: GoogleFonts.inter(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                    color: const Color(0xFF10213E),
-                                  ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Auto-Generate Dynamic QR',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: GoogleFonts.inter(
+                                        fontSize: 13.5,
+                                        fontWeight: FontWeight.w600,
+                                        color: const Color(0xFF10213E),
+                                      ),
+                                    ),
+                                    Text(
+                                      'Rotates code to prevent proxy check-ins',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: GoogleFonts.inter(
+                                        fontSize: 11,
+                                        color: const Color(0xFF64748B),
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                Text(
-                                  'Rotates code to prevent proxy check-ins',
-                                  style: GoogleFonts.inter(
-                                    fontSize: 11,
-                                    color: const Color(0xFF64748B),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
+                              ),
+                            ],
+                          ),
                         ),
+                        const SizedBox(width: 8),
                         Switch.adaptive(
                           value: _autoGenerateQr,
                           activeTrackColor: const Color(0xFF2563EB),
@@ -988,12 +1026,16 @@ class _TeacherCreateSessionSheetState extends ConsumerState<TeacherCreateSession
                               children: [
                                 const Icon(Icons.rocket_launch_rounded, color: Colors.white, size: 18),
                                 const SizedBox(width: 8),
-                                Text(
-                                  'Create & Start',
-                                  style: GoogleFonts.outfit(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
+                                Flexible(
+                                  child: Text(
+                                    'Create & Start',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: GoogleFonts.outfit(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
                                   ),
                                 ),
                               ],

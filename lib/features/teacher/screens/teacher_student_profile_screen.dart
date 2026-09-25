@@ -359,12 +359,15 @@ class _TeacherStudentProfileScreenState extends ConsumerState<TeacherStudentProf
               ),
             ),
             const SizedBox(height: 6),
-            Text(
-              value,
-              style: GoogleFonts.outfit(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: valueColor,
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                value,
+                style: GoogleFonts.outfit(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: valueColor,
+                ),
               ),
             ),
           ],
@@ -384,12 +387,18 @@ class _TeacherStudentProfileScreenState extends ConsumerState<TeacherStudentProf
             color: const Color(0xFF64748B),
           ),
         ),
-        Text(
-          value,
-          style: GoogleFonts.inter(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: const Color(0xFF10213E),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            value,
+            textAlign: TextAlign.end,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: GoogleFonts.inter(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF10213E),
+            ),
           ),
         ),
       ],
@@ -407,54 +416,61 @@ class _TeacherStudentProfileScreenState extends ConsumerState<TeacherStudentProf
             color: const Color(0xFF64748B),
           ),
         ),
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              phone,
-              style: GoogleFonts.inter(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: const Color(0xFF10213E),
-              ),
-            ),
-            const SizedBox(width: 8),
-            InkWell(
-              borderRadius: BorderRadius.circular(8),
-              onTap: () async {
-                final clean = phone.replaceAll(RegExp(r'[^\d+]'), '');
-                if (clean.isNotEmpty) {
-                  final uri = Uri.parse('tel:$clean');
-                  try {
-                    await launchUrl(uri);
-                  } catch (_) {}
-                }
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEFF6FF),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFFDBEAFE)),
+        const SizedBox(width: 8),
+        Flexible(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(
+                child: Text(
+                  phone,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF10213E),
+                  ),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.phone_rounded, size: 12, color: Color(0xFF2563EB)),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Call',
-                      style: GoogleFonts.inter(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: const Color(0xFF2563EB),
+              ),
+              const SizedBox(width: 8),
+              InkWell(
+                borderRadius: BorderRadius.circular(8),
+                onTap: () async {
+                  final clean = phone.replaceAll(RegExp(r'[^\d+]'), '');
+                  if (clean.isNotEmpty) {
+                    final uri = Uri.parse('tel:$clean');
+                    try {
+                      await launchUrl(uri);
+                    } catch (_) {}
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEFF6FF),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFDBEAFE)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.phone_rounded, size: 12, color: Color(0xFF2563EB)),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Call',
+                        style: GoogleFonts.inter(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF2563EB),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ],
     );
@@ -471,54 +487,61 @@ class _TeacherStudentProfileScreenState extends ConsumerState<TeacherStudentProf
             color: const Color(0xFF64748B),
           ),
         ),
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              telegramId.startsWith('@') ? telegramId : '@$telegramId',
-              style: GoogleFonts.inter(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: const Color(0xFF0284C7),
-              ),
-            ),
-            const SizedBox(width: 8),
-            InkWell(
-              borderRadius: BorderRadius.circular(8),
-              onTap: () async {
-                final clean = telegramId.replaceAll('@', '').trim();
-                if (clean.isNotEmpty) {
-                  final uri = Uri.parse('https://t.me/$clean');
-                  try {
-                    await launchUrl(uri, mode: LaunchMode.externalApplication);
-                  } catch (_) {}
-                }
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE0F2FE),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFFBAE6FD)),
+        const SizedBox(width: 8),
+        Flexible(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(
+                child: Text(
+                  telegramId.startsWith('@') ? telegramId : '@$telegramId',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF0284C7),
+                  ),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.send_rounded, size: 12, color: Color(0xFF0284C7)),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Message',
-                      style: GoogleFonts.inter(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: const Color(0xFF0284C7),
+              ),
+              const SizedBox(width: 8),
+              InkWell(
+                borderRadius: BorderRadius.circular(8),
+                onTap: () async {
+                  final clean = telegramId.replaceAll('@', '').trim();
+                  if (clean.isNotEmpty) {
+                    final uri = Uri.parse('https://t.me/$clean');
+                    try {
+                      await launchUrl(uri, mode: LaunchMode.externalApplication);
+                    } catch (_) {}
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE0F2FE),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFBAE6FD)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.send_rounded, size: 12, color: Color(0xFF0284C7)),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Message',
+                        style: GoogleFonts.inter(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF0284C7),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ],
     );

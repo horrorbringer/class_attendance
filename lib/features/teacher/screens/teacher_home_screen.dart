@@ -321,12 +321,16 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen> {
                               ),
                             ),
                             const SizedBox(width: 5),
-                            Text(
-                              'Active & Syncing Live',
-                              style: GoogleFonts.inter(
-                                fontSize: 11.5,
-                                color: const Color(0xFF64748B),
-                                fontWeight: FontWeight.w500,
+                            Flexible(
+                              child: Text(
+                                'Active & Syncing Live',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.inter(
+                                  fontSize: 11.5,
+                                  color: const Color(0xFF64748B),
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
                             ),
                           ],
@@ -749,12 +753,16 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen> {
                 timeStr,
                 style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF64748B), fontWeight: FontWeight.w500),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               const Icon(Icons.location_on_outlined, size: 14, color: Color(0xFF64748B)),
               const SizedBox(width: 4),
-              Text(
-                roomName,
-                style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF64748B), fontWeight: FontWeight.w500),
+              Expanded(
+                child: Text(
+                  roomName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF64748B), fontWeight: FontWeight.w500),
+                ),
               ),
             ],
           ),
@@ -1266,6 +1274,7 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen> {
                 className: title,
                 scheduleTime: time,
                 room: room,
+                isEnded: !isLive && rate.toLowerCase().contains('ended'),
               ),
             ),
           );

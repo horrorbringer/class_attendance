@@ -944,27 +944,30 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   Widget _buildFooterStatus() {
     return Center(
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 7,
-            height: 7,
-            decoration: const BoxDecoration(
-              color: AppTheme.present,
-              shape: BoxShape.circle,
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 7,
+              height: 7,
+              decoration: const BoxDecoration(
+                color: AppTheme.present,
+                shape: BoxShape.circle,
+              ),
             ),
-          ),
-          const SizedBox(width: 6),
-          Text(
-            'Secure Campus Cloud • student-attendance.vanny.monster',
-            style: GoogleFonts.inter(
-              fontSize: 10.5,
-              fontWeight: FontWeight.w500,
-              color: const Color(0xFF94A3B8),
+            const SizedBox(width: 6),
+            Text(
+              'Secure Campus Cloud • student-attendance.vanny.monster',
+              style: GoogleFonts.inter(
+                fontSize: 10.5,
+                fontWeight: FontWeight.w500,
+                color: const Color(0xFF94A3B8),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -196,12 +196,16 @@ class _TeacherClassesScreenState extends ConsumerState<TeacherClassesScreen> {
                                   ),
                                 ),
                                 const SizedBox(width: 8),
-                                Text(
-                                  '3 Active classes today',
-                                  style: GoogleFonts.inter(
-                                    fontSize: 12,
-                                    color: const Color(0xFF64748B),
-                                    fontWeight: FontWeight.w500,
+                                Expanded(
+                                  child: Text(
+                                    '3 Active classes today',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: GoogleFonts.inter(
+                                      fontSize: 12,
+                                      color: const Color(0xFF64748B),
+                                      fontWeight: FontWeight.w500,
+                                    ),
                                   ),
                                 ),
                               ],
@@ -233,41 +237,50 @@ class _TeacherClassesScreenState extends ConsumerState<TeacherClassesScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        Text(
-                          'Today\'s Schedule',
-                          style: GoogleFonts.outfit(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w800,
-                            color: const Color(0xFF10213E),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        if (_sessions.isNotEmpty)
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFEFF6FF),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
+                    Expanded(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(
                             child: Text(
-                              '${_sessions.length}',
-                              style: GoogleFonts.inter(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: const Color(0xFF2563EB),
+                              'Today\'s Schedule',
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                              style: GoogleFonts.outfit(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                                color: const Color(0xFF10213E),
                               ),
                             ),
                           ),
-                      ],
+                          const SizedBox(width: 6),
+                          if (_sessions.isNotEmpty)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFEFF6FF),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                '${_sessions.length}',
+                                style: GoogleFonts.inter(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFF2563EB),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
+                    const SizedBox(width: 8),
                     Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
                           todayFormatted,
                           style: GoogleFonts.inter(
-                            fontSize: 13,
+                            fontSize: 12,
                             color: const Color(0xFF64748B),
                             fontWeight: FontWeight.w500,
                           ),
@@ -477,6 +490,7 @@ class _TeacherClassesScreenState extends ConsumerState<TeacherClassesScreen> {
                 className: item['name'] as String,
                 scheduleTime: item['time'] as String,
                 room: item['room'] as String,
+                isEnded: item['isAmber'] as bool? ?? false,
               ),
             ),
           );
@@ -564,13 +578,18 @@ class _TeacherClassesScreenState extends ConsumerState<TeacherClassesScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    item['students'] as String,
-                    style: GoogleFonts.inter(
-                      fontSize: 12,
-                      color: const Color(0xFF94A3B8),
+                  Flexible(
+                    child: Text(
+                      item['students'] as String,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        color: const Color(0xFF94A3B8),
+                      ),
                     ),
                   ),
+                  const SizedBox(width: 8),
                   Text(
                     item['absent'] as String,
                     style: GoogleFonts.inter(
@@ -587,19 +606,26 @@ class _TeacherClassesScreenState extends ConsumerState<TeacherClassesScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.location_on_outlined, size: 15, color: Color(0xFF94A3B8)),
-                      const SizedBox(width: 4),
-                      Text(
-                        item['room'] as String,
-                        style: GoogleFonts.inter(
-                          fontSize: 13,
-                          color: const Color(0xFF64748B),
+                  Expanded(
+                    child: Row(
+                      children: [
+                        const Icon(Icons.location_on_outlined, size: 15, color: Color(0xFF94A3B8)),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            item['room'] as String,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.inter(
+                              fontSize: 13,
+                              color: const Color(0xFF64748B),
+                            ),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: 8),
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
