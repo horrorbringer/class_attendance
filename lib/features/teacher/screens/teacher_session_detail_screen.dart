@@ -435,18 +435,24 @@ class _TeacherSessionDetailScreenState extends ConsumerState<TeacherSessionDetai
             onPressed: () async {
               Navigator.pop(ctx);
               try {
-                // Submit final bulk attendance snapshot before ending session
-                final bulkRecords = _students.map((s) => BulkAttendanceItem(
-                  studentId: s.studentId,
-                  status: s.status,
-                )).toList();
+                // Submit final bulk attendance snapshot for marked students before ending session
+                final bulkRecords = _students
+                    .where((s) => s.status == 'present' || s.status == 'late' || s.status == 'absent')
+                    .map((s) => BulkAttendanceItem(
+                      studentId: s.studentId,
+                      status: s.status,
+                    )).toList();
                 
                 final repo = ref.read(teacherRepositoryProvider);
                 if (bulkRecords.isNotEmpty) {
-                  await repo.submitBulkAttendance(
-                    sessionId: widget.sessionId,
-                    records: bulkRecords,
-                  );
+                  try {
+                    await repo.submitBulkAttendance(
+                      sessionId: widget.sessionId,
+                      records: bulkRecords,
+                    );
+                  } catch (bulkErr) {
+                    debugPrint('Warning: bulk attendance pre-submit error: $bulkErr');
+                  }
                 }
                 await repo.endSession(widget.sessionId);
                 if (mounted) {
